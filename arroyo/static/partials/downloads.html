@@ -1,0 +1,17 @@
+<h2>Downloads</h2>
+<ul class="list-group">
+
+		<li class="list-group-item" ng-repeat="download in downloads">
+			<strong>{{download.name}}</strong>
+			<div class="status status-{{download.state_name}}">{{download.state_name}}</div>
+			<div class="progress">
+				<div class="progress-bar" role="progressbar" aria-valuenow="{{download.progress}}" aria-valuemin="0" aria-valuemax="100" style="width: {{download.progress}}%;">
+					<span class="-sr-only">{{download.progress}}%</span>
+				</div>
+			</div>
+			<a ng-click="removeDownload(download.id)" type="button" class="btn btn-danger">Cancel</a>
+		</li>
+</div>
+
+
+</ul>

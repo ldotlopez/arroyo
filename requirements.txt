@@ -1,0 +1,14 @@
+# Core
+pyxdg
+feedparser
+beautifulsoup4
+sqlalchemy
+path.py
+transmissionrpc
+guessit
+blinker
+-e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
+
+# Webui 
+flask
+-e git+https://github.com/tomchristie/flask-api#egg=Flask-API
