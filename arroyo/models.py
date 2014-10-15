@@ -8,13 +8,15 @@ from urllib import parse
 
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import schema
+from sqlalchemy.ext import declarative
 from sqlalchemy.orm import relationship
 
-from ldotcommons import sqlalchemy as ldotsa
 from ldotcommons import utils
 
+Base = declarative.declarative_base()
 
-class Source(ldotsa.Base):
+
+class Source(Base):
     __tablename__ = 'source'
 
     class State:
@@ -91,7 +93,7 @@ class Source(ldotsa.Base):
 
 # guessit returns episodeList attribute if more than one episode is detected.
 # take care of this
-class Episode(ldotsa.Base):
+class Episode(Base):
     __tablename__ = 'episode'
     __table_args__ = (
         schema.UniqueConstraint('series', 'year', 'season', 'episode_number'),
@@ -112,7 +114,7 @@ class Episode(ldotsa.Base):
             (self.series, self.year or '????', self.season, self.episode_number)
 
 
-class Movie(ldotsa.Base):
+class Movie(Base):
     __tablename__ = 'movie'
     __table_args__ = (
         schema.UniqueConstraint('title', 'year'),
