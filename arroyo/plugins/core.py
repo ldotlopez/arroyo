@@ -176,8 +176,8 @@ class AnalizeCommand:
                     setattr(obj, key, src[key])
                 ret['updated-sources'].append(obj)
 
-            # signal_name = 'source-updated' if obj else 'source-added'
-            # signals.SIGNALS[signal_name].send(source=obj)
+            signal_name = 'source-updated' if obj else 'source-added'
+            signals.SIGNALS[signal_name].send(source=obj)
 
         app.db.session.commit()
 

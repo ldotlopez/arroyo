@@ -138,6 +138,9 @@ class Arroyo:
                 self.config.add_section(plugin_section)
             self.config.set(plugin_section, 'enabled', 'true')
 
+    def register_plugin(self, plugin_cls):
+        self._plugins[plugin_cls.name] = plugin_cls()
+
     def register_command(self, cmd_cls):
         command_parser = self._cmd_parser.add_parser(cmd_cls.name)
         for argument in cmd_cls.arguments:
