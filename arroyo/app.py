@@ -22,41 +22,147 @@ class ReadOnlyProperty(Exception):
     pass
 
 
+def _build_parser_base():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '--config-file',
+        dest='config_file',
+        default=utils.prog_basic_configfile())
+    parser.add_argument(
+        '--db-uri',
+        dest='db_uri',
+        default='sqlite:///' + utils.prog_datafile('arroyo.db', create=True))
+    parser.add_argument(
+        '--plugin',
+        dest='plugins',
+        action='append',
+        nargs=1,
+        default=[])
+    parser.add_subparsers(
+        title='subcommands',
+        dest='subcommand',
+        description='valid subcommands',
+        help='additional help')
+    return parser
+
+
+def parse_options():
+    """
+    Parse those options that are essentials and very influential in App's
+    behaviour
+    """
+    parser = _build_parser_base()
+
+    basic_args, remaining_args = parser.parse_known_args()
+    basic_args.plugins = list(chain.from_iterable(basic_args.plugins))
+
+    config = configparser.ConfigParser()
+    config.read(basic_args.config_file)
+
+ 
+
+    return config
+
+
 class ArroyoNG(metaclass=utils.SingletonMetaclass):
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, db_uri='sqlite:///:memory:'):
         super(ArroyoNG, self).__init__()
 
-        self.db = Db()
+        # Built-in providers
+        self.db = db_uri
+        self._downloader = None
 
+        # Support structures for arguments and configs
+        self.arguments = argparse.Namespace()
+        self.config = configparser.ConfigParser()
+        self.config.add_section('main')
+
+        # Support structures for plugins
         self._plugins = {}
         self._commands = {}
 
-        self._config_parser = configparser.ConfigParser()
-
-        self._global_arg_parser = argparse.ArgumentParser(add_help=False)
-        self._global_arg_parser.add_argument(
-            '--config',
+        # Build basic argument parser, plugins will add their options
+        self._arg_parser = argparse.ArgumentParser()
+        self._arg_parser.add_argument(
+            '--config-file',
             dest='config_file',
             default=utils.prog_basic_configfile())
-        self._global_arg_parser.add_argument(
+        self._arg_parser.add_argument(
+            '--db-uri',
+            dest='db_uri',
+            default='sqlite:///' + utils.prog_datafile('arroyo.db', create=True))
+        self._arg_parser.add_argument(
             '--plugin',
             dest='plugins',
             action='append',
             nargs=1,
             default=[])
-        self._global_arg_parser.add_argument(
-            '--db-uri',
-            dest='db_uri',
-            default=utils.prog_datafile('arroyo.db', create=True))
-
-        self._arg_parser = argparse.ArgumentParser()
-        self._subparsers = self._arg_parser.add_subparsers(
+        self._cmd_parser = self._arg_parser.add_subparsers(
             title='subcommands',
             dest='subcommand',
             description='valid subcommands',
             help='additional help')
 
-    def load_plugins(self, *plugins):
+    @property
+    def db(self):
+        return self._db
+
+    @db.setter
+    def db(self, db_uri):
+        try:
+            self._db = Db(db_uri) if db_uri else None
+        except exc.ArgumentError:
+            raise ValueError()
+
+    @property
+    def downloader(self):
+        if not self._downloader:
+            raise Exception('db not configured')
+
+        return self._downloader
+
+    @downloader.setter
+    def downloader(self):
+        raise ValueError()
+
+    def parse_arguments(self, arguments=None, apply=True):
+        self.arguments = self._arg_parser.parse_args(arguments)
+
+        # Load config file if it is specified in arguments
+        if self.arguments.config_file:
+            self.parse_config(self.arguments.config_file, apply=False)
+
+        # Sync db-uri
+        self.config.set('main', 'db-uri', self.arguments.db_uri)
+
+        # Handle plugins
+        self.arguments.plugins = chain.from_iterable(self.arguments.plugins)
+        self.load_plugin(*self.arguments.plugins)
+
+        if apply:
+            self._apply_settings()
+
+    def parse_config(self, config_file, apply=True):
+        if config_file is None:
+            return
+
+        read = self.config.read(config_file)
+        if not read or read[0] != config_file:
+            _logger.warning("'{config_file}' can't be read".format(
+                config_file=config_file))
+
+        if apply:
+            self._apply_settings()
+
+    def _apply_settings(self):
+        """
+        Aplies global settings from arguments and config
+        """
+
+        # Note: Global options are in sync from arguments so there is no need of additional checks
+        self.db = self.config.get('main', 'db-uri')
+
+    def load_plugin(self, *plugins):
         plugin_factory = utils.ModuleFactory('arroyo.plugins')
 
         for p in [p for p in plugins if p not in self._plugins]:
@@ -64,9 +170,16 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
                 self._plugins[p] = plugin_factory(p)
             except KeyError:
                 _logger.warning("Plugin '{name}' missing".format(name=p))
+                continue
+
+            # Build config section
+            plugin_section = 'plugin.' + p
+            if not self.config.has_section(plugin_section):
+                self.config.add_section(plugin_section)
+            self.config.set(plugin_section, 'enabled', 'true')
 
     def register_command(self, cmd_cls):
-        command_parser = self._subparsers.add_parser(cmd_cls.name)
+        command_parser = self._cmd_parser.add_parser(cmd_cls.name)
         for argument in cmd_cls.arguments:
             args, kwargs = argument()
             command_parser.add_argument(*args, **kwargs)
@@ -74,41 +187,20 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
         self._commands[cmd_cls.name] = cmd_cls
         _logger.info("Command '{name}' registered".format(name=cmd_cls.name))
 
-    def _parse_arguments(self, arguments=None):
-        args, remaining_args = self._global_arg_parser.parse_known_args(
-            arguments)
-        args.plugins = list(chain.from_iterable(args.plugins))
-        self.load_plugins(*args.plugins)
-        if args.config_file:
-            self._parse_config_file(args.config_file)
-
-        args = self._arg_parser.parse_args(remaining_args)
-        if not args.subcommand:
-            self._arg_parser.print_help()
-            sys.exit(2)
-
-        return args
-
-    def _parse_config_file(self, config_file_path):
-        read = self._config_parser.read(config_file_path)
-        if not read or read[0] != config_file_path:
-            _logger.warning("unable to read '{path}'".format(
-                path=config_file_path))
-
     def run(self, arguments=None):
-        args = self._parse_arguments(arguments)
-        self.run_command(args.subcommand)
+        if not self.arguments.subcommand:
+            self._arg_parser.print_help()
+            return
+
+        self.run_command(self.arguments.subcommand)
 
     def run_command(self, command):
-        try:
-            self._commands[command]().run()
-        except KeyError:
-            _logger.error("subcommand '{name}' not found".format(name=command))
+        self._commands[command]().run()
 
 
 class Db:
     def __init__(self, db_uri='sqlite:////:memory:'):
-        engine = sqlalchemy.create_engine('sqlite:///:memory:')
+        engine = sqlalchemy.create_engine(db_uri)
         sessmaker = orm.sessionmaker()
         sessmaker.configure(bind=engine)
         models.Base.metadata.create_all(engine)
@@ -171,7 +263,7 @@ class Db:
         self.session.commit()
 
 app = ArroyoNG()
-app.load_plugins('core')
+app.load_plugin('core')
 
 
 __all__ = ['app']
