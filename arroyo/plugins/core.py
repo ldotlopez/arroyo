@@ -2,9 +2,9 @@ from urllib import parse
 
 from ldotcommons import fetchers, logging, sqlalchemy as ldotsa, utils
 
-from arroyo import importers, models, signals
+import arroyo
+from arroyo import importers, signals, models, plugins
 from arroyo.app import app
-from arroyo.plugins import argument, ArgumentError, SourceNotFound
 
 
 _logger = logging.get_logger('arroyo.plugins.core')
@@ -72,29 +72,29 @@ class AnalizeCommand:
     help = 'Analize an origin merging discovered sources into the database'
 
     arguments = (
-        argument(
+        plugins.argument(
             '-a', '--analizer',
             dest='analizer',
             type=str,
             help='analizer to run'),
-        argument(
+        plugins.argument(
             '-u', '--url',
             dest='url',
             type=str,
             default=None,
             help='Seed URL'),
-        argument(
+        plugins.argument(
             '-i', '--iterations',
             dest='iterations',
             type=int,
             help='iterations to run',
             default=1),
-        argument(
+        plugins.argument(
             '-t', '--type',
             dest='type',
             type=str,
             help='force type of found sources'),
-        argument(
+        plugins.argument(
             '-l', '--language',
             dest='language',
             type=str,
@@ -110,19 +110,19 @@ class AnalizeCommand:
 
         if analizer_name and isinstance(analizer_name, str):
             if not isinstance(seed_url, (str, type(None))):
-                raise ArgumentError(
+                raise plugins.ArgumentError(
                     'seed_url must be an string or None')
 
             if not isinstance(iterations, int) or iterations < 1:
-                raise ArgumentError(
+                raise plugins.ArgumentError(
                     'iterations must be an integer greater than 1')
 
             if not isinstance(typ, (str, type(None))):
-                raise ArgumentError(
+                raise plugins.ArgumentError(
                     'type must be an string or None')
 
             if not isinstance(language, (str, type(None))):
-                raise ArgumentError(
+                raise plugins.ArgumentError(
                     'languge must be an string or None')
 
             origins = {
@@ -139,7 +139,7 @@ class AnalizeCommand:
             origins = _sub_config_dict('origin')
 
         if not origins:
-            raise ArgumentError("No origins specified")
+            raise plugins.ArgumentError("No origins specified")
 
         sources = []
         for (origin_name, opts) in origins.items():
@@ -236,19 +236,19 @@ class QueryCommand:
     name = 'query'
     help = 'Advanced search'
     arguments = (
-        argument(
+        plugins.argument(
             '-f', '--filter',
             dest='filters',
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
-        argument(
+        plugins.argument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
             help='Include all results ' +
                  '(by default only sources with NONE state are displayed)'),
-        argument(
+        plugins.argument(
             '-p', '--push',
             dest='push',
             action='store_true',
@@ -267,7 +267,7 @@ class QueryCommand:
             queries = _sub_config_dict('query')
 
         if not queries:
-            raise ArgumentError("No query specified")
+            raise plugins.ArgumentError("No query specified")
 
         sync()
 
@@ -292,13 +292,13 @@ class QueryCommand:
 
 def query(filters, all_states=False):
     if not filters:
-        raise ArgumentError('Al least one filter is needed')
+        raise plugins.ArgumentError('Al least one filter is needed')
 
     if not isinstance(filters, dict):
-        raise ArgumentError('Filters must be a dictionary')
+        raise plugins.ArgumentError('Filters must be a dictionary')
 
     if not isinstance(all_states, bool):
-        raise ArgumentError('all_states parameter must be a bool')
+        raise plugins.ArgumentError('all_states parameter must be a bool')
 
     # FIXME: Use 'filter' plugins here
     query = ldotsa.query_from_params(app.db.session, models.Source, **filters)
@@ -312,37 +312,37 @@ class DbCommand:
     name = 'db'
     help = 'Database commands'
     arguments = (
-        argument(
+        plugins.argument(
             '--shell',
             dest='shell',
             action='store_true',
             help='Start a interactive python interpreter in the db ' +
                  'environment'),
 
-        argument(
+        plugins.argument(
             '--reset-db',
             dest='reset',
             action='store_true',
             help='Empty db'),
 
-        argument(
+        plugins.argument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
             help='Sets state to NONE on all sources'),
 
-        argument(
+        plugins.argument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
             help='Sets state to ARCHIVED on all sources'),
 
-        argument(
+        plugins.argument(
             '--reset',
             dest='reset_source_id',
             help='Reset state of a source'),
 
-        argument(
+        plugins.argument(
             '--archive',
             dest='archive_source_id',
             help='Archive a source')
@@ -364,11 +364,11 @@ def db_command(reset=False, shell=False, reset_states=False, archive_all=False,
                         reset_source_id, archive_source_id) if x]
 
     if sum(test) == 0:
-        raise ArgumentError('No action specified')
+        raise plugins.ArgumentError('No action specified')
 
     elif sum(test) > 1:
         msg = 'Just one option can be specified at one time'
-        raise ArgumentError(msg)
+        raise plugins.ArgumentError(msg)
 
     if reset:
         app.db.reset()
@@ -421,18 +421,18 @@ class DownloadsCommand:
     name = 'downloads'
     help = 'Show and manage downloads'
     arguments = (
-        argument(
+        plugins.argument(
             '-l', '--list',
             dest='show',
             action='store_true',
             help='Show current downloads'),
 
-        argument(
+        plugins.argument(
             '-a', '--add',
             dest='add',
             help='Download a source ID'),
 
-        argument(
+        plugins.argument(
             '-r', '--remove',
             dest='remove',
             help='Cancel (and/or remove) a source ID')
@@ -466,13 +466,13 @@ class DownloadsCommand:
 def downloads(show=False, add=False, remove=False, source_id=None):
     if sum([1 if x else 0 for x in [show, add, remove]]) != 1:
         msg = 'Only one option from show/add/remove is allowed'
-        raise ArgumentError(msg)
+        raise plugins.ArgumentError(msg)
 
     need_source_id = (add or remove)
     valid_source_id = isinstance(source_id, str) and source_id != ''
 
     if need_source_id and not valid_source_id:
-        raise ArgumentError('Invalid source id')
+        raise plugins.ArgumentError('Invalid source id')
 
     if show:
         for src in app.db.get_active():

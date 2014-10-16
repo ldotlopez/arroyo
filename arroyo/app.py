@@ -14,18 +14,8 @@ from arroyo import models, plugins, signals, downloaders
 _logger = logging.get_logger('app')
 
 
-class SourceNotFound(Exception):
-    pass
-
-
-class ReadOnlyProperty(Exception):
-    pass
-
-
-class ArroyoNG:
+class Arroyo:
     def __init__(self, *args, db_uri='sqlite:///:memory:', downloader='mock'):
-        super(ArroyoNG, self).__init__()
-
         # Built-in providers
         self.db = db_uri
         self.downloader = downloader
@@ -137,8 +127,9 @@ class ArroyoNG:
             try:
                 module_name = 'arroyo.plugins.' + p
                 self._plugins[p] = importlib.import_module(module_name)
-            except ImportError:
+            except ImportError as e:
                 _logger.warning("Plugin '{name}' missing".format(name=p))
+                _logger.warning(e)
                 continue
 
             # Build config section
@@ -300,7 +291,7 @@ class Downloader:
         return ret
 
 
-app = ArroyoNG()
+app = Arroyo()
 app.load_plugin('core')
 
 

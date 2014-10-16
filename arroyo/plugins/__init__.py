@@ -6,10 +6,6 @@ class ArgumentError(Exception):
         super(ArgumentError, self).__init__(msg, *args, **kwargs)
 
 
-def SourceNotFound(Exception):
-    pass
-
-
 def argument(*args, **kwargs):
     """argparse argument wrapper to ease the command argument definitions"""
     def wrapped_arguments():

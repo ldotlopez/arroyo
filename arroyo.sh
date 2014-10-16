@@ -6,7 +6,7 @@ if [ "${D:0:1}" != "/" ]; then
 fi
 
 source "$D/env/bin/activate"
-PYTHONPATH="$D" python3 "$D/test-ng.py" \
+PYTHONPATH="$D" python3 "$D/arroyo/__main__.py" \
 	--db-uri sqlite:///"$D/arroyo.db" \
 	--config-file "$D/arroyo.ini" \
 	"$@" 
