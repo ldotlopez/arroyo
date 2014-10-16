@@ -24,8 +24,8 @@ _logger = logging.get_logger('downloader.transmission')
 
 class Downloader:
 
-    def __init__(self, session, *args, **kwargs):
-        self._sess = session
+    def __init__(self, db_session, *args, **kwargs):
+        self._sess = db_session
 
         try:
             self._api = transmissionrpc.Client(**kwargs)
@@ -61,7 +61,8 @@ class Downloader:
     def get_state(self, tr_obj):
         # stopped status can mean:
         # - if progress is less that 100, source is paused
-        # - if progress is 100, source can be paused or seeding completed isFinished attr can handle this
+        # - if progress is 100, source can be paused or seeding completed
+        #   isFinished attr can handle this
         if tr_obj.status == 'stopped':
             if tr_obj.progress < 100:
                 return models.Source.State.PAUSED

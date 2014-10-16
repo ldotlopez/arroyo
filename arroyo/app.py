@@ -1,14 +1,14 @@
 import argparse
 import configparser
+import importlib
 from itertools import chain
-import sys
 
 import sqlalchemy
 from sqlalchemy import exc, orm
 
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
-from arroyo import models
+from arroyo import models, plugins, signals, downloaders
 
 
 _logger = logging.get_logger('app')
@@ -22,55 +22,13 @@ class ReadOnlyProperty(Exception):
     pass
 
 
-def _build_parser_base():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        '--config-file',
-        dest='config_file',
-        default=utils.prog_basic_configfile())
-    parser.add_argument(
-        '--db-uri',
-        dest='db_uri',
-        default='sqlite:///' + utils.prog_datafile('arroyo.db', create=True))
-    parser.add_argument(
-        '--plugin',
-        dest='plugins',
-        action='append',
-        nargs=1,
-        default=[])
-    parser.add_subparsers(
-        title='subcommands',
-        dest='subcommand',
-        description='valid subcommands',
-        help='additional help')
-    return parser
-
-
-def parse_options():
-    """
-    Parse those options that are essentials and very influential in App's
-    behaviour
-    """
-    parser = _build_parser_base()
-
-    basic_args, remaining_args = parser.parse_known_args()
-    basic_args.plugins = list(chain.from_iterable(basic_args.plugins))
-
-    config = configparser.ConfigParser()
-    config.read(basic_args.config_file)
-
- 
-
-    return config
-
-
-class ArroyoNG(metaclass=utils.SingletonMetaclass):
-    def __init__(self, *args, db_uri='sqlite:///:memory:'):
+class ArroyoNG:
+    def __init__(self, *args, db_uri='sqlite:///:memory:', downloader='mock'):
         super(ArroyoNG, self).__init__()
 
         # Built-in providers
         self.db = db_uri
-        self._downloader = None
+        self.downloader = downloader
 
         # Support structures for arguments and configs
         self.arguments = argparse.Namespace()
@@ -83,20 +41,27 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
 
         # Build basic argument parser, plugins will add their options
         self._arg_parser = argparse.ArgumentParser()
+
         self._arg_parser.add_argument(
             '--config-file',
             dest='config_file',
             default=utils.prog_basic_configfile())
+
         self._arg_parser.add_argument(
             '--db-uri',
-            dest='db_uri',
-            default='sqlite:///' + utils.prog_datafile('arroyo.db', create=True))
+            dest='db_uri')
+
+        self._arg_parser.add_argument(
+            '--downloader',
+            dest='downloader')
+
         self._arg_parser.add_argument(
             '--plugin',
             dest='plugins',
             action='append',
             nargs=1,
             default=[])
+
         self._cmd_parser = self._arg_parser.add_subparsers(
             title='subcommands',
             dest='subcommand',
@@ -116,14 +81,15 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
 
     @property
     def downloader(self):
-        if not self._downloader:
-            raise Exception('db not configured')
-
         return self._downloader
 
     @downloader.setter
-    def downloader(self):
-        raise ValueError()
+    def downloader(self, value):
+        if not value:
+            self._downloader = None
+            return
+
+        self._downloader = Downloader(value, db_session=self.db.session)
 
     def parse_arguments(self, arguments=None, apply=True):
         self.arguments = self._arg_parser.parse_args(arguments)
@@ -131,9 +97,6 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
         # Load config file if it is specified in arguments
         if self.arguments.config_file:
             self.parse_config(self.arguments.config_file, apply=False)
-
-        # Sync db-uri
-        self.config.set('main', 'db-uri', self.arguments.db_uri)
 
         # Handle plugins
         self.arguments.plugins = chain.from_iterable(self.arguments.plugins)
@@ -159,16 +122,22 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
         Aplies global settings from arguments and config
         """
 
-        # Note: Global options are in sync from arguments so there is no need of additional checks
-        self.db = self.config.get('main', 'db-uri')
+        self.db = \
+            self.arguments.db_uri or \
+            self.config.get('main', 'db-uri') or \
+            'sqlite:///' + utils.prog_datafile('arroyo.db', create=True)
+
+        self.downloader = \
+            self.arguments.downloader or \
+            self.config.get('main', 'downloader') or \
+            'mock'
 
     def load_plugin(self, *plugins):
-        plugin_factory = utils.ModuleFactory('arroyo.plugins')
-
         for p in [p for p in plugins if p not in self._plugins]:
             try:
-                self._plugins[p] = plugin_factory(p)
-            except KeyError:
+                module_name = 'arroyo.plugins.' + p
+                self._plugins[p] = importlib.import_module(module_name)
+            except ImportError:
                 _logger.warning("Plugin '{name}' missing".format(name=p))
                 continue
 
@@ -195,7 +164,10 @@ class ArroyoNG(metaclass=utils.SingletonMetaclass):
         self.run_command(self.arguments.subcommand)
 
     def run_command(self, command):
-        self._commands[command]().run()
+        try:
+            self._commands[command]().run()
+        except plugins.ArgumentError as e:
+            _logger.error(e)
 
 
 class Db:
@@ -261,6 +233,72 @@ class Db:
         source = self.get_source_by_id(id_)
         source.state = state
         self.session.commit()
+
+
+class Downloader:
+
+    def __init__(self, downloader_name, db_session):
+        self._sess = db_session
+
+        backend_name = 'arroyo.downloaders.' + downloader_name
+        backend_mod = importlib.import_module(backend_name)
+        backend_cls = getattr(backend_mod, 'Downloader')
+
+        self._backend = backend_cls(db_session=self._sess)
+
+    def add(self, *sources):
+        for src in sources:
+            self._backend.do_add(src)
+            src.state = models.Source.State.INITIALIZING
+            self._sess.commit()
+
+    def remove(self, *sources):
+        translations = {}
+        for dler_obj in self._backend.do_list():
+            try:
+                db_obj = self._backend.translate_item(dler_obj)
+                translations[db_obj] = dler_obj
+            except downloaders.NoMatchingItem:
+                pass
+
+        for src in sources:
+            try:
+                self._backend.do_remove(translations[src])
+                src.state = models.Source.State.NONE
+                self._sess.commit()
+
+            except KeyError:
+                _logger.warning(
+                    "No matching object in backend for '{}'".format(src))
+
+    def list(self):
+        ret = []
+
+        for dler_obj in self._backend.do_list():
+            # Filter out objects from downloader unknow for the db
+            try:
+                db_obj = self._backend.translate_item(dler_obj)
+            except downloaders.NoMatchingItem as e:
+                _logger.warn("No matching db object for {}".format(e.item))
+                continue
+
+            # Warn about unknow states
+            try:
+                dler_state = self._backend.get_state(dler_obj)
+            except downloaders.NoMatchingState as e:
+                _logger.warn(
+                    "No matching state '{}' for {}".format(e.state, db_obj))
+                continue
+
+            ret.append(db_obj)
+            db_state = db_obj.state
+            if db_state != dler_state:
+                db_obj.state = dler_state
+                signals.SIGNALS['source-state-change'].send(source=db_obj)
+
+        self._sess.commit()
+        return ret
+
 
 app = ArroyoNG()
 app.load_plugin('core')

@@ -4,7 +4,7 @@
 
 
 class Downloader:
-    def __init__(self, session, *args, **kwargs):
+    def __init__(self, db_session, *args, **kwargs):
         self.sources = set()
 
     def do_add(self, source, **kwargs):
