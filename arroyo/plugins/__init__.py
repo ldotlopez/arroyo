@@ -1,3 +1,29 @@
+class Plugin:
+    def __init__(self):
+        raise NotImplementedError()
+
+
+class Command:
+    name = None
+    help = None
+    arguments = ()
+
+    def run(self):
+        raise NotImplementedError()
+
+
+class Filter:
+    def filter_query(self):
+        raise NotImplementedError()
+
+    def filter_iterable(self):
+        raise NotImplementedError()
+
+
+class Listener:
+    signals = ()
+
+
 class ArgumentError(Exception):
     def __init__(self, msg, *args, tip=True, **kwargs):
         if not msg.endswith('.'):

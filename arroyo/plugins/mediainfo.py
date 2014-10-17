@@ -81,7 +81,7 @@ def get_specilized_source(info):
     return obj, created
 
 
-class Mediainfo:
+class Mediainfo(plugins.Command):
     name = 'mediainfo'
     help = 'Guess mediainfo from sources'
     arguments = (
@@ -91,6 +91,13 @@ class Mediainfo:
             help='Run mediainfo on selected item'
         ),
     )
+
+    # def __init__(self):
+    #     app.signals['source-added'].connect(self.on_source)
+    #     app.signals['source-updated'].connect(self.on_source)
+
+    # def on_source(self, *args, **kwargs):
+    #     print("Args:", repr(args), "kwargs:", repr(kwargs))
 
     def run(self):
         item = app.arguments.item

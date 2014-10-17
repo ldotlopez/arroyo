@@ -67,7 +67,7 @@ def _query_params_glob_to_like(query_params):
     return ret
 
 
-class AnalizeCommand:
+class AnalizeCommand(plugins.Command):
     name = 'analize'
     help = 'Analize an origin merging discovered sources into the database'
 
@@ -232,7 +232,7 @@ def analize(analizer_name,
     return sources
 
 
-class QueryCommand:
+class QueryCommand(plugins.Command):
     name = 'query'
     help = 'Advanced search'
     arguments = (
@@ -308,7 +308,7 @@ def query(filters, all_states=False):
     return query
 
 
-class DbCommand:
+class DbCommand(plugins.Command):
     name = 'db'
     help = 'Database commands'
     arguments = (
@@ -393,7 +393,7 @@ def db_command(reset=False, shell=False, reset_states=False, archive_all=False,
             state)
 
 
-class SyncCommand:
+class SyncCommand(plugins.Command):
     name = 'sync'
     help = 'Sync database information with downloader'
     arguments = ()
@@ -417,7 +417,7 @@ def sync():
     return ret
 
 
-class DownloadsCommand:
+class DownloadsCommand(plugins.Command):
     name = 'downloads'
     help = 'Show and manage downloads'
     arguments = (
@@ -482,7 +482,7 @@ def downloads(show=False, add=False, remove=False, source_id=None):
         try:
             source = app.db.get_source_by_id(source_id)
 
-        except SourceNotFound:
+        except arroyo.SourceNotFound:
             _logger.error("No source {source_id}".format(source_id=source_id))
             return
 
@@ -495,7 +495,7 @@ def downloads(show=False, add=False, remove=False, source_id=None):
                 msg = 'Source {source.name} {source.id} is not active'
                 _logger.warn(msg.format(source=source))
 
-        except SourceNotFound:
+        except arroyo.SourceNotFound:
             _logger.error("No source {source_id}".format(source_id=source_id))
             return
 

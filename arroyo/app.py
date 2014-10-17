@@ -47,6 +47,7 @@ class Arroyo:
         self._modules = {}
         self._plugins = {}
         self._commands = {}
+        self._commands_ng = {}
 
         # Build basic argument parser, plugins will add their options
         self._arg_parser = _build_minimal_parser()
@@ -180,6 +181,12 @@ class Arroyo:
         _logger.info("Command '{name}' registered".format(name=cmd_cls.name))
 
     def run(self, arguments=None):
+        self.parse_arguments(arguments)
+
+        # Ok, inspect Command subclasses for plugins implementing its interface
+        for command_cls in plugins.Command.__subclasses__():
+            print("command implementor:", repr(command_cls))
+
         if not self.arguments.subcommand:
             self._arg_parser.print_help()
             return
