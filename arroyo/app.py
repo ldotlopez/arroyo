@@ -4,14 +4,32 @@ import importlib
 from itertools import chain
 
 import sqlalchemy
-from sqlalchemy import exc, orm
-
+from sqlalchemy import orm
+from sqlalchemy.orm import exc
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
-from arroyo import models, plugins, signals, downloaders
+from arroyo import models, plugins, signals, downloaders, \
+    SourceNotFound, ReadOnlyProperty
 
 
 _logger = logging.get_logger('app')
+
+
+def _build_minimal_parser():
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '--config-file',
+        dest='config_file',
+        default=utils.prog_basic_configfile())
+
+    parser.add_argument(
+        '--plugin',
+        dest='plugins',
+        action='append',
+        nargs=1,
+        default=[])
+
+    return parser
 
 
 class Arroyo:
@@ -26,16 +44,12 @@ class Arroyo:
         self.config.add_section('main')
 
         # Support structures for plugins
+        self._modules = {}
         self._plugins = {}
         self._commands = {}
 
         # Build basic argument parser, plugins will add their options
-        self._arg_parser = argparse.ArgumentParser()
-
-        self._arg_parser.add_argument(
-            '--config-file',
-            dest='config_file',
-            default=utils.prog_basic_configfile())
+        self._arg_parser = _build_minimal_parser()
 
         self._arg_parser.add_argument(
             '--db-uri',
@@ -44,13 +58,6 @@ class Arroyo:
         self._arg_parser.add_argument(
             '--downloader',
             dest='downloader')
-
-        self._arg_parser.add_argument(
-            '--plugin',
-            dest='plugins',
-            action='append',
-            nargs=1,
-            default=[])
 
         self._cmd_parser = self._arg_parser.add_subparsers(
             title='subcommands',
@@ -82,6 +89,18 @@ class Arroyo:
         self._downloader = Downloader(value, db_session=self.db.session)
 
     def parse_arguments(self, arguments=None, apply=True):
+        # Load config and plugins in a first phase
+        minimal_parser = _build_minimal_parser()
+        phase1_args, remaing_args = minimal_parser.parse_known_args()
+
+        if phase1_args.config_file:
+            self.parse_config(phase1_args.config_file, apply=False)
+
+        self.arguments.plugins = chain.from_iterable(phase1_args.plugins)
+        self.load_plugin(*phase1_args.plugins)
+
+        # With a full bootstraped app (with plugins loaded and other stuff)
+        # do a full parsing
         self.arguments = self._arg_parser.parse_args(arguments)
 
         # Load config file if it is specified in arguments
@@ -103,6 +122,15 @@ class Arroyo:
         if not read or read[0] != config_file:
             _logger.warning("'{config_file}' can't be read".format(
                 config_file=config_file))
+
+        plugin_sections = [s for s in self.config.sections()
+                           if s.startswith('plugin.')]
+        for plugin_section in plugin_sections:
+            enabled = self.config.getboolean(plugin_section, 'enabled',
+                                             fallback=False)
+            if enabled:
+                plugin_name = plugin_section[len('plugin.'):]
+                self.load_plugin(plugin_name)
 
         if apply:
             self._apply_settings()
@@ -139,7 +167,8 @@ class Arroyo:
             self.config.set(plugin_section, 'enabled', 'true')
 
     def register_plugin(self, plugin_cls):
-        self._plugins[plugin_cls.name] = plugin_cls()
+        # FIXME: Merge all register_* methods
+        return plugin_cls()
 
     def register_command(self, cmd_cls):
         command_parser = self._cmd_parser.add_parser(cmd_cls.name)
@@ -179,6 +208,19 @@ class Db:
     @session.setter
     def session(self, value):
         raise ReadOnlyProperty()
+
+    def get(self, model, **kwargs):
+        query = self.session.query(model)
+        for (attr, value) in kwargs.items():
+            attr = getattr(model, attr)
+            query = query.filter(attr == value)
+
+        try:
+            return query.one()
+        except exc.NoResultFound:
+            return None
+
+        # FIXME: Handle multiple rows found?
 
     def reset(self):
         for model in [models.Source, models.Movie, models.Episode]:

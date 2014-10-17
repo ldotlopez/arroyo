@@ -110,8 +110,14 @@ class Episode(Base):
     sources = relationship("Source", backref="episode")
 
     def __repr__(self):
-        return "<Episode('%s (%04d) S%02d E%02d')>" % \
-            (self.series, self.year or '????', self.season, self.episode_number)
+        ret = self.name
+
+        if self.year is not None:
+            ret += ' (%04d)' % self.year
+
+        ret += 'S%02d E%02d' % int(self.season or -1), int(self.episode_number)
+
+        return "<Episode ('%s')>" % ret
 
 
 class Movie(Base):
@@ -127,7 +133,12 @@ class Movie(Base):
     year = Column(Integer, nullable=True)
 
     def __repr__(self):
-        return "<Movie('%s (%04d)')>" % (self.title, self.year)
+        ret = self.name
+
+        if self.year is not None:
+            ret += ' (%04d)' % self.year
+
+        return "<Movie ('%s')>" % ret
 
 
 def source_data_builder(**opts):

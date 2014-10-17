@@ -26,7 +26,7 @@ _UA = 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
 # - QueryCommand / query
 
 
-def _source_repr(source):
+def source_repr(source):
     _LISTING_FMT = "[{icon}] {id} {name}"
     _STATE_SYMBOL_TABLE = {
         models.Source.State.INITIALIZING: '⋯',
@@ -43,7 +43,7 @@ def _source_repr(source):
         name=source.name)
 
 
-def _sub_config_dict(ns):
+def sub_config_dict(ns):
     cfg_dict = utils.configparser_to_dict(app.config)
     multi_depth_cfg = utils.MultiDepthDict(cfg_dict)
     return multi_depth_cfg.subdict(ns)
@@ -136,7 +136,7 @@ class AnalizeCommand:
             }
 
         else:
-            origins = _sub_config_dict('origin')
+            origins = sub_config_dict('origin')
 
         if not origins:
             raise plugins.ArgumentError("No origins specified")
@@ -264,7 +264,7 @@ class QueryCommand:
         if filters:
             queries['command line'] = filters
         else:
-            queries = _sub_config_dict('query')
+            queries = sub_config_dict('query')
 
         if not queries:
             raise plugins.ArgumentError("No query specified")
@@ -280,7 +280,7 @@ class QueryCommand:
                 query_name=query_name, n_results=len(matches)
             ))
             for src in matches:
-                print(_source_repr(src))
+                print(source_repr(src))
 
                 if not push:
                     continue
@@ -476,7 +476,7 @@ def downloads(show=False, add=False, remove=False, source_id=None):
 
     if show:
         for src in app.db.get_active():
-            print(_source_repr(src))
+            print(source_repr(src))
 
     elif add:
         try:
