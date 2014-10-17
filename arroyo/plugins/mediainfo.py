@@ -81,7 +81,8 @@ def get_specilized_source(info):
     return obj, created
 
 
-class Mediainfo(plugins.Command):
+@app.register('command')
+class Mediainfo:
     name = 'mediainfo'
     help = 'Guess mediainfo from sources'
     arguments = (
@@ -149,5 +150,3 @@ class Mediainfo(plugins.Command):
 
         # Apply changes
         app.db.session.commit()
-
-app.register_command(Mediainfo)

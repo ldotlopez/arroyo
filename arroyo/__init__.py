@@ -4,3 +4,7 @@ class SourceNotFound(Exception):
 
 class ReadOnlyProperty(Exception):
     pass
+
+
+class InvalidInstanceType(Exception):
+    pass

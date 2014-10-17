@@ -1,14 +1,15 @@
+from arroyo import plugins
 from arroyo.app import app
 from arroyo.signals import SIGNALS
 
-class ConsoleNotifier:
-	name = 'notifier.console'
 
-	def __init__(self):
-		SIGNALS['source-added'].connect(self.on_source)
-		SIGNALS['source-updated'].connect(self.on_source)
+class ConsoleNotifier(plugins.Generic):
+    name = 'notifier.console'
 
-	def on_source(self, *args, **kwargs):
-		print(repr(args), repr(kwargs))
+    def __init__(self):
+        SIGNALS['source-added'].connect(self.on_source)
+        SIGNALS['source-updated'].connect(self.on_source)
+        print("Got you")
 
-app.register_plugin(ConsoleNotifier)
+    def on_source(self, *args, **kwargs):
+        print(repr(args), repr(kwargs))

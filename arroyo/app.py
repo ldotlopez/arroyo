@@ -18,6 +18,11 @@ _logger = logging.get_logger('app')
 def _build_minimal_parser():
     parser = argparse.ArgumentParser(add_help=False)
     parser.add_argument(
+        '-h', '--help',
+        action='store_true',
+        dest='help')
+
+    parser.add_argument(
         '--config-file',
         dest='config_file',
         default=utils.prog_basic_configfile())
@@ -43,28 +48,11 @@ class Arroyo:
         self.config = configparser.ConfigParser()
         self.config.add_section('main')
 
+        self._arg_parser = argparse.ArgumentParser()
+
         # Support structures for plugins
-        self._modules = {}
-        self._plugins = {}
-        self._commands = {}
-        self._commands_ng = {}
-
-        # Build basic argument parser, plugins will add their options
-        self._arg_parser = _build_minimal_parser()
-
-        self._arg_parser.add_argument(
-            '--db-uri',
-            dest='db_uri')
-
-        self._arg_parser.add_argument(
-            '--downloader',
-            dest='downloader')
-
-        self._cmd_parser = self._arg_parser.add_subparsers(
-            title='subcommands',
-            dest='subcommand',
-            description='valid subcommands',
-            help='additional help')
+        self._modules = set()
+        self._instances = {}
 
     @property
     def db(self):
@@ -91,8 +79,16 @@ class Arroyo:
 
     def parse_arguments(self, arguments=None, apply=True):
         # Load config and plugins in a first phase
-        minimal_parser = _build_minimal_parser()
-        phase1_args, remaing_args = minimal_parser.parse_known_args()
+        self._arg_parser = _build_minimal_parser()
+        self._arg_parser.add_argument(
+            '--db-uri',
+            dest='db_uri')
+
+        self._arg_parser.add_argument(
+            '--downloader',
+            dest='downloader')
+
+        phase1_args, remaing_args = self._arg_parser.parse_known_args()
 
         if phase1_args.config_file:
             self.parse_config(phase1_args.config_file, apply=False)
@@ -100,16 +96,26 @@ class Arroyo:
         self.arguments.plugins = chain.from_iterable(phase1_args.plugins)
         self.load_plugin(*phase1_args.plugins)
 
+        # Build subcommands
+        subparser = self._arg_parser.add_subparsers(
+            title='subcommands',
+            dest='subcommand',
+            description='valid subcommands',
+            help='additional help')
+
+        for cmd in self._instances['command'].values():
+            command_parser = subparser.add_parser(cmd.name)
+            for argument in cmd.arguments:
+                args, kwargs = argument()
+                command_parser.add_argument(*args, **kwargs)
+
         # With a full bootstraped app (with plugins loaded and other stuff)
         # do a full parsing
         self.arguments = self._arg_parser.parse_args(arguments)
 
-        # Load config file if it is specified in arguments
-        if self.arguments.config_file:
-            self.parse_config(self.arguments.config_file, apply=False)
-
         # Handle plugins
         self.arguments.plugins = chain.from_iterable(self.arguments.plugins)
+        self.arguments.plugins = list(self.arguments.plugins)
         self.load_plugin(*self.arguments.plugins)
 
         if apply:
@@ -151,41 +157,42 @@ class Arroyo:
             self.config.get('main', 'downloader') or \
             'mock'
 
-    def load_plugin(self, *plugins):
-        for p in [p for p in plugins if p not in self._plugins]:
+    def load_plugin(self, *names):
+        for name in names:
+            if name in self._modules:
+                msg = "Plugin '{name}' was already loaded"
+                _logger.warning(msg.format(name=name))
+                continue
+
+            # Load module
+            module_name = 'arroyo.plugins.' + name
+
             try:
-                module_name = 'arroyo.plugins.' + p
-                self._plugins[p] = importlib.import_module(module_name)
+                importlib.import_module(module_name)
+                self._modules.add(name)
             except ImportError as e:
-                _logger.warning("Plugin '{name}' missing".format(name=p))
+                msg = "Plugin '{name}' missing or invalid"
+                _logger.warning(msg.format(name=name))
                 _logger.warning(e)
                 continue
 
-            # Build config section
-            plugin_section = 'plugin.' + p
-            if not self.config.has_section(plugin_section):
-                self.config.add_section(plugin_section)
-            self.config.set(plugin_section, 'enabled', 'true')
+    def register(self, typ='generic'):
+        def decorator(cls):
+            if typ not in self._instances:
+                self._instances[typ] = {}
 
-    def register_plugin(self, plugin_cls):
-        # FIXME: Merge all register_* methods
-        return plugin_cls()
+            if cls.name in self._instances[typ]:
+                msg = "Plugin '{name}' already registered, skipping"
+                _logger.warning(msg.format(name=cls.name))
+                return cls
 
-    def register_command(self, cmd_cls):
-        command_parser = self._cmd_parser.add_parser(cmd_cls.name)
-        for argument in cmd_cls.arguments:
-            args, kwargs = argument()
-            command_parser.add_argument(*args, **kwargs)
+            self._instances[typ][cls.name] = cls()
+            return cls
 
-        self._commands[cmd_cls.name] = cmd_cls
-        _logger.info("Command '{name}' registered".format(name=cmd_cls.name))
+        return decorator
 
     def run(self, arguments=None):
         self.parse_arguments(arguments)
-
-        # Ok, inspect Command subclasses for plugins implementing its interface
-        for command_cls in plugins.Command.__subclasses__():
-            print("command implementor:", repr(command_cls))
 
         if not self.arguments.subcommand:
             self._arg_parser.print_help()
@@ -195,7 +202,7 @@ class Arroyo:
 
     def run_command(self, command):
         try:
-            self._commands[command]().run()
+            self._instances['command'][command].run()
         except plugins.ArgumentError as e:
             _logger.error(e)
 

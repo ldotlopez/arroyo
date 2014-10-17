@@ -67,7 +67,8 @@ def _query_params_glob_to_like(query_params):
     return ret
 
 
-class AnalizeCommand(plugins.Command):
+@app.register('command')
+class AnalizeCommand:
     name = 'analize'
     help = 'Analize an origin merging discovered sources into the database'
 
@@ -232,7 +233,8 @@ def analize(analizer_name,
     return sources
 
 
-class QueryCommand(plugins.Command):
+@app.register('command')
+class QueryCommand:
     name = 'query'
     help = 'Advanced search'
     arguments = (
@@ -308,7 +310,8 @@ def query(filters, all_states=False):
     return query
 
 
-class DbCommand(plugins.Command):
+@app.register('command')
+class DbCommand:
     name = 'db'
     help = 'Database commands'
     arguments = (
@@ -393,7 +396,8 @@ def db_command(reset=False, shell=False, reset_states=False, archive_all=False,
             state)
 
 
-class SyncCommand(plugins.Command):
+@app.register('command')
+class SyncCommand:
     name = 'sync'
     help = 'Sync database information with downloader'
     arguments = ()
@@ -417,7 +421,8 @@ def sync():
     return ret
 
 
-class DownloadsCommand(plugins.Command):
+@app.register('command')
+class DownloadsCommand:
     name = 'downloads'
     help = 'Show and manage downloads'
     arguments = (
@@ -500,10 +505,3 @@ def downloads(show=False, add=False, remove=False, source_id=None):
             return
 
         app.downloader.remove(source)
-
-
-app.register_command(AnalizeCommand)
-app.register_command(QueryCommand)
-app.register_command(DbCommand)
-app.register_command(SyncCommand)
-app.register_command(DownloadsCommand)
