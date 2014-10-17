@@ -1,7 +1,6 @@
 import argparse
 import configparser
 import importlib
-from itertools import chain
 
 import sqlalchemy
 from sqlalchemy import orm
@@ -31,7 +30,6 @@ def _build_minimal_parser():
         '--plugin',
         dest='plugins',
         action='append',
-        nargs=1,
         default=[])
 
     return parser
@@ -93,7 +91,6 @@ class Arroyo:
         if phase1_args.config_file:
             self.parse_config(phase1_args.config_file, apply=False)
 
-        self.arguments.plugins = chain.from_iterable(phase1_args.plugins)
         self.load_plugin(*phase1_args.plugins)
 
         # Build subcommands
@@ -112,11 +109,6 @@ class Arroyo:
         # With a full bootstraped app (with plugins loaded and other stuff)
         # do a full parsing
         self.arguments = self._arg_parser.parse_args(arguments)
-
-        # Handle plugins
-        self.arguments.plugins = chain.from_iterable(self.arguments.plugins)
-        self.arguments.plugins = list(self.arguments.plugins)
-        self.load_plugin(*self.arguments.plugins)
 
         if apply:
             self._apply_settings()
@@ -159,6 +151,7 @@ class Arroyo:
 
     def load_plugin(self, *names):
         for name in names:
+            import ipdb; ipdb.set_trace()
             if name in self._modules:
                 msg = "Plugin '{name}' was already loaded"
                 _logger.warning(msg.format(name=name))
