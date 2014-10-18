@@ -141,17 +141,16 @@ class Arroyo:
 
         self.db = \
             self.arguments.db_uri or \
-            self.config.get('main', 'db-uri') or \
+            self.config.get('main', 'db-uri', fallback=None) or \
             'sqlite:///' + utils.prog_datafile('arroyo.db', create=True)
 
         self.downloader = \
             self.arguments.downloader or \
-            self.config.get('main', 'downloader') or \
+            self.config.get('main', 'downloader', fallback=None) or \
             'mock'
 
     def load_plugin(self, *names):
         for name in names:
-            import ipdb; ipdb.set_trace()
             if name in self._modules:
                 msg = "Plugin '{name}' was already loaded"
                 _logger.warning(msg.format(name=name))
