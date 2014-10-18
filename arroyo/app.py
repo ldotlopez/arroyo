@@ -2,13 +2,11 @@ import argparse
 import configparser
 import importlib
 
-import sqlalchemy
-from sqlalchemy import orm
 from sqlalchemy.orm import exc
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
-from arroyo import models, plugins, signals, downloaders, \
-    SourceNotFound, ReadOnlyProperty
+from arroyo import (models, plugins, signals, downloaders,
+                    SourceNotFound, ReadOnlyProperty)
 
 
 _logger = logging.get_logger('app')
@@ -251,10 +249,8 @@ class Db:
     def shell(self):
         print("[!!] Database connection in 'sess' {}".format(self._sess))
         print("[!!] If you make any changes remember to call sess.commit()")
-
-        sess = self._sess
+        sess = self._sess  # nopep8
         utils.get_debugger().set_trace()
-        del(sess)  # Just to fix PEP-8 warning
 
     def search(self, all_states=False, **kwargs):
         query = ldotsa.query_from_params(self._sess, models.Source, **kwargs)
