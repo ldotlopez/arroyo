@@ -234,6 +234,53 @@ def analyze(analyzer_name,
 
 
 @app.register('command')
+class SearchCommand:
+    name = 'search'
+    help = 'Simple search'
+    arguments = (
+        plugins.argument(
+            '-a', '--all',
+            dest='all_states',
+            action='store_true',
+            help='Include all results ' +
+                 '(by default only sources with NONE state are displayed)'),
+        plugins.argument(
+            '-p', '--push',
+            dest='push',
+            action='store_true',
+            help='Push found sources to downloader.'),
+        plugins.argument(
+            'keywords',
+            action='append',
+            help='Keywords.')
+    )
+
+    def run(self):
+        f = {
+            'name_like': '%' + '%'.join(app.arguments.keywords) + '%'
+        }
+
+        sync()
+
+        matches = query(f, all_states=app.arguments.all_states).all()
+
+        print("Query '{query_name}': found {n_results} results".format(
+            query_name=' '.join(app.arguments.keywords), n_results=len(matches)
+        ))
+
+        for src in matches:
+            print(source_repr(src))
+
+            if not app.arguments.push:
+                continue
+
+        if app.arguments.push:
+            app.downloader.add(*matches)
+
+        sync()
+
+
+@app.register('command')
 class QueryCommand:
     name = 'query'
     help = 'Advanced search'
