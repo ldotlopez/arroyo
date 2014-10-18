@@ -68,16 +68,16 @@ def _query_params_glob_to_like(query_params):
 
 
 @app.register('command')
-class AnalizeCommand:
-    name = 'analize'
-    help = 'Analize an origin merging discovered sources into the database'
+class AnalyzeCommand:
+    name = 'analyze'
+    help = 'Analyze an origin merging discovered sources into the database'
 
     arguments = (
         plugins.argument(
-            '-a', '--analizer',
-            dest='analizer',
+            '-a', '--analyzer',
+            dest='analyzer',
             type=str,
-            help='analizer to run'),
+            help='analyzer to run'),
         plugins.argument(
             '-u', '--url',
             dest='url',
@@ -103,13 +103,13 @@ class AnalizeCommand:
     )
 
     def run(self):
-        analizer_name = app.arguments.analizer
+        analyzer_name = app.arguments.analyzer
         seed_url = app.arguments.url
         iterations = app.arguments.iterations
         typ = app.arguments.type
         language = app.arguments.language
 
-        if analizer_name and isinstance(analizer_name, str):
+        if analyzer_name and isinstance(analyzer_name, str):
             if not isinstance(seed_url, (str, type(None))):
                 raise plugins.ArgumentError(
                     'seed_url must be an string or None')
@@ -128,7 +128,7 @@ class AnalizeCommand:
 
             origins = {
                 'command line': {
-                    'analizer_name': analizer_name,
+                    'analyzer_name': analyzer_name,
                     'seed_url': seed_url,
                     'iterations': iterations,
                     'type': typ,
@@ -146,9 +146,9 @@ class AnalizeCommand:
         for (origin_name, opts) in origins.items():
             opts['typ'] = opts.pop('type', None)
             try:
-                sources += analize(**opts)
+                sources += analyze(**opts)
             except importers.ProcessException as e:
-                msg = "Unable to analize '{origin_name}': {error}"
+                msg = "Unable to analyze '{origin_name}': {error}"
                 _logger.error(msg.format(origin_name=origin_name, error=e))
 
         # Get existing sources before doing any insert or update
@@ -190,20 +190,20 @@ class AnalizeCommand:
         return ret
 
 
-def analize(analizer_name,
+def analyze(analyzer_name,
             seed_url=None, iterations=1, typ=None, language=None):
     # Build real objects
-    analizer_mod = utils.ModuleFactory('arroyo.importers')(analizer_name)
+    analyzer_mod = utils.ModuleFactory('arroyo.importers')(analyzer_name)
 
     iterations = max(1, iterations)
 
-    url_generator = analizer_mod.url_generator(seed_url)
+    url_generator = analyzer_mod.url_generator(seed_url)
     fetcher = fetchers.UrllibFetcher(
         cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA})
     overrides = {
         'type': typ,
         'language': language,
-        'provider': analizer_mod.__name__.split('.')[-1]
+        'provider': analyzer_mod.__name__.split('.')[-1]
     }
     overrides = {k: v for (k, v) in overrides.items() if v is not None}
 
@@ -211,9 +211,9 @@ def analize(analizer_name,
     for itr in range(0, iterations):
         url = next(url_generator)
 
-        msg = "{analizer_name}: iteration {iteration}/{iterations}: {url}"
+        msg = "{analyzer_name}: iteration {iteration}/{iterations}: {url}"
         _logger.debug(msg.format(
-            analizer_name=analizer_name,
+            analyzer_name=analyzer_name,
             iteration=(itr + 1),
             iterations=(iterations),
             url=url))
@@ -221,8 +221,8 @@ def analize(analizer_name,
         # Fetch its contents
         buff = fetcher.fetch(url)
 
-        # Pass buffer over analizer funcion and fix some fields
-        srcs = analizer_mod.process(buff)
+        # Pass buffer over analyzer funcion and fix some fields
+        srcs = analyzer_mod.process(buff)
         for src in srcs:
             src['id'] = parse.parse_qs(
                 parse.urlparse(src['uri']).query)['xt'][-1]
