@@ -207,11 +207,14 @@ class Arroyo:
 
 class Db:
     def __init__(self, db_uri='sqlite:////:memory:'):
-        engine = sqlalchemy.create_engine(db_uri)
-        sessmaker = orm.sessionmaker()
-        sessmaker.configure(bind=engine)
-        models.Base.metadata.create_all(engine)
-        self._sess = sessmaker()
+        # engine = sqlalchemy.create_engine(db_uri)
+        # sessmaker = orm.sessionmaker()
+        # sessmaker.configure(bind=engine)
+        # models.Base.metadata.create_all(engine)
+        # self._sess = sessmaker()
+        # FIXME: ldotcommons.sqlalchemy.create_session it's not totally safe,
+        # review this.
+        self._sess = ldotsa.create_session(db_uri)
 
     @property
     def session(self):

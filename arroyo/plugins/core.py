@@ -1,6 +1,10 @@
 from urllib import parse
 
+import sqlalchemy
+
+
 from ldotcommons import fetchers, logging, sqlalchemy as ldotsa, utils
+
 
 import arroyo
 from arroyo import importers, signals, models, plugins
@@ -552,3 +556,29 @@ def downloads(show=False, add=False, remove=False, source_id=None):
             return
 
         app.downloader.remove(source)
+
+
+@app.register('filter')
+class CoreFilters:
+    name = 'core'
+    model = models.Source
+    handles = []
+
+    def __init__(self):
+        for (colname, column) in self.model.__table__.columns.items():
+            coltype = column.type
+
+            if isinstance(coltype, sqlalchemy.String):
+                self.handles.append(colname)
+                self.handles.append(colname + '_like')
+                self.handles.append(colname + '_regexp')
+
+            if isinstance(coltype, sqlalchemy.Integer):
+                self.handles.append(colname)
+                self.handles.append(colname + '_min')
+                self.handles.append(colname + '_max')
+
+        # print(self.handles)
+
+    def filter(self, query):
+        return query
