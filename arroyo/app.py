@@ -149,6 +149,12 @@ class Arroyo:
             self.config.get('main', 'downloader', fallback=None) or \
             'mock'
 
+    def get(self, typ, name):
+        try:
+            return self._instances[typ][name]
+        except KeyError:
+            return None
+
     def load_plugin(self, *names):
         for name in names:
             if name in self._modules:
