@@ -1,6 +1,7 @@
 from urllib import parse
 
 from ldotcommons import fetchers, logging, sqlalchemy as ldotsa, utils
+import sqlalchemy
 
 import arroyo
 from arroyo import importers, signals, models, plugins
@@ -152,7 +153,7 @@ class AnalyzeCommand:
                 _logger.error(msg.format(origin_name=origin_name, error=e))
 
         # Get existing sources before doing any insert or update
-        # FIXME: Avoid using app.db.session directly, build an appropiate API
+        # FIXME: Avoid using app.db.session directly, build an apprppiate API
         sources = {x['id']: x for x in sources}
 
         query = app.db.session.query(models.Source)
@@ -349,8 +350,23 @@ def query(filters, all_states=False):
     if not isinstance(all_states, bool):
         raise plugins.ArgumentError('all_states parameter must be a bool')
 
-    # FIXME: Use 'filter' plugins here
-    query = ldotsa.query_from_params(app.db.session, models.Source, **filters)
+    filter_impls = app.get_all('filter')
+    query = app.db.session.query(models.Source)
+
+    for (key, value) in filters.items():
+        filter_impl = None
+        for f_i in filter_impls:
+            if key in f_i.handles:
+                filter_impl = f_i
+                break
+
+        if filter_impl is None:
+            msg = "filter {filter} is not recognized"
+            _logger.warning(msg.format(filter=key))
+            continue
+
+        query = filter_impl.filter(query, key, value)
+
     if not all_states:
         query = query.filter(models.Source.state == models.Source.State.NONE)
 
@@ -552,3 +568,75 @@ def downloads(show=False, add=False, remove=False, source_id=None):
             return
 
         app.downloader.remove(source)
+
+
+@app.register('filter')
+class CoreFilters:
+    name = 'core'
+    handles = []
+
+    model = models.Source
+
+    def __init__(self):
+        for (colname, column) in self.model.__table__.columns.items():
+            coltype = column.type
+
+            if isinstance(coltype, sqlalchemy.String):
+                self.handles.append(colname)
+                self.handles.append(colname + '_like')
+                self.handles.append(colname + '_regexp')
+
+            if isinstance(coltype, sqlalchemy.Integer):
+                self.handles.append(colname)
+                self.handles.append(colname + '_min')
+                self.handles.append(colname + '_max')
+
+    def filter(self, query, key, value):
+        if '_' in key:
+            mod = key.split('_')[-1]
+            key = '_'.join(key.split('_')[:-1])
+        else:
+            key = key
+            mod = None
+
+        attr = getattr(self.model, key, None)
+
+        if mod == 'like':
+            query = query.filter(attr.like(value))
+
+        elif mod == 'regexp':
+            query = query.filter(attr.op('regexp')(value))
+
+        elif mod == 'min':
+            value = utils.parse_size(value)
+            query = query.filter(attr >= value)
+
+        elif mod == 'max':
+            value = utils.parse_size(value)
+            query = query.filter(attr <= value)
+
+        else:
+            query = query.filter(attr == value)
+
+        return query
+
+
+@app.register('filter')
+class EpisodeFilters:
+    name = 'episodes'
+    handles = ['series', 'series_in']
+
+    model = models.Episode
+
+    def filter(self, query, key, value):
+        query = query.join(models.Episode)
+
+        if key == 'series':
+            query = query.join(self.model)
+            return query.filter(self.model.series.like(value))
+
+        if key == 'series_in':
+            value = [x.strip().lower() for x in value.split(',')]
+            query = query.join(models.Episode)
+            return query.filter(
+                sqlalchemy.func.lower(models.Episode.series).in_(value))
