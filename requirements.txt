@@ -7,7 +7,7 @@ path.py
 transmissionrpc
 guessit
 blinker
-ipython
+ipdb
 -e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
 
 # Webui 
