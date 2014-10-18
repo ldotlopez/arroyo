@@ -5,7 +5,10 @@ if [ "${D:0:1}" != "/" ]; then
 		D="$PWD/$D"
 fi
 
-source "$D/env/bin/activate"
+source "$D/env/bin/activate" 2>/dev/null || {
+	echo "expected virtual environment in '$D/env' not found"
+	exit 1
+}
 PYTHONPATH="$D" python3 "$D/arroyo/__main__.py" \
 	--db-uri sqlite:///"$D/arroyo.db" \
 	--config-file "$D/arroyo.ini" \
