@@ -2,8 +2,6 @@ import argparse
 import configparser
 import importlib
 
-import sqlalchemy
-from sqlalchemy import orm
 from sqlalchemy.orm import exc
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
@@ -154,6 +152,9 @@ class Arroyo:
             return self._instances[typ][name]
         except KeyError:
             return None
+
+    def get_all(self, typ):
+        return self._instances.get(typ, {}).values()
 
     def load_plugin(self, *names):
         for name in names:
