@@ -69,7 +69,7 @@ def get_specilized_source(info):
     else:
         raise ValueError('invalid type in info data: ' + info['type'])
 
-    arguments = {k: v for (k, v) in arguments.items() if v is not None}
+    # arguments = {k: v for (k, v) in arguments.items() if v is not None}
 
     obj = app.db.get(model, **arguments)
     if obj is not None:
