@@ -22,7 +22,7 @@ def _build_minimal_parser():
     parser.add_argument(
         '--config-file',
         dest='config_file',
-        default=utils.prog_basic_configfile())
+        default=utils.prog_config_file())
 
     parser.add_argument(
         '--plugin',
