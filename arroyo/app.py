@@ -180,6 +180,11 @@ class Arroyo:
             if typ not in self._instances:
                 self._instances[typ] = {}
 
+            if not hasattr(cls, 'name'):
+                msg = "Plugin {class_name} has no name property, skipping"
+                _logger.error(msg.format(class_name=cls.__name__))
+                return cls
+
             if cls.name in self._instances[typ]:
                 msg = "Plugin '{name}' already registered, skipping"
                 _logger.warning(msg.format(name=cls.name))
