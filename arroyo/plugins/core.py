@@ -149,6 +149,11 @@ class AnalyzeCommand:
         for (origin_name, opts) in origins.items():
             opts['typ'] = opts.pop('type', None)
             try:
+                opts['iterations'] = int(opts['iterations'])
+            except ValueError:
+                pass
+
+            try:
                 sources += analyze(**opts)
             except importers.ProcessException as e:
                 msg = "Unable to analyze '{origin_name}': {error}"
@@ -198,7 +203,7 @@ def analyze(analyzer_name,
     # Build real objects
     analyzer_mod = utils.ModuleFactory('arroyo.importers')(analyzer_name)
 
-    iterations = max(1, iterations)
+    iterations = max(1, int(iterations))
 
     url_generator = analyzer_mod.url_generator(seed_url)
     fetcher = fetchers.UrllibFetcher(
