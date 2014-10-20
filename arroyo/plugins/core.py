@@ -6,7 +6,7 @@ import sqlalchemy
 
 
 import arroyo
-from arroyo import importers, signals, models, plugins
+from arroyo import importers, models, plugins
 from arroyo.app import app
 
 
@@ -105,6 +105,12 @@ class AnalyzeCommand:
             help='force language of found sources')
     )
 
+    def __init__(self):
+        app.signals.register('source-added')
+        app.signals.register('source-updated')
+        app.signals.register('sources-added-batch')
+        app.signals.register('sources-updated-batch')
+
     def run(self):
         analyzer_name = app.arguments.analyzer
         seed_url = app.arguments.url
@@ -159,41 +165,31 @@ class AnalyzeCommand:
                 msg = "Unable to analyze '{origin_name}': {error}"
                 _logger.error(msg.format(origin_name=origin_name, error=e))
 
-        # Get existing sources before doing any insert or update
-        # FIXME: Avoid using app.db.session directly, build an apprppiate API
-        sources = {x['id']: x for x in sources}
-
-        query = app.db.session.query(models.Source)
-        query = query.filter(models.Source.id.in_(sources.keys()))
-
-        existing = {x.id: x for x in query}
-
         ret = {
             'added-sources': [],
             'updated-sources': [],
         }
 
-        for (id_, src) in sources.items():
-            obj = existing.get(id_, None)
+        for src in sources:
+            obj, created = app.db.get_or_create(models.Source, id=src['id'])
+            for key in src:
+                setattr(obj, key, src[key])
 
-            if not obj:
-                obj = models.Source(**src)
+            if created:
                 app.db.session.add(obj)
-                ret['added-sources'].append(obj)
-            else:
-                for key in src:
-                    setattr(obj, key, src[key])
-                ret['updated-sources'].append(obj)
 
-            signal_name = 'source-updated' if obj else 'source-added'
-            signals.SIGNALS[signal_name].send(source=obj)
+            signal_name = 'source-added' if created else 'source-updated'
+            app.signals.send(signal_name, source=obj)
+
+            batch_key = 'added-sources' if created else 'updated-sources'
+            ret[batch_key].append(obj)
+
+        app.signals.send('sources-added-batch',
+                         sources=ret['added-sources'])
+        app.signals.send('sources-updated-batch',
+                         sources=ret['updated-sources'])
 
         app.db.session.commit()
-
-        signals.SIGNALS['sources-added-batch'].send(
-            sources=ret['added-sources'])
-        signals.SIGNALS['sources-updated-batch'].send(
-            sources=ret['updated-sources'])
 
         return ret
 
@@ -472,6 +468,9 @@ class SyncCommand:
     help = 'Sync database information with downloader'
     arguments = ()
 
+    def __init__(self):
+        app.signals.register('source-state-change')
+
     def run(self):
         sync()
 
@@ -485,9 +484,10 @@ def sync():
     for source in actives - downloads:
         source.state = models.Source.State.ARCHIVED
         ret['sources-state-change'].append(source)
-        signals.SIGNALS['source-state-change'].send(source=source)
+        app.signals.send('source-state-change', source=source)
 
     app.db.session.commit()
+
     return ret
 
 

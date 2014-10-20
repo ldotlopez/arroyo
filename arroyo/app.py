@@ -2,10 +2,11 @@ import argparse
 import configparser
 import importlib
 
+import blinker
 from sqlalchemy.orm import exc
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
-from arroyo import (models, plugins, signals, downloaders,
+from arroyo import (models, plugins, downloaders,
                     SourceNotFound, ReadOnlyProperty)
 
 
@@ -38,6 +39,7 @@ class Arroyo:
         # Built-in providers
         self.db = db_uri
         self.downloader = downloader
+        self.signals = Signaler()
 
         # Support structures for arguments and configs
         self.arguments = argparse.Namespace()
@@ -360,6 +362,27 @@ class Downloader:
 
         self._sess.commit()
         return ret
+
+
+class Signaler:
+    def __init__(self):
+        self._signals = {}
+
+    def register(self, name):
+        if name in self._signals:
+            msg = "Signal '{name}' was already registered"
+            raise ValueError(msg.format(name=name))
+
+        ret = blinker.signal(name)
+        self._signals[name] = ret
+
+        return ret
+
+    def connect(self, name, call, *args, **kwargs):
+        self._signals[name].connect(call, *args, **kwargs)
+
+    def send(self, name, *args, **kwargs):
+        self._signals[name].send(*args, **kwargs)
 
 
 app = Arroyo()

@@ -1,5 +1,4 @@
 from arroyo.app import app
-from arroyo.signals import SIGNALS
 
 
 @app.register('generic')
@@ -7,9 +6,8 @@ class ConsoleNotifier:
     name = 'notifier.console'
 
     def __init__(self):
-        SIGNALS['source-added'].connect(self.on_source)
-        SIGNALS['source-updated'].connect(self.on_source)
-        print("I got you")
+        app.signals.connect('source-added', self.on_source)
+        app.signals.connect('source-updated', self.on_source)
 
     def on_source(self, *args, **kwargs):
         print(repr(args), repr(kwargs))
