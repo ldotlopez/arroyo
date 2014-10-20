@@ -192,7 +192,7 @@ class Arroyo:
 
             try:
                 self._instances[typ][cls.name] = cls()
-            except Exception as e:
+            except plugins.ArgumentError as e:
                 msg = "Plugin '{name}' can't be initialized: {reason}"
                 _logger.error(msg.format(name=cls.name, reason=str(e)))
             return cls
@@ -235,17 +235,20 @@ class Db:
         raise ReadOnlyProperty()
 
     def get(self, model, **kwargs):
-        query = self.session.query(model)
-        for (attr, value) in kwargs.items():
-            attr = getattr(model, attr)
-            query = query.filter(attr == value)
+        query = self.session.query(model).filter_by(**kwargs)
 
+        # FIXME: Handle multiple rows found?
         try:
             return query.one()
         except exc.NoResultFound:
             return None
 
-        # FIXME: Handle multiple rows found?
+    def get_or_create(self, model, **kwargs):
+        obj = self.get(model, **kwargs)
+        if not obj:
+            return model(**kwargs), True
+        else:
+            return obj, False
 
     def reset(self):
         for model in [models.Source, models.Movie, models.Episode]:
