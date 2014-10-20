@@ -190,7 +190,11 @@ class Arroyo:
                 _logger.warning(msg.format(name=cls.name))
                 return cls
 
-            self._instances[typ][cls.name] = cls()
+            try:
+                self._instances[typ][cls.name] = cls()
+            except Exception as e:
+                msg = "Plugin '{name}' can't be initialized: {reason}"
+                _logger.error(msg.format(name=cls.name, reason=str(e)))
             return cls
 
         return decorator
