@@ -110,12 +110,13 @@ class Episode(Base):
     sources = relationship("Source", backref="episode")
 
     def __repr__(self):
-        ret = self.name
+        ret = self.series
 
         if self.year is not None:
             ret += ' (%04d)' % self.year
 
-        ret += 'S%02d E%02d' % int(self.season or -1), int(self.episode_number)
+        ret += ' S%02d E%02d' % \
+            (int(self.season or -1), int(self.episode_number))
 
         return "<Episode ('%s')>" % ret
 
