@@ -34,6 +34,10 @@ def _build_minimal_parser():
     return parser
 
 
+class InvalidBackend(Exception):
+    pass
+
+
 class Arroyo:
     def __init__(self, *args, db_uri='sqlite:///:memory:', downloader='mock'):
         # Built-in providers
@@ -73,7 +77,13 @@ class Arroyo:
             self._downloader = None
             return
 
-        self._downloader = Downloader(value, db_session=self.db.session)
+        try:
+            self._downloader = Downloader(value, db_session=self.db.session)
+        except InvalidBackend as e:
+            msg = "{error}: {original_exception}"
+            raise plugins.ArgumentError(msg.format(
+                error=e.args[0],
+                original_exception=e.args[1]))
 
     def parse_arguments(self, arguments=None, apply=True):
         # Load config and plugins in a first phase
@@ -305,8 +315,12 @@ class Downloader:
         self._sess = db_session
 
         backend_name = 'arroyo.downloaders.' + downloader_name
-        backend_mod = importlib.import_module(backend_name)
-        backend_cls = getattr(backend_mod, 'Downloader')
+        try:
+            backend_mod = importlib.import_module(backend_name)
+            backend_cls = getattr(backend_mod, 'Downloader')
+        except (ImportError, AttributeError) as e:
+            msg = "Backend {backend_name} is invalid"
+            raise InvalidBackend(msg.format(backend_name=backend_name), e)
 
         self._backend = backend_cls(db_session=self._sess)
 
