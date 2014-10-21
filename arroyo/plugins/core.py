@@ -156,8 +156,8 @@ class AnalyzeCommand:
             opts['typ'] = opts.pop('type', None)
             try:
                 opts['iterations'] = int(opts['iterations'])
-            except ValueError:
-                pass
+            except (ValueError, KeyError):
+                opts['iterations'] = 1
 
             try:
                 sources += analyze(**opts)
