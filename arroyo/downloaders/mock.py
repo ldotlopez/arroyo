@@ -10,8 +10,14 @@ class Downloader:
     def do_add(self, source, **kwargs):
         self.sources.add(source)
 
-    def do_remove(self, item):
-        pass
+    def do_remove(self, source):
+        self.sources.remove(source)
 
     def do_list(self):
         return list(self.sources)
+
+    def translate_item(self, source):
+        return source
+
+    def get_state(self, source):
+        return source.state
