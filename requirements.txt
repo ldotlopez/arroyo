@@ -1,5 +1,4 @@
 # Core
-pyxdg
 feedparser
 beautifulsoup4
 sqlalchemy
