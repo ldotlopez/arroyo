@@ -358,7 +358,7 @@ class Downloader:
             db_state = db_obj.state
             if db_state != dler_state:
                 db_obj.state = dler_state
-                signals.SIGNALS['source-state-change'].send(source=db_obj)
+                app.signals.send('source-state-change', source=db_obj)
 
         self._sess.commit()
         return ret
