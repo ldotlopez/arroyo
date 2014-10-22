@@ -6,14 +6,12 @@ import json
 import random
 from urllib import parse
 
+from ldotcommons.sqlalchemy import Base
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import schema
-from sqlalchemy.ext import declarative
 from sqlalchemy.orm import relationship
 
 from ldotcommons import utils
-
-Base = declarative.declarative_base()
 
 
 class Source(Base):
