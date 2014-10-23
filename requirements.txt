@@ -1,5 +1,4 @@
 # Core
-pyxdg
 feedparser
 beautifulsoup4
 sqlalchemy
@@ -8,8 +7,8 @@ transmissionrpc
 guessit
 blinker
 ipdb
--e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
+-e git+https://github.com/ldotlopez/ldotcommons.git@59e50fa512607deaf9f8c416644aa1b0003d9709#egg=ldotcommons
 
 # Webui 
 flask
--e git+https://github.com/tomchristie/flask-api#egg=Flask-API
+git+https://github.com/tomchristie/flask-api#egg=Flask-API
