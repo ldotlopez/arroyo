@@ -2,7 +2,7 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-import json
+# import json
 import random
 import re
 from urllib import parse
@@ -49,7 +49,7 @@ class Source(Base):
     movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
 
     # json encoded media data
-    _mediadata = Column('mediadata', String, nullable=True)
+    # _mediadata = Column('mediadata', String, nullable=True)
 
     # Type property
     @hybrid_property
@@ -109,13 +109,13 @@ class Source(Base):
                 return attr.lower()
         return "unknow-{}".format(self.state)
 
-    @property
-    def mediadata(self):
-        return json.loads(self._mediadata)
+    # @property
+    # def mediadata(self):
+    #     return json.loads(self._mediadata)
 
-    @mediadata.setter
-    def mediadata(self, value):
-        self._mediadata = json.dumps(value)
+    # @mediadata.setter
+    # def mediadata(self, value):
+    #     self._mediadata = json.dumps(value)
 
 
 # guessit returns episodeList attribute if more than one episode is detected.
