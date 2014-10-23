@@ -84,7 +84,9 @@ class Source(Base):
         return "<Source('%s')>" % (self.name)
 
     def __iter__(self):
-        keys = 'id name uri type language timestamp seeds leechers size provider state state_name'.split(' ')
+        keys = (
+            'id name uri type language timestamp seeds leechers size provider '
+            'state state_name').split(' ')
         keys += [k for k in vars(self) if k[0] != '_']
 
         for k in set(keys):
@@ -177,7 +179,9 @@ def source_data_builder(**opts):
         'udp://two.green.de:80',
         'udp://three.red.com:1337']
 
-    idstr = 'urn:btih:' + ''.join([random.choice('0123456789abcdef') for x in range(40)])
+    idstr = 'urn:btih:' + ''.join([
+        random.choice('0123456789abcdef') for x in range(40)
+    ])
     ntrackers = random.randint(1, len(trackers))
     randtrackers = random.sample(trackers, ntrackers)
 
@@ -189,11 +193,15 @@ def source_data_builder(**opts):
     source = {
         'id': idstr,
         'name': name,
-        'uri': 'magnet:?xt={}&{}'.format(idstr, parse.urlencode(query, doseq=True)),
+        'uri': 'magnet:?xt={}&{}'.format(
+            idstr, parse.urlencode(query, doseq=True)
+        ),
         'timestamp': utils.utcnow_timestamp(),
         'provider': 'test-provider'
     }
-    extra = {x: opts.get(x, None) for x in ['type', 'language', 'seeds', 'leechers', 'size', 'provider']}
+    extra = {x: opts.get(x, None) for x in [
+        'type', 'language', 'seeds', 'leechers', 'size', 'provider'
+    ]}
     extra = {k: v for (k, v) in extra.items() if v is not None}
     source.update(extra)
 

@@ -195,8 +195,11 @@ class AnalyzeCommand:
         return ret
 
 
-def analyze(analyzer_name,
-            seed_url=None, iterations=1, typ=None, language=None):
+def analyze(
+    analyzer_name, seed_url=None,
+    iterations=1, typ=None, language=None
+        ):
+
     # Build real objects
     analyzer_mod = utils.ModuleFactory('arroyo.importers')(analyzer_name)
 
@@ -426,7 +429,7 @@ class DbCommand:
 
     def run(self):
         var_args = vars(app.arguments)
-        keys = ('shell reset_db reset_states archive_all ' +
+        keys = ('shell reset_db reset_states archive_all fix '
                 'reset_source_id archive_source_id').split()
         opts = {k: var_args.get(k, None) for k in keys}
         opts = {k: v for (k, v) in opts.items() if v is not None}
