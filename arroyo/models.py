@@ -4,14 +4,19 @@
 
 import json
 import random
+import re
 from urllib import parse
 
 from ldotcommons.sqlalchemy import Base
 from sqlalchemy import Column, Integer, String, ForeignKey
 from sqlalchemy import schema
 from sqlalchemy.orm import relationship
+from sqlalchemy.ext.hybrid import hybrid_property
 
-from ldotcommons import utils
+from ldotcommons import logging, utils
+
+
+_logger = logging.get_logger('models')
 
 
 class Source(Base):
@@ -37,13 +42,37 @@ class Source(Base):
     leechers = Column(Integer, nullable=True)
     state = Column(Integer, nullable=False, default=State.NONE)
 
-    type = Column(String, default='unknow')                  # 'unknow', 'episode' or 'movie' at this moment
-    language = Column(String, nullable=True)                 # Not sure about this…
-
-    _mediadata = Column('mediadata', String, nullable=True)  # json encoded media data
+    _type = Column('type', String, nullable=True)
+    _language = Column('language', String, nullable=True)
 
     episode_id = Column(Integer, ForeignKey('episode.id'), nullable=True)
     movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
+
+    # json encoded media data
+    _mediadata = Column('mediadata', String, nullable=True)
+
+    # Type property
+    @hybrid_property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        if value not in (None, 'movie', 'episode'):
+            raise ValueError(value)
+
+        self._type = value
+
+    # Language property
+    @hybrid_property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, value):
+        if value is not None and not re.match(r'^...\-..$', value):
+            raise ValueError(value)
+        self._language = value
 
     def __str__(self):
         return self.__unicode__()
