@@ -58,7 +58,7 @@ class Source(Base):
 
     @type.setter
     def type(self, value):
-        if value not in (None, 'movie', 'episode'):
+        if not _check_type(value):
             raise ValueError(value)
 
         self._type = value
@@ -70,8 +70,9 @@ class Source(Base):
 
     @language.setter
     def language(self, value):
-        if value is not None and not re.match(r'^...\-..$', value):
+        if not _check_language(value):
             raise ValueError(value)
+
         self._language = value
 
     def __str__(self):
@@ -120,23 +121,37 @@ class Source(Base):
     #     self._mediadata = json.dumps(value)
 
 
-# guessit returns episodeList attribute if more than one episode is detected.
-# take care of this
 class Episode(Base):
     __tablename__ = 'episode'
     __table_args__ = (
-        schema.UniqueConstraint('series', 'year', 'season', 'episode_number'),
+        schema.UniqueConstraint('series', 'year', 'language', 'season',
+                                'number'),
     )
 
     id = Column(Integer, primary_key=True)
     sources = relationship("Source")
 
     series = Column(String, nullable=False)
+    _language = Column('language', String, nullable=True)
     year = Column(Integer, nullable=True)
+
     season = Column(String, nullable=False)
-    episode_number = Column(String, nullable=False)
+    # guessit returns episodeList attribute if more than one episode is
+    # detected, take care of this
+    number = Column(String, nullable=False)
 
     sources = relationship("Source", backref="episode")
+
+    @hybrid_property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, value):
+        if not _check_language(value):
+            raise ValueError(value)
+
+        self._language = value
 
     def __repr__(self):
         ret = self.series
@@ -145,7 +160,7 @@ class Episode(Base):
             ret += ' (%04d)' % self.year
 
         ret += ' S%02d E%02d' % \
-            (int(self.season or -1), int(self.episode_number))
+            (int(self.season or -1), int(self.number))
 
         return "<Episode ('%s')>" % ret
 
@@ -153,7 +168,7 @@ class Episode(Base):
 class Movie(Base):
     __tablename__ = 'movie'
     __table_args__ = (
-        schema.UniqueConstraint('title', 'year'),
+        schema.UniqueConstraint('title', 'language', 'year'),
     )
 
     id = Column(Integer, primary_key=True)
@@ -161,6 +176,18 @@ class Movie(Base):
 
     title = Column(String, nullable=False)
     year = Column(Integer, nullable=True)
+    _language = Column('language', String, nullable=True)
+
+    @hybrid_property
+    def language(self):
+        return self._language
+
+    @language.setter
+    def language(self, value):
+        if not _check_language(value):
+            raise ValueError(value)
+
+        self._language = value
 
     def __repr__(self):
         ret = self.name
@@ -169,6 +196,14 @@ class Movie(Base):
             ret += ' (%04d)' % self.year
 
         return "<Movie ('%s')>" % ret
+
+
+def _check_language(lang):
+    return (lang is None or re.match(r'^...(\-..)?$', lang))
+
+
+def _check_type(typ):
+    return typ in (None, 'movie', 'episode')
 
 
 def source_data_builder(**opts):

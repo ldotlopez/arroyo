@@ -1,5 +1,6 @@
-import guessit
+from os import path
 
+import guessit
 from ldotcommons import logging
 
 from arroyo import models, plugins
@@ -13,32 +14,84 @@ def get_mediainfo(source):
     # TODO:
     # - 'Jimmy Fallon 2014 10 14 Emma Stone HDTV x264-CROOKS' is not guessed
     #   correctly by guess_episode_info but not by guess_file_info
+    # - Fix:
+    # In [3]: pp(guessit.guess_file_info(
+    # 'The 100 - Temporada 2 [HDTV][Cap.201][V.O.Sub. Español Castellano].avi'
+    # ))
+    # {'container': 'avi',
+    #  'episodeNumber': 100,
+    #  'format': 'HDTV',
+    #  'mimetype': 'video/x-msvideo',
+    #  'releaseGroup': 'Cap',
+    #  'series': 'The', <----- FIXME
+    #  'subtitleLanguage': [<Language [es]>],
+    #  'title': 'Temporada 2',
+    #  'type': 'episode',
+    #  'unidentified': ['Castellano', 'V O']}
 
-    info = guessit.guess_file_info(source.name)
+    if source.type == 'movie':
+        info = guessit.guess_movie_info(source.name)
+    elif source.type == 'episode':
+        info = guessit.guess_episode_info(source.name)
+    else:
+        info = guessit.guess_file_info(source.name)
 
-    # Fix language
+    # The spanish scene is SO bad doing releases. For this reason we need to
+    # trick guessit to get correct info.
+    # See this:
+    #
+    # ipdb> pp(guessit.guess_file_info(
+    #    'Dominion (US) - Temporada 1 [HDTV][Cap.104][Español Castellano].avi'
+    # ))
+    # {'container': 'avi',
+    #  'country': <Country [US]>,
+    #  'episodeNumber': 4,
+    #  'format': 'HDTV',
+    #  'language': [<Language [es]>],
+    #  'mimetype': 'video/x-msvideo',
+    #  'releaseGroup': 'Cap',
+    #  'season': 1,
+    #  'series': 'Dominion (US)',
+    #  'title': 'Castellano',
+    #  'type': 'episode',
+    #  'unidentified': ['Temporada 1']}
+    #
+    # ipdb> pp(guessit.guess_file_info(
+    #    'Dominion (US) - Temporada 1 [HDTV][Cap.104][Español Castellano]'
+    # ))
+    # {'country': <Country [US]>,
+    #  'episodeNumber': 4,
+    #  'extension': '104][español castellano]',
+    #  'format': 'HDTV',
+    #  'releaseGroup': 'Cap',
+    #  'season': 1,
+    #  'type': 'episode',
+    #  'unidentified': ['Dominion', 'p', 'Temporada 1']}
+
+    fixes = {
+        'movie': (
+            ('title', 'year', 'language'),
+            ('.avi')
+        ),
+        'episode': (
+            ('series', 'year', 'language', 'season', 'episodeNumber'),
+            ('.mp4')
+        )
+    }
+
+    if source.type in fixes:
+        wanted_fields, expected_ext = fixes[source.type]
+        filename, extension = path.splitext(source.name)
+
+        if extension != expected_ext:
+            fake_info = guessit.guess_file_info(source.name + expected_ext)
+            for f in wanted_fields:
+                if f not in info and f in fake_info:
+                    info[f] = fake_info[f]
+
     if 'language' in info:
-        info['language'] = [x.english_name for x in info['language']]
-
-    # FIXME: Ok, I have no idea what the hell is doing this code exactly.
-    # It comes from an ancient and obscure code and I remember it was very
-    # useful, so I'm keeping it
-    ext_fixes = (
-        ('movie',
-            ('title',),
-            '.avi'),
-        ('episode',
-            ('series', 'season', 'episodeNumber'),
-            '.mp4')
-    )
-    for (type_, fields, ext) in ext_fixes:
-        if info['type'] == type_ and fields[0] not in info:
-            info2 = guessit.guess_file_info(source.name + ext)
-            for field in fields:
-                try:
-                    info[field] = info2[field]
-                except KeyError:
-                    pass
+        # FIXME: Handle all languages
+        info['language'] = info['language'][0].alpha3
 
     return info
 
@@ -49,7 +102,8 @@ def get_specilized_source(info):
             model = models.Movie
             arguments = {
                 'title': info['title'],
-                'year': info.get('year', None)
+                'year': info.get('year', None),
+                'language': info.get('language', None)
             }
         except KeyError:
             raise ValueError('info data for movie source is incomplete')
@@ -60,8 +114,9 @@ def get_specilized_source(info):
             arguments = {
                 'series': info['series'],
                 'season': info.get('season', -1),
-                'episode_number': info['episodeNumber'],
-                'year': info.get('year', None)
+                'number': info['episodeNumber'],
+                'year': info.get('year', None),
+                'language': info.get('language', None)
             }
         except KeyError:
             raise ValueError('info data for episode source is incomplete')
@@ -72,6 +127,7 @@ def get_specilized_source(info):
     # arguments = {k: v for (k, v) in arguments.items() if v is not None}
 
     obj = app.db.get(model, **arguments)
+
     if obj is not None:
         created = False
     else:
@@ -111,15 +167,6 @@ class Mediainfo:
         for src in srcs:
             info = get_mediainfo(src)
 
-            #
-            # Update source with mediainfo
-            #
-
-            # Fix source's type
-            # FIXME: Move this into model
-            if src.type in ('unknown', 'unknow'):
-                src.type = None
-
             # Give up if info's type is unknow
             if info['type'] == 'unknown':
                 msg = "unknown type for {source}"
@@ -130,6 +177,20 @@ class Mediainfo:
             if src.type is None:
                 src.type = info['type']
 
+            # Fix language
+            # info also contains a country property but doesn't satisfy our
+            # needs.
+            # info's country refers to the country where the episode/movie whas
+            # produced. Example:
+            # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
+            # For now only the 3 letter code is used.
+            if src.language is None and 'language' in info:
+                src.language = info['language'].alpha3
+
+            elif src.language is not None:
+                info['language'] = src.language
+
+            # Create specilized model
             try:
                 specilized_source, created = get_specilized_source(info)
                 if created:
