@@ -52,8 +52,8 @@ def process(buff):
                 'name': children[1].text.strip(),
                 'uri': children[2].select('a.magnet')[0]['href'],
                 'timestamp': utils.utcnow_timestamp(),
-                'type': 'tvshow',
-                'language': 'en-us'
+                'type': 'episode',
+                'language': 'eng-US'
             })
         except IndexError:
             continue
