@@ -101,7 +101,7 @@ def process(buff):
         if re.findall(r'(cap\.|hdtv|temporada)', title, re.IGNORECASE):
             type_ = 'episode'
 
-        elif re.findall(r'(dvdrip|blurayrip|dvd\s*screener)',
+        elif re.findall(r'(dvd|blu(ray)?|dvd|cam)([\s\.]*(rip|screener)?)',
                         title,
                         re.IGNORECASE):
             type_ = 'movie'
@@ -114,9 +114,9 @@ def process(buff):
             pass
 
         lang = 'spa'
-        if re.findall(r'(espa.+?l.+?castellano)', title, re.IGNORECASE):
+        if re.search(r'(espa.+?l.+?castellano)', title, re.IGNORECASE):
             lang = 'spa-ES'
-        elif title.lower().find('latino'):
+        elif re.search(r'\blatino\b', title, re.IGNORECASE):
             lang = 'spa-MX'
 
         # Add source
