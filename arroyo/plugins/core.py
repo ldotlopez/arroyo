@@ -172,7 +172,7 @@ class AnalyzeCommand:
         }
 
         for src in sources:
-            obj, created = app.db.get_or_create(models.Source, id=src['id'])
+            obj, created = app.db.get_or_create(models.Source, urn=src['urn'])
             for key in src:
                 setattr(obj, key, src[key])
 
@@ -232,7 +232,7 @@ def analyze(
         # Pass buffer over analyzer funcion and fix some fields
         srcs = analyzer_mod.process(buff)
         for src in srcs:
-            src['id'] = parse.parse_qs(
+            src['urn'] = parse.parse_qs(
                 parse.urlparse(src['uri']).query)['xt'][-1]
             src.update(overrides)
 
@@ -610,24 +610,22 @@ def downloads(show=False, add=False, remove=False, source_id=None):
             print(source_repr(src))
 
     elif add:
-        try:
-            source = app.db.get_source_by_id(source_id)
-
-        except arroyo.SourceNotFound:
+        source = app.db.get(models.Source, id=source_id)
+        if source is None:
             _logger.error("No source {source_id}".format(source_id=source_id))
             return
 
         app.downloader.add(source)
 
     elif remove:
-        try:
-            source = app.db.get_source_by_id(source_id)
-            if source not in app.db.get_active():
-                msg = 'Source {source.name} {source.id} is not active'
-                _logger.warn(msg.format(source=source))
-
-        except arroyo.SourceNotFound:
+        source = app.db.get(models.Source, id=source_id)
+        if source is None:
             _logger.error("No source {source_id}".format(source_id=source_id))
+            return
+
+        if source not in app.db.get_active():
+            msg = 'Source {source.name} {source.id} is not active'
+            _logger.error(msg.format(source=source))
             return
 
         app.downloader.remove(source)

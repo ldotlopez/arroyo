@@ -31,7 +31,8 @@ class Source(Base):
         DONE = 5
         ARCHIVED = 6
 
-    id = Column(String, primary_key=True)
+    id = Column(Integer, primary_key=True)
+    urn = Column(String, unique=True)
     name = Column(String, nullable=False)
     uri = Column(String, nullable=False, unique=True)
     timestamp = Column(Integer, nullable=False)

@@ -39,7 +39,7 @@ class Downloader:
         return self._api.get_torrents()
 
     def do_add(self, source, **kwargs):
-        sha1_urn = downloaders.calculate_urns(source.id)[0]
+        sha1_urn = downloaders.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
             _logger.warning('Avoid duplicate')
@@ -86,8 +86,9 @@ class Downloader:
         for u in urns:
             try:
                 # Use like here for case-insensitive filter
-                ret = self._sess.query(models.Source).filter(
-                    models.Source.id.like(u)).one()
+                q = self._sess.query(models.Source)
+                q = q.filter(models.Source.urn.like(u))
+                ret = q.one()
                 break
 
             except exc.NoResultFound:
