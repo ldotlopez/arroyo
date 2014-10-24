@@ -10,7 +10,7 @@ from arroyo.app import app
 _logger = logging.get_logger('metainfo')
 
 
-def get_mediainfo(source):
+def _get_mediainfo(source):
     # TODO:
     # - 'Jimmy Fallon 2014 10 14 Emma Stone HDTV x264-CROOKS' is not guessed
     #   correctly by guess_episode_info but not by guess_file_info
@@ -96,7 +96,7 @@ def get_mediainfo(source):
     return info
 
 
-def get_specilized_source(info):
+def _get_specilized_source(info):
     if info['type'] == 'movie':
         try:
             model = models.Movie
@@ -126,15 +126,57 @@ def get_specilized_source(info):
 
     # arguments = {k: v for (k, v) in arguments.items() if v is not None}
 
-    obj = app.db.get(model, **arguments)
+    return app.db.get_or_create(model, **arguments)
 
-    if obj is not None:
-        created = False
-    else:
-        obj = model(**arguments)
-        created = True
 
-    return obj, created
+def mediainfo(*sources):
+    for src in sources:
+        info = _get_mediainfo(src)
+
+        # Give up if info's type is unknow
+        if info['type'] == 'unknown':
+            msg = "unknown type for {source}"
+            _logger.warning(msg.format(source=src))
+            continue
+
+        # Update source.type only if it is unknow
+        if src.type is None:
+            src.type = info['type']
+
+        # Fix language
+        # info also contains a country property but doesn't satisfy our
+        # needs.
+        # info's country refers to the country where the episode/movie whas
+        # produced. Example:
+        # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
+        # For now only the 3 letter code is used.
+        if src.language is None and 'language' in info:
+            src.language = info['language'].alpha3
+
+        elif src.language is not None:
+            info['language'] = src.language
+
+        # Create specilized model
+        try:
+            specilized_source, created = _get_specilized_source(info)
+            if created:
+                app.db.session.add(specilized_source)
+        except ValueError as e:
+            msg = "unable to get specilized data for '{source}': {reason}"
+            _logger.warning(msg.format(source=src, reason=e))
+            continue
+
+        # Link source and specialized_source
+        if info['type'] == 'movie':
+            src.movie = specilized_source
+            src.episode = None
+
+        elif info['type'] == 'episode':
+            src.movie = None
+            src.episode = specilized_source
+
+    # Apply changes
+    app.db.session.commit()
 
 
 @app.register('command')
@@ -149,12 +191,12 @@ class Mediainfo:
         ),
     )
 
-    # def __init__(self):
-    #     app.signals['source-added'].connect(self.on_source)
-    #     app.signals['source-updated'].connect(self.on_source)
+    def __init__(self):
+        app.signals.connect('sources-added-batch', self.on_source_batch)
+        app.signals.connect('sources-updated-batch', self.on_source_batch)
 
-    # def on_source(self, *args, **kwargs):
-    #     print("Args:", repr(args), "kwargs:", repr(kwargs))
+    def on_source_batch(self, sender, sources):
+        mediainfo(*sources)
 
     def run(self):
         item = app.arguments.item
@@ -164,50 +206,4 @@ class Mediainfo:
         else:
             srcs = app.db.session.query(models.Source)
 
-        for src in srcs:
-            info = get_mediainfo(src)
-
-            # Give up if info's type is unknow
-            if info['type'] == 'unknown':
-                msg = "unknown type for {source}"
-                _logger.warning(msg.format(source=src))
-                continue
-
-            # Update source.type only if it is unknow
-            if src.type is None:
-                src.type = info['type']
-
-            # Fix language
-            # info also contains a country property but doesn't satisfy our
-            # needs.
-            # info's country refers to the country where the episode/movie whas
-            # produced. Example:
-            # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
-            # For now only the 3 letter code is used.
-            if src.language is None and 'language' in info:
-                src.language = info['language'].alpha3
-
-            elif src.language is not None:
-                info['language'] = src.language
-
-            # Create specilized model
-            try:
-                specilized_source, created = get_specilized_source(info)
-                if created:
-                    app.db.session.add(specilized_source)
-            except ValueError as e:
-                msg = "unable to get specilized data for '{source}': {reason}"
-                _logger.warning(msg.format(source=src, reason=e))
-                continue
-
-            # Link source and specialized_source
-            if info['type'] == 'movie':
-                src.movie = specilized_source
-                src.episode = None
-
-            elif info['type'] == 'episode':
-                src.movie = None
-                src.episode = specilized_source
-
-        # Apply changes
-        app.db.session.commit()
+        mediainfo(*srcs)
