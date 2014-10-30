@@ -5,8 +5,6 @@ from urllib import parse
 from ldotcommons import fetchers, logging, sqlalchemy as ldotsa, utils
 import sqlalchemy
 
-
-import arroyo
 from arroyo import importers, models, plugins
 from arroyo.app import app
 
@@ -51,24 +49,6 @@ def sub_config_dict(ns):
     cfg_dict = utils.configparser_to_dict(app.config)
     multi_depth_cfg = utils.MultiDepthDict(cfg_dict)
     return multi_depth_cfg.subdict(ns)
-
-
-def _query_params_glob_to_like(query_params):
-    ret = {}
-
-    for (param, value) in query_params.items():
-        if param.endswith('_like'):
-            value = ldotsa.glob_to_like(value)
-
-            if not value.startswith('%'):
-                value = '%' + value
-
-            if not value.endswith('%'):
-                value = value + '%'
-
-        ret[param] = value
-
-    return ret
 
 
 @app.register('command')
@@ -299,23 +279,10 @@ class QueryCommand:
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
-        plugins.argument(
-            '-a', '--all',
-            dest='all_states',
-            action='store_true',
-            help='Include all results ' +
-                 '(by default only sources with NONE state are displayed)'),
-        plugins.argument(
-            '-p', '--push',
-            dest='push',
-            action='store_true',
-            help='Push found sources to downloader.')
     )
 
     def run(self):
         filters = app.arguments.filters
-        all_states = app.arguments.all_states
-        push = app.arguments.push
 
         queries = {}
         if filters:
@@ -330,8 +297,7 @@ class QueryCommand:
 
         matches = []
         for (query_name, filters) in queries.items():
-            filters = _query_params_glob_to_like(filters)
-            matches = query(filters, all_states=all_states).all()
+            matches = query(filters, all_states=True).all()
 
             print("Query '{query_name}': found {n_results} results".format(
                 query_name=query_name, n_results=len(matches)
@@ -339,15 +305,25 @@ class QueryCommand:
             for src in matches:
                 print(source_repr(src))
 
-                if not push:
-                    continue
-
-                app.downloader.add(src)
-
-        sync()
-
 
 def query(filters, all_states=False):
+    def _glob_to_sa_like(query_params):
+        ret = {}
+
+        for (param, value) in query_params.items():
+            if param.endswith('_like'):
+                value = ldotsa.glob_to_like(value)
+
+                if not value.startswith('%'):
+                    value = '%' + value
+
+                if not value.endswith('%'):
+                    value = value + '%'
+
+            ret[param] = value
+
+        return ret
+
     if not filters:
         raise plugins.ArgumentError('Al least one filter is needed')
 
@@ -356,6 +332,8 @@ def query(filters, all_states=False):
 
     if not isinstance(all_states, bool):
         raise plugins.ArgumentError('all_states parameter must be a bool')
+
+    filters = _glob_to_sa_like(filters)
 
     filter_impls = app.get_all('filter')
     query = app.db.session.query(models.Source)
@@ -566,36 +544,55 @@ class DownloadsCommand:
         plugins.argument(
             '-r', '--remove',
             dest='remove',
-            help='Cancel (and/or remove) a source ID')
+            help='Cancel (and/or remove) a source ID'),
+
+        plugins.argument(
+            '-f', '--filter',
+            dest='filters',
+            type=str,
+            action=utils.DictAction,
+            help='Filters to apply in key_mod=value form'),
+
+        plugins.argument(
+            '-n', '--dry-run',
+            dest='dry_run',
+            action='store_true',
+            help='Push found sources to downloader.')
     )
 
     def run(self):
-
         show = app.arguments.show
-        add, remove = False, False
-        source_id = None
-
         source_id_add = app.arguments.add
+        source_id_remove = app.arguments.remove
+        filters = app.arguments.filters
+        dry_run = app.arguments.dry_run
+
+        add, remove, source_id = False, False, False
         if source_id_add:
             add, source_id = True, source_id_add
 
-        source_id_remove = app.arguments.remove
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        if not add and not remove:
-            show = True
+        if not any([show, add, remove, filters]):
+            raise plugins.ArgumentError('No action specified')
 
-        sync()
-        downloads(
-            show=show,
-            add=add,
-            remove=remove,
-            source_id=source_id)
+        # Downloader control
+        if any([show, add, remove]):
+            downloads(show=show, add=add, remove=remove, source_id=source_id)
+
+        # Source selection
+        elif filters:
+            sync()
+            sources = query(filters)
+            for src in sources:
+                print(source_repr(src))
+                if not dry_run:
+                    app.downloader.add(src)
 
 
 def downloads(show=False, add=False, remove=False, source_id=None):
-    if sum([1 if x else 0 for x in [show, add, remove]]) != 1:
+    if not any([show, add, remove]):
         msg = 'Only one option from show/add/remove is allowed'
         raise plugins.ArgumentError(msg)
 
