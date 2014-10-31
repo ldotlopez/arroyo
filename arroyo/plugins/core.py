@@ -355,12 +355,6 @@ class DbCommand:
             help='Sets state to ARCHIVED on all sources'),
 
         plugins.argument(
-            '--fix',
-            dest='fix',
-            action='store_true',
-            help='Apply some autofixes on the database'),
-
-        plugins.argument(
             '--reset',
             dest='reset_source_id',
             help='Reset state of a source'),
@@ -373,7 +367,7 @@ class DbCommand:
 
     def run(self):
         var_args = vars(app.arguments)
-        keys = ('shell reset_db reset_states archive_all fix '
+        keys = ('shell reset_db reset_states archive_all '
                 'reset_source_id archive_source_id').split()
         opts = {k: var_args.get(k, None) for k in keys}
         opts = {k: v for (k, v) in opts.items() if v is not None}
@@ -382,11 +376,11 @@ class DbCommand:
 
 
 def db_command(
-    reset=False, shell=False, reset_states=False, archive_all=False, fix=False,
+    reset=False, shell=False, reset_states=False, archive_all=False,
     reset_source_id=None, archive_source_id=None
         ):
 
-    test = [1 for x in (reset, shell, reset_states, archive_all, fix,
+    test = [1 for x in (reset, shell, reset_states, archive_all,
                         reset_source_id, archive_source_id) if x]
 
     if sum(test) == 0:
@@ -395,49 +389,6 @@ def db_command(
     elif sum(test) > 1:
         msg = 'Just one option can be specified at one time'
         raise plugins.ArgumentError(msg)
-
-    if fix:
-        for src in app.db.session.query(models.Source):
-
-            # Fix type
-            typ = src.type
-            if typ not in (None, 'movie', 'episode'):
-                msg = "Fix source's type '{old}' -> '{new}' for {source}"
-                msg.type = None
-                _logger.warning(msg.format(source=src, old=type, new='None'))
-
-            # Fix langauge
-            _lang_fixes = [
-                ('english', 'eng-US'),
-                ('es', 'spa-ES'),
-                ('es-es', 'spa-ES'),
-                ('lat', 'spa-MX'),
-                ('es-lat', 'spa-MX'),
-            ]
-            lang = src.language
-            if lang is None or re.match(r'^...\-..$', lang):
-                continue
-
-            is_fixed = False
-            for (old, new) in _lang_fixes:
-                if lang != old:
-                    continue
-
-                src.language = new
-                msg = \
-                    "Fix source's language '{old}' -> '{new}' for {source}"
-                _logger.warning(msg.format(
-                    old=lang, new=src.language, source=src
-                ))
-                is_fixed = True
-                break
-
-            if not is_fixed:
-                msg = \
-                    "Invalid source's language '{language}' for '{source}'"
-                _logger.warning(msg.format(language=lang, source=src))
-
-        app.db.session.commit()
 
     if reset:
         app.db.reset()
