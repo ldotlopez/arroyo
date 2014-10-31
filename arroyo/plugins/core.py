@@ -222,9 +222,9 @@ def analyze(
 
 
 @app.register('command')
-class SearchCommand:
-    name = 'search'
-    help = 'Simple search'
+class QueryCommand:
+    name = 'query'
+    help = 'Query database'
     arguments = (
         plugins.argument(
             '-a', '--all',
@@ -233,77 +233,43 @@ class SearchCommand:
             help='Include all results ' +
                  '(by default only sources with NONE state are displayed)'),
         plugins.argument(
-            '-p', '--push',
-            dest='push',
-            action='store_true',
-            help='Push found sources to downloader.'),
+            '-f', '--filter',
+            dest='filters',
+            required=False,
+            type=str,
+            action=utils.DictAction,
+            help='Filters to apply in key_mod=value form'),
         plugins.argument(
             'keywords',
-            action='append',
+            nargs='*',
             help='Keywords.')
     )
 
     def run(self):
-        f = {
-            'name_like': '%' + '%'.join(app.arguments.keywords) + '%'
-        }
+        filters = app.arguments.filters
+        keywords = app.arguments.keywords
+
+        if all([filters, keywords]):
+            raise plugins.ArgumentError('Filters and keywords are mutually '
+                                        'exclusive')
+
+        if not any([filters, keywords]):
+            raise plugins.ArgumentError('One filter or one keyword is '
+                                        'required')
+
+        if keywords:
+            filters = {
+                'name_like': '*' + '*'.join(keywords) + '*'
+            }
 
         sync()
 
-        matches = query(f, all_states=app.arguments.all_states).all()
-
-        print("Query '{query_name}': found {n_results} results".format(
-            query_name=' '.join(app.arguments.keywords), n_results=len(matches)
+        matches = query(filters, all_states=app.arguments.all_states).all()
+        print("Found {n_results} results".format(
+            n_results=len(matches)
         ))
-
         for src in matches:
             print(source_repr(src))
-
-            if not app.arguments.push:
-                continue
-
-        if app.arguments.push:
-            app.downloader.add(*matches)
-
-        sync()
-
-
-@app.register('command')
-class QueryCommand:
-    name = 'query'
-    help = 'Advanced search'
-    arguments = (
-        plugins.argument(
-            '-f', '--filter',
-            dest='filters',
-            type=str,
-            action=utils.DictAction,
-            help='Filters to apply in key_mod=value form'),
-    )
-
-    def run(self):
-        filters = app.arguments.filters
-
-        queries = {}
-        if filters:
-            queries['command line'] = filters
-        else:
-            queries = sub_config_dict('query')
-
-        if not queries:
-            raise plugins.ArgumentError("No query specified")
-
-        sync()
-
-        matches = []
-        for (query_name, filters) in queries.items():
-            matches = query(filters, all_states=True).all()
-
-            print("Query '{query_name}': found {n_results} results".format(
-                query_name=query_name, n_results=len(matches)
-            ))
-            for src in matches:
-                print(source_repr(src))
 
 
 def query(filters, all_states=False):
