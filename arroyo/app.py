@@ -7,7 +7,7 @@ from sqlalchemy.orm import exc
 from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
 from arroyo import (models, plugins, downloaders,
-                    SourceNotFound, ReadOnlyProperty)
+                    ReadOnlyProperty)
 
 
 _logger = logging.get_logger('app')
@@ -287,26 +287,12 @@ class Db:
 
         return query
 
-    def get_source_by_id(self, id_):
-        query = self._sess.query(models.Source)
-        query = query.filter(models.Source.id == id_)
-
-        try:
-            return query.one()
-        except exc.NoResultFound:
-            raise SourceNotFound()
-
     def get_active(self):
         query = self._sess.query(models.Source)
         query = query.filter(~models.Source.state.in_(
             (models.Source.State.NONE, models.Source.State.ARCHIVED)))
 
         return query
-
-    def update_source_state(self, id_, state):
-        source = self.get_source_by_id(id_)
-        source.state = state
-        self.session.commit()
 
 
 class Downloader:

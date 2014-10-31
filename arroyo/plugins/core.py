@@ -402,15 +402,20 @@ def db_command(
     if shell:
         app.db.shell()
 
-    if reset_source_id or archive_source_id:
+    source_id = reset_source_id or archive_source_id
+    if source_id:
         if reset_source_id:
             state = models.Source.State.NONE
         else:
             state = models.Source.State.ARCHIVED
 
-        app.db.update_source_state(
-            reset_source_id or archive_source_id,
-            state)
+        source = app.db.get(models.Source, id=source_id)
+        if not source:
+            msg = "No source with ID={id}".format(id=source_id)
+            raise plugins.ArgumentError(msg)
+
+        source.state = state
+        app.db.session.commit()
 
 
 @app.register('command')
