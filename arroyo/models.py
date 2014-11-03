@@ -2,18 +2,16 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-# import json
 import random
 import re
 from urllib import parse
 
-from ldotcommons.sqlalchemy import Base
-from sqlalchemy import Column, Integer, String, ForeignKey
-from sqlalchemy import schema
-from sqlalchemy.orm import relationship
-from sqlalchemy.ext.hybrid import hybrid_property
 
 from ldotcommons import logging, utils
+from ldotcommons.sqlalchemy import Base
+from sqlalchemy import schema, Column, Integer, String, ForeignKey
+from sqlalchemy.ext.hybrid import hybrid_property
+from sqlalchemy.orm import relationship, backref
 
 
 _logger = logging.get_logger('models')
@@ -47,12 +45,14 @@ class Source(Base):
     _language = Column('language', String, nullable=True)
 
     episode_id = Column(Integer, ForeignKey('episode.id'), nullable=True)
+    episode = relationship("Episode", uselist=False, backref="sources")
+
     movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
+    movie = relationship("Movie", uselist=False, backref="sources")
 
-    # json encoded media data
-    # _mediadata = Column('mediadata', String, nullable=True)
-
+    #
     # Type property
+    #
     @hybrid_property
     def type(self):
         return self._type
@@ -64,7 +64,9 @@ class Source(Base):
 
         self._type = value
 
+    #
     # Language property
+    #
     @hybrid_property
     def language(self):
         return self._language
@@ -113,13 +115,54 @@ class Source(Base):
                 return attr.lower()
         return "unknow-{}".format(self.state)
 
-    # @property
-    # def mediadata(self):
-    #     return json.loads(self._mediadata)
 
-    # @mediadata.setter
-    # def mediadata(self, value):
-    #     self._mediadata = json.dumps(value)
+class Selection(Base):
+    __tablename__ = 'selection'
+    id = Column(Integer, primary_key=True)
+    type = Column(String(50))
+
+    source_id = Column(Integer, ForeignKey('source.id'), nullable=True)
+    source = relationship("Source")
+
+    @hybrid_property
+    def state(self):
+        if not self.source:
+            return Source.State.NONE
+        else:
+            return self.source.state
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'selection',
+        'polymorphic_on': type
+    }
+
+
+class EpisodeSelection(Selection):
+    __tablename__ = 'episode_selection'
+
+    id = Column(Integer, ForeignKey('selection.id'), primary_key=True)
+
+    episode_id = Column(Integer, ForeignKey('episode.id'), nullable=False)
+    episode = relationship("Episode",
+                           backref=backref("_selection", uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'episode',
+    }
+
+
+class MovieSelection(Selection):
+    __tablename__ = 'movie_selection'
+
+    id = Column(Integer, ForeignKey('selection.id'), primary_key=True)
+
+    movie_id = Column(Integer, ForeignKey('movie.id'), nullable=False)
+    movie = relationship("Movie",
+                         backref=backref("_selection", uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'movie',
+    }
 
 
 class Episode(Base):
@@ -130,18 +173,14 @@ class Episode(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    sources = relationship("Source")
 
     series = Column(String, nullable=False)
     _language = Column('language', String, nullable=True)
     year = Column(Integer, nullable=True)
-
     season = Column(String, nullable=False)
     # guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
     number = Column(String, nullable=False)
-
-    sources = relationship("Source", backref="episode")
 
     @hybrid_property
     def language(self):
@@ -153,6 +192,13 @@ class Episode(Base):
             raise ValueError(value)
 
         self._language = value
+
+    @hybrid_property
+    def selection(self):
+        if not self._selection:
+            self._selection = EpisodeSelection()
+
+        return self._selection
 
     def __repr__(self):
         ret = self.series
@@ -173,7 +219,6 @@ class Movie(Base):
     )
 
     id = Column(Integer, primary_key=True)
-    sources = relationship("Source", backref="movie")
 
     title = Column(String, nullable=False)
     year = Column(Integer, nullable=True)
@@ -189,6 +234,13 @@ class Movie(Base):
             raise ValueError(value)
 
         self._language = value
+
+    @hybrid_property
+    def selection(self):
+        if not self.selection:
+            self.selection = MovieSelection()
+
+        return self.selection
 
     def __repr__(self):
         ret = self.name
