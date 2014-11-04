@@ -121,7 +121,7 @@ class Selection(Base):
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
 
-    source_id = Column(Integer, ForeignKey('source.id'), nullable=True)
+    source_id = Column(Integer, ForeignKey('source.id'), nullable=False)
     source = relationship("Source")
 
     @hybrid_property
@@ -140,28 +140,31 @@ class Selection(Base):
 class EpisodeSelection(Selection):
     __tablename__ = 'episode_selection'
 
-    id = Column(Integer, ForeignKey('selection.id'), primary_key=True)
+    id = Column(Integer, ForeignKey('selection.id', ondelete="CASCADE"),
+                primary_key=True)
 
     episode_id = Column(Integer, ForeignKey('episode.id'), nullable=False)
     episode = relationship("Episode",
-                           backref=backref("_selection", uselist=False))
+                           backref=backref("selection", uselist=False))
 
     __mapper_args__ = {
-        'polymorphic_identity': 'episode',
+        'polymorphic_identity': 'episode'
     }
 
 
 class MovieSelection(Selection):
     __tablename__ = 'movie_selection'
 
-    id = Column(Integer, ForeignKey('selection.id'), primary_key=True)
+    selection_id = Column(Integer, ForeignKey('selection.id'),
+                          primary_key=True)
+    selection = relationship("Selection", cascade="all, delete, delete-orphan", single_parent=True)
 
     movie_id = Column(Integer, ForeignKey('movie.id'), nullable=False)
     movie = relationship("Movie",
-                         backref=backref("_selection", uselist=False))
+                         backref=backref("selection", uselist=False))
 
     __mapper_args__ = {
-        'polymorphic_identity': 'movie',
+        'polymorphic_identity': 'movie'
     }
 
 
@@ -193,12 +196,12 @@ class Episode(Base):
 
         self._language = value
 
-    @hybrid_property
-    def selection(self):
-        if not self._selection:
-            self._selection = EpisodeSelection()
+    # @hybrid_property
+    # def selection(self):
+    #     if not self._selection:
+    #         self._selection = EpisodeSelection()
 
-        return self._selection
+    #     return self._selection
 
     def __repr__(self):
         ret = self.series
@@ -235,12 +238,12 @@ class Movie(Base):
 
         self._language = value
 
-    @hybrid_property
-    def selection(self):
-        if not self.selection:
-            self.selection = MovieSelection()
+    # @hybrid_property
+    # def selection(self):
+    #     if not self.selection:
+    #         self.selection = MovieSelection()
 
-        return self.selection
+    #     return self.selection
 
     def __repr__(self):
         ret = self.name

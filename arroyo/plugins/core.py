@@ -4,6 +4,7 @@ from urllib import parse
 
 from ldotcommons import fetchers, logging, sqlalchemy as ldotsa, utils
 import sqlalchemy
+from sqlalchemy.sql import functions
 
 from arroyo import importers, models, plugins
 from arroyo.app import app
@@ -505,12 +506,77 @@ class DownloadsCommand:
 
         # Source selection
         elif filters:
-            sync()
-            sources = query(filters)
-            for src in sources:
-                print(source_repr(src))
-                if not dry_run:
-                    app.downloader.add(src)
+            print(repr(filters))
+
+            if 'series' in filters:
+                sync()
+                download_episodes(**filters)
+            elif 'movie' in filters:
+                sync()
+                download_movies(**filters)
+
+            # Download sources
+            else:
+                sync()
+                sources = query(filters)
+                for src in sources:
+                    print(source_repr(src))
+                    if not dry_run:
+                        app.downloader.add(src)
+
+
+def download_episodes(**filters):
+    def proper_sort(x):
+        return re.search(r'\b(PROPER|REPACK)\b', x.name) is None
+
+    def quality_filter(x):
+        return re.search(regexp, x.name, re.IGNORECASE)
+
+    qs = app.db.session.query(models.Episode)
+    qs = qs.filter(models.Episode.selection == None)  # nopep8
+
+    series = filters.pop('series')
+    year = filters.pop('year', None)
+    language = filters.pop('language', None)
+    season = filters.pop('season', None)
+    quality = filters.pop('quality', None)
+
+    qs = qs.filter(models.Episode.series.ilike(series))
+    if year:
+        qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
+    if language:
+        qs = qs.filter(models.Episode.language == language)
+    if season:
+        qs = qs.filter(functions.coalesce(models.Episode.season, '') == season)
+
+    for ep in qs:
+        srcs = ep.sources
+
+        # Filter out by quality
+        if quality:
+            regexp = r'\b' + quality + '\b'
+            srcs = filter(quality_filter, srcs)
+
+        # Put PROPER's first
+        srcs = sorted(srcs, key=proper_sort)
+
+        try:
+            src = srcs[0]
+        except IndexError:
+            # print("No sources for {}".format(ep))
+            continue
+
+        # print("Check {}: {} sources".format(ep, len(srcs)))
+
+        # Once src is added into Downloader link ep and src
+        app.downloader.add(src)
+
+        ep.selection = models.EpisodeSelection(source=srcs[0])
+        app.db.session.commit()
+
+
+def download_movies(**filters):
+    pass
 
 
 def downloads(show=False, add=False, remove=False, source_id=None):

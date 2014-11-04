@@ -271,6 +271,7 @@ class Db:
     def update_all_states(self, state):
         for src in self._sess.query(models.Source):
             src.state = state
+        self._sess.query(models.Selection).delete()
         self._sess.commit()
 
     def shell(self):
