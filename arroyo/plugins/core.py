@@ -176,10 +176,8 @@ class AnalyzeCommand:
         return ret
 
 
-def analyze(
-    analyzer_name, seed_url=None,
-    iterations=1, typ=None, language=None
-        ):
+def analyze(analyzer_name, seed_url=None,
+            iterations=1, typ=None, language=None):
 
     # Build real objects
     analyzer_mod = utils.ModuleFactory('arroyo.importers')(analyzer_name)
@@ -231,8 +229,8 @@ class QueryCommand:
             '-a', '--all',
             dest='all_states',
             action='store_true',
-            help='Include all results ' +
-                 '(by default only sources with NONE state are displayed)'),
+            help=('Include all results '
+                  '(by default only sources with NONE state are displayed)')),
         plugins.argument(
             '-f', '--filter',
             dest='filters',
@@ -334,8 +332,8 @@ class DbCommand:
             '--shell',
             dest='shell',
             action='store_true',
-            help='Start a interactive python interpreter in the db ' +
-                 'environment'),
+            help=('Start a interactive python interpreter in the db '
+                  'environment')),
 
         plugins.argument(
             '--reset-db',
