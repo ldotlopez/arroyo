@@ -44,13 +44,15 @@ class Source(Base):
     _type = Column('type', String, nullable=True)
     _language = Column('language', String, nullable=True)
 
-    episode_id = Column(Integer, ForeignKey('episode.id', ondelete="SET NULL"),
+    episode_id = Column(Integer,
+                        ForeignKey('episode.id', ondelete="SET NULL"),
                         nullable=True)
     episode = relationship("Episode",
                            uselist=False,
                            backref="sources")
 
-    movie_id = Column(Integer, ForeignKey('movie.id', ondelete="SET NULL"),
+    movie_id = Column(Integer,
+                      ForeignKey('movie.id', ondelete="SET NULL"),
                       nullable=True)
     movie = relationship("Movie",
                          uselist=False,
@@ -122,44 +124,7 @@ class Source(Base):
         return "unknow-{}".format(self.state)
 
 
-class Selection(Base):
-    __tablename__ = 'selection'
 
-    id = Column(Integer, primary_key=True)
-    type = Column(String(50))
-
-    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
-                       nullable=False)
-    source = relationship("Source")
-
-    episode_id = Column(Integer, ForeignKey('episode.id', ondelete="CASCADE"),
-                        nullable=False)
-    episode = relationship("Episode", uselist=False, backref=backref("selection", uselist=False))
-
-    __mapper_args__ = {
-        'polymorphic_on': type
-    }
-
-
-class EpisodeSelection(Selection):
-    # single_parent=True,
-    # cascade="all, delete, delete-orphan")
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'episode'
-    }
-
-
-class MovieSelection(Selection):
-    movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
-    movie = relationship("Movie",
-                         backref=backref("selection", uselist=False))
-    # single_parent=True,
-    # cascade="all, delete-orphan")
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'movie'
-    }
 
 
 class Episode(Base):
@@ -189,13 +154,6 @@ class Episode(Base):
             raise ValueError(value)
 
         self._language = value
-
-    # @hybrid_property
-    # def selection(self):
-    #     if not self._selection:
-    #         self._selection = EpisodeSelection()
-
-    #     return self._selection
 
     def __repr__(self):
         ret = self.series
@@ -232,13 +190,6 @@ class Movie(Base):
 
         self._language = value
 
-    # @hybrid_property
-    # def selection(self):
-    #     if not self.selection:
-    #         self.selection = MovieSelection()
-
-    #     return self.selection
-
     def __repr__(self):
         ret = self.title
 
@@ -246,6 +197,41 @@ class Movie(Base):
             ret += ' (%04d)' % self.year
 
         return "<Movie ('%s')>" % ret
+
+
+class Selection(Base):
+    __tablename__ = 'selection'
+
+    id = Column(Integer, primary_key=True)
+    type = Column(String(50))
+
+    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
+                       nullable=False)
+    source = relationship("Source")
+
+
+class EpisodeSelection(Selection):
+    episode_id = Column(Integer,
+                        ForeignKey('episode.id', ondelete="CASCADE"),
+                        nullable=True)
+    episode = relationship("Episode",
+                           backref=backref("selection", cascade="all, delete", uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'episode'
+    }
+
+
+class MovieSelection(Selection):
+    movie_id = Column(Integer,
+                      ForeignKey('movie.id', ondelete="CASCADE"),
+                      nullable=True)
+    movie = relationship("Movie",
+                         backref=backref("selection", cascade="all, delete", uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'movie'
+    }
 
 
 def _check_language(lang):
