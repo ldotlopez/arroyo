@@ -44,11 +44,17 @@ class Source(Base):
     _type = Column('type', String, nullable=True)
     _language = Column('language', String, nullable=True)
 
-    episode_id = Column(Integer, ForeignKey('episode.id'), nullable=True)
-    episode = relationship("Episode", uselist=False, backref="sources")
+    episode_id = Column(Integer, ForeignKey('episode.id', ondelete="SET NULL"),
+                        nullable=True)
+    episode = relationship("Episode",
+                           uselist=False,
+                           backref="sources")
 
-    movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
-    movie = relationship("Movie", uselist=False, backref="sources")
+    movie_id = Column(Integer, ForeignKey('movie.id', ondelete="SET NULL"),
+                      nullable=True)
+    movie = relationship("Movie",
+                         uselist=False,
+                         backref="sources")
 
     #
     # Type property
@@ -118,34 +124,26 @@ class Source(Base):
 
 class Selection(Base):
     __tablename__ = 'selection'
+
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
 
-    source_id = Column(Integer, ForeignKey('source.id'), nullable=False)
+    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
+                       nullable=False)
     source = relationship("Source")
 
-    @hybrid_property
-    def state(self):
-        if not self.source:
-            return Source.State.NONE
-        else:
-            return self.source.state
+    episode_id = Column(Integer, ForeignKey('episode.id', ondelete="CASCADE"),
+                        nullable=False)
+    episode = relationship("Episode", uselist=False, backref=backref("selection", uselist=False))
 
     __mapper_args__ = {
-        'polymorphic_identity': 'selection',
         'polymorphic_on': type
     }
 
 
 class EpisodeSelection(Selection):
-    __tablename__ = 'episode_selection'
-
-    id = Column(Integer, ForeignKey('selection.id', ondelete="CASCADE"),
-                primary_key=True)
-
-    episode_id = Column(Integer, ForeignKey('episode.id'), nullable=False)
-    episode = relationship("Episode",
-                           backref=backref("selection", uselist=False))
+    # single_parent=True,
+    # cascade="all, delete, delete-orphan")
 
     __mapper_args__ = {
         'polymorphic_identity': 'episode'
@@ -153,15 +151,11 @@ class EpisodeSelection(Selection):
 
 
 class MovieSelection(Selection):
-    __tablename__ = 'movie_selection'
-
-    selection_id = Column(Integer, ForeignKey('selection.id'),
-                          primary_key=True)
-    selection = relationship("Selection", cascade="all, delete, delete-orphan", single_parent=True)
-
-    movie_id = Column(Integer, ForeignKey('movie.id'), nullable=False)
+    movie_id = Column(Integer, ForeignKey('movie.id'), nullable=True)
     movie = relationship("Movie",
                          backref=backref("selection", uselist=False))
+    # single_parent=True,
+    # cascade="all, delete-orphan")
 
     __mapper_args__ = {
         'polymorphic_identity': 'movie'
@@ -246,7 +240,7 @@ class Movie(Base):
     #     return self.selection
 
     def __repr__(self):
-        ret = self.name
+        ret = self.title
 
         if self.year is not None:
             ret += ' (%04d)' % self.year
