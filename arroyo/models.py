@@ -124,9 +124,6 @@ class Source(Base):
         return "unknow-{}".format(self.state)
 
 
-
-
-
 class Episode(Base):
     __tablename__ = 'episode'
     __table_args__ = (
