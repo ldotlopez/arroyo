@@ -69,7 +69,16 @@ for i in 'a b c d'.split():
     sess.add(sel)
 sess.commit()
 
+# Delete some selection
+print("-")
+print("sources:", sess.query(Source).count())
+print("episodes:", sess.query(Episode).count())
+sess.delete(sess.query(EpisodeSelection).first())
+print("sources:", sess.query(Source).count())
+print("episodes:", sess.query(Episode).count())
+
 # Delete source
+print("-")
 print("selections:", sess.query(Selection).count())
 sess.delete(sess.query(Selection).first().source)
 sess.commit()
@@ -77,7 +86,8 @@ print("selections:", sess.query(Selection).count())
 
 
 # Delete episode
+print("-")
 print("selections:", sess.query(Selection).count())
-sess.delete(sess.query(Selection).first().episode)
+sess.delete(sess.query(EpisodeSelection).first().episode)
 sess.commit()  # Exception here: sqlalchemy.exc.IntegrityError: (IntegrityError) NOT NULL constraint failed: selection.episode_id 'UPDATE selection SET episode_id=? WHERE selection.id = ?' (None, 2)
 print("selections:", sess.query(Selection).count())
