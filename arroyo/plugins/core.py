@@ -143,7 +143,7 @@ class AnalyzeCommand:
 
             try:
                 sources += analyze(**opts)
-            except importers.ProcessException as e:
+            except (TypeError, importers.ProcessException) as e:
                 msg = "Unable to analyze '{origin_name}': {error}"
                 _logger.error(msg.format(origin_name=origin_name, error=e))
 
