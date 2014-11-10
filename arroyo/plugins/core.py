@@ -567,7 +567,7 @@ def download_episodes(**filters):
 
         # Filter out by quality
         if quality:
-            regexp = r'\b' + quality + '\b'
+            regexp = r'\b' + quality + r'\b'
             srcs = filter(quality_filter, srcs)
 
         # Put PROPER's first
