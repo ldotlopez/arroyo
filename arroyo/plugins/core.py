@@ -252,23 +252,38 @@ class QueryCommand:
             raise plugins.ArgumentError('Filters and keywords are mutually '
                                         'exclusive')
 
-        if not any([filters, keywords]):
-            raise plugins.ArgumentError('One filter or one keyword is '
-                                        'required')
+        queries = {}
 
         if keywords:
-            filters = {
-                'name_like': '*' + '*'.join(keywords) + '*'
+            queries = {
+                ' '.join(keywords): {
+                    'name_like': '*' + '*'.join(keywords) + '*'
+                }
             }
+
+        elif filters:
+            queries = {
+                'command line': filters
+            }
+
+        else:
+            cfg_dict = utils.configparser_to_dict(app.config)
+            queries = utils.MultiDepthDict(cfg_dict).subdict('query')
+
+        if not queries:
+            raise plugins.ArgumentError(
+                'One filter or one keyword or one [query.label] is required')
 
         sync()
 
-        matches = query(filters, all_states=app.arguments.all_states).all()
-        print("Found {n_results} results".format(
-            n_results=len(matches)
-        ))
-        for src in matches:
-            print(source_repr(src))
+        for (label, filters) in queries.items():
+            matches = query(filters, all_states=app.arguments.all_states).all()
+            print("Found {n_results} results for '{label}'".format(
+                n_results=len(matches),
+                label=label
+            ))
+            for src in matches:
+                print(source_repr(src))
 
 
 def query(filters, all_states=False):
@@ -290,7 +305,7 @@ def query(filters, all_states=False):
         return ret
 
     if not filters:
-        raise plugins.ArgumentError('Al least one filter is needed')
+        raise plugins.ArgumentError('At least one filter is needed')
 
     if not isinstance(filters, dict):
         raise plugins.ArgumentError('Filters must be a dictionary')
@@ -561,10 +576,10 @@ def download_episodes(**filters):
         try:
             src = srcs[0]
         except IndexError:
-            # print("No sources for {}".format(ep))
+            print("No sources for {}".format(ep))
             continue
 
-        # print("Check {}: {} sources".format(ep, len(srcs)))
+        print("Check {}: {} sources".format(ep, len(srcs)))
 
         # Once src is added into Downloader link ep and src
         app.downloader.add(src)
