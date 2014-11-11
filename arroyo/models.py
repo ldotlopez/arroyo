@@ -49,14 +49,14 @@ class Source(Base):
                         nullable=True)
     episode = relationship("Episode",
                            uselist=False,
-                           backref="sources")
+                           backref=backref("sources", lazy='dynamic'))
 
     movie_id = Column(Integer,
                       ForeignKey('movie.id', ondelete="SET NULL"),
                       nullable=True)
     movie = relationship("Movie",
                          uselist=False,
-                         backref="sources")
+                         backref=backref("sources", lazy='dynamic'))
 
     #
     # Type property
@@ -212,7 +212,9 @@ class EpisodeSelection(Selection):
                         ForeignKey('episode.id', ondelete="CASCADE"),
                         nullable=True)
     episode = relationship("Episode",
-                           backref=backref("selection", cascade="all, delete", uselist=False))
+                           backref=backref("selection",
+                                           cascade="all, delete",
+                                           uselist=False))
 
     __mapper_args__ = {
         'polymorphic_identity': 'episode'
@@ -224,7 +226,9 @@ class MovieSelection(Selection):
                       ForeignKey('movie.id', ondelete="CASCADE"),
                       nullable=True)
     movie = relationship("Movie",
-                         backref=backref("selection", cascade="all, delete", uselist=False))
+                         backref=backref("selection",
+                                         cascade="all, delete",
+                                         uselist=False))
 
     __mapper_args__ = {
         'polymorphic_identity': 'movie'
