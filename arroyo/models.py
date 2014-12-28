@@ -123,6 +123,22 @@ class Source(Base):
                 return attr.lower()
         return "unknow-{}".format(self.state)
 
+    @property
+    def pretty_repr(self):
+        symbol_table = {
+            Source.State.INITIALIZING: '⋯',
+            Source.State.PAUSED: '‖',
+            Source.State.DOWNLOADING: '↓',
+            Source.State.SHARING: '⇅',
+            Source.State.DONE: '✓',
+            Source.State.ARCHIVED: '▣'
+        }
+
+        return "[{icon}] {id} {name}".format(
+            icon=symbol_table.get(self.state, ' '),
+            id=self.id,
+            name=self.name)
+
 
 class Episode(Base):
     __tablename__ = 'episode'

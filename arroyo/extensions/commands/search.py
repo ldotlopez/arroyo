@@ -59,19 +59,13 @@ class QueryCommand:
             raise arroyo.exc.ArgumentError(
                 'One filter or one keyword or one [query.label] is required')
 
-        for (label, query) in queries.items():
-            res = app.selector.select(query)
-            pprint(res)
-
-        return
-
+        # FIXME: Missing sync
         # sync()
 
-        for (label, filters) in queries.items():
-            matches = query(filters, all_states=app.arguments.all_states).all()
-            print("Found {n_results} results for '{label}'".format(
-                n_results=len(matches),
-                label=label
-            ))
-            for src in matches:
-                print(source_repr(src))
+        for (label, query) in queries.items():
+            res = list(app.selector.select(query))
+
+            msg = "- Search '{label}: {n_results} result(s)'"
+            print(msg.format(label=label, n_results=len(res)))
+            for src in res:
+                print(src.pretty_repr)
