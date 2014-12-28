@@ -458,7 +458,7 @@ app = Arroyo()
 extensions = {
     'importers': ('eztv', 'spanishtracker', 'thepiratebay'),
     'selectors': ('sourceselector',),
-    'commands': ('analyze', 'mediainfo', 'search')
+    'commands': ('analyze', 'db', 'mediainfo', 'search')
 }
 
 for (k, v) in extensions.items():
