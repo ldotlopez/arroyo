@@ -35,3 +35,24 @@ class UrlGeneratorException(Exception):
 
 class ProcessException(Exception):
     pass
+
+
+class NoMatchingState(Exception):
+
+    def __init__(self, state, *args, **kwargs):
+        self.state = state
+        super(NoMatchingState, self).__init__(*args, **kwargs)
+
+
+class NoMatchingItem(Exception):
+
+    def __init__(self, item, *args, **kwargs):
+        self.item = item
+        super(NoMatchingItem, self).__init__(*args, **kwargs)
+
+
+class BackendError(Exception):
+
+    def __init__(self, e, *args, **kwargs):
+        self.exception = e
+        super(BackendError, self).__init__(*args, **kwargs)

@@ -10,10 +10,10 @@ from ldotcommons import logging, sqlalchemy as ldotsa, utils
 
 from arroyo import (
     analyzer,
+    downloader,
     mediainfo,
     models,
-    selector,
-    downloaders)
+    selector)
 import arroyo.exc
 
 _logger = logging.get_logger('app')
@@ -28,26 +28,27 @@ def argument(*args, **kwargs):
 
 
 class Arroyo:
-    def __init__(self, *args, db_uri='sqlite:///:memory:', downloader='mock'):
-        # Built-in providers
-        self.signals = Signaler()
-        self.db = db_uri
-        self.downloader = downloader
+    def __init__(self, *args,
+                 db_uri='sqlite:///:memory:', downloader_name='mock'):
 
-        self.analyzer = analyzer.Analyzer(self)
-        self.mediainfo = mediainfo.Mediainfo(self)
-        self.selector = selector.Selector(self)
+        # Support structures for plugins
+        self._extensions = set()
+        self._registry = {}
 
         # Support structures for arguments and configs
         self.arguments = argparse.Namespace()
         self.config = configparser.ConfigParser()
         self.config.add_section('main')
-
         self._arg_parser = argparse.ArgumentParser()
 
-        # Support structures for plugins
-        self._extensions = set()
-        self._registry = {}
+        # Built-in providers
+        self.signals = Signaler()
+        self.db = db_uri
+        self.downloader = downloader.Downloader(self, downloader_name)
+
+        self.analyzer = analyzer.Analyzer(self)
+        self.mediainfo = mediainfo.Mediainfo(self)
+        self.selector = selector.Selector(self)
 
     @staticmethod
     def _build_minimal_parser():
@@ -63,8 +64,8 @@ class Arroyo:
             default=utils.prog_config_file())
 
         parser.add_argument(
-            '--plugin',
-            dest='plugins',
+            '--extension',
+            dest='extensions',
             action='append',
             default=[])
 
@@ -86,23 +87,23 @@ class Arroyo:
         except arroyo.exc.ArgumentError:
             raise ValueError()
 
-    @property
-    def downloader(self):
-        return self._downloader
+    # @property
+    # def downloader(self):
+    #     return self._downloader
 
-    @downloader.setter
-    def downloader(self, value):
-        if not value:
-            self._downloader = None
-            return
+    # @downloader.setter
+    # def downloader(self, value):
+    #     if not value:
+    #         self._downloader = None
+    #         return
 
-        try:
-            self._downloader = Downloader(value, db_session=self.db.session)
-        except arroyo.exc.InvalidBackend as e:
-            msg = "{error}: {original_exception}"
-            raise arroyo.exc.ArgumentError(msg.format(
-                error=e.args[0],
-                original_exception=e.args[1]))
+    #     try:
+    #         self._downloader = Downloader(value, db_session=self.db.session)
+    #     except arroyo.exc.InvalidBackend as e:
+    #         msg = "{error}: {original_exception}"
+    #         raise arroyo.exc.ArgumentError(msg.format(
+    #             error=e.args[0],
+    #             original_exception=e.args[1]))
 
     def parse_arguments(self, arguments=None, apply=True):
         # Load config and plugins in a first phase
@@ -120,8 +121,8 @@ class Arroyo:
         if phase1_args.config_file:
             self.parse_config(phase1_args.config_file, apply=False)
 
-        if phase1_args.plugins:
-            self.load_extension(*phase1_args.plugins)
+        if phase1_args.extensions:
+            self.load_extension(*phase1_args.extensions)
 
         # Build subcommands
         subparser = self._arg_parser.add_subparsers(
@@ -187,10 +188,10 @@ class Arroyo:
             self.config.get('main', 'db-uri', fallback=None) or \
             'sqlite:///' + utils.prog_datafile('arroyo.db', create=True)
 
-        self.downloader = \
-            self.arguments.downloader or \
+        downloader_name = self.arguments.downloader or \
             self.config.get('main', 'downloader', fallback=None) or \
             'mock'
+        self.downloader.set_backend(downloader_name)
 
     def load_extension(self, *names):
         for name in names:
@@ -363,75 +364,6 @@ class Db:
         return query
 
 
-class Downloader:
-
-    def __init__(self, downloader_name, db_session):
-        self._sess = db_session
-
-        backend_name = 'arroyo.downloaders.' + downloader_name
-        try:
-            backend_mod = importlib.import_module(backend_name)
-            backend_cls = getattr(backend_mod, 'Downloader')
-        except (ImportError, AttributeError) as e:
-            msg = "Backend {backend_name} is invalid"
-            raise arroyo.exc.InvalidBackend(msg.format(backend_name=backend_name), e)
-
-        self._backend = backend_cls(db_session=self._sess)
-
-    def add(self, *sources):
-        for src in sources:
-            self._backend.do_add(src)
-            src.state = models.Source.State.INITIALIZING
-            self._sess.commit()
-
-    def remove(self, *sources):
-        translations = {}
-        for dler_obj in self._backend.do_list():
-            try:
-                db_obj = self._backend.translate_item(dler_obj)
-                translations[db_obj] = dler_obj
-            except downloaders.NoMatchingItem:
-                pass
-
-        for src in sources:
-            try:
-                self._backend.do_remove(translations[src])
-                src.state = models.Source.State.NONE
-                self._sess.commit()
-
-            except KeyError:
-                _logger.warning(
-                    "No matching object in backend for '{}'".format(src))
-
-    def list(self):
-        ret = []
-
-        for dler_obj in self._backend.do_list():
-            # Filter out objects from downloader unknow for the db
-            try:
-                db_obj = self._backend.translate_item(dler_obj)
-            except downloaders.NoMatchingItem as e:
-                _logger.warn("No matching db object for {}".format(e.item))
-                continue
-
-            # Warn about unknow states
-            try:
-                dler_state = self._backend.get_state(dler_obj)
-            except downloaders.NoMatchingState as e:
-                _logger.warn(
-                    "No matching state '{}' for {}".format(e.state, db_obj))
-                continue
-
-            ret.append(db_obj)
-            db_state = db_obj.state
-            if db_state != dler_state:
-                db_obj.state = dler_state
-                app.signals.send('source-state-change', source=db_obj)
-
-        self._sess.commit()
-        return ret
-
-
 class Signaler:
     def __init__(self):
         self._signals = {}
@@ -458,7 +390,8 @@ app = Arroyo()
 extensions = {
     'importers': ('eztv', 'spanishtracker', 'thepiratebay'),
     'selectors': ('sourceselector',),
-    'commands': ('analyze', 'db', 'mediainfo', 'search')
+    'commands': ('analyze', 'db', 'downloads', 'mediainfo', 'search'),
+    'downloaders': ('mock',)
 }
 
 for (k, v) in extensions.items():

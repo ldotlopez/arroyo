@@ -1,3 +1,5 @@
+raise Exception('WTF')
+
 import re
 from urllib import parse
 

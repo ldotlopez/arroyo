@@ -9,28 +9,26 @@ from sqlalchemy import orm
 import transmissionrpc
 
 from arroyo.app import app
-from arroyo import models, downloaders
-
-
-_STATE_MAP = {
-    'downloading': models.Source.State.DOWNLOADING,
-    'seeding': models.Source.State.SHARING,
-    # other states need more logic
-}
-
-_logger = logging.get_logger('downloader.transmission')
+from arroyo import downloader, models
+import arroyo.exc
 
 
 @app.register('downloader', 'transmission')
 class Downloader:
+    _STATE_MAP = {
+        'downloading': models.Source.State.DOWNLOADING,
+        'seeding': models.Source.State.SHARING,
+        # other states need more logic
+    }
 
     def __init__(self, db_session, *args, **kwargs):
         self._sess = db_session
+        self._logger = logging.get_logger('transmission')
 
         try:
             self._api = transmissionrpc.Client(**kwargs)
         except transmissionrpc.error.TransmissionError as e:
-            raise downloaders.BackendError(e)
+            raise arroyo.exc.BackendError(e)
 
         self._shield = {
             'urn:btih:' + x.hashString: x for x in self._api.list().values()}
@@ -39,16 +37,16 @@ class Downloader:
         return self._api.get_torrents()
 
     def do_add(self, source, **kwargs):
-        sha1_urn = downloaders.calculate_urns(source.urn)[0]
+        sha1_urn = downloader.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
-            _logger.warning('Avoid duplicate')
+            self._logger.warning('Avoid duplicate')
             return self._shield[sha1_urn]
 
         try:
             ret = self._api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
-            raise downloaders.BackendError(e)
+            raise arroyo.exc.BackendError(e)
 
         self._shield[sha1_urn] = ret
         return ret
@@ -71,15 +69,15 @@ class Downloader:
 
         state = tr_obj.status
 
-        if state in _STATE_MAP:
-            return _STATE_MAP[state]
+        if state in self._STATE_MAP:
+            return self._STATE_MAP[state]
         else:
-            raise downloaders.NoMatchingState(state)
+            raise arroyo.exc.NoMatchingState(state)
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloaders.calculate_urns(urn)
+        urns = downloader.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None
@@ -95,7 +93,7 @@ class Downloader:
                 pass
 
         if not ret:
-            raise downloaders.NoMatchingItem(tr_obj.name)
+            raise arroyo.exc.NoMatchingItem(tr_obj.name)
 
         # Attach some fields to item
         for k in ('progress', ):
