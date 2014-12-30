@@ -1,4 +1,4 @@
-from .core import Arroyo
+from .arroyo import Arroyo
 from .analyzer import Analyzer, Importer
 from .downloader import Downloader
 from .mediainfo import Mediainfo
@@ -9,8 +9,8 @@ from . import exc
 
 __all__ = [
     'exc',
-    'Arroyo', 'Importer',
-    'Analyzer',
+    'Arroyo',
+    'Analyzer', 'Importer',
     'Downloader',
     'Mediainfo',
     'Selector', 'Query',

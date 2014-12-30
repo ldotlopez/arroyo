@@ -1,4 +1,4 @@
-from arroyo.core import Arroyo
+from arroyo import arroyo
 
 
 def argument(*args, **kwargs):
@@ -9,4 +9,4 @@ def argument(*args, **kwargs):
     return wrapped_arguments
 
 
-app = Arroyo()
+app = arroyo.Arroyo()
