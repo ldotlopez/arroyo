@@ -31,7 +31,11 @@ class Selector:
         for (k, v) in filters.items():
             qs = self.filter(qs, k, v)
 
-        return qs
+        for src in qs:
+            yield (src, None)
+
+    def post_download(self, src, data):
+        pass
 
     def filter(self, query, key, value):
         if '_' in key:
