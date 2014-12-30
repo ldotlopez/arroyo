@@ -6,7 +6,7 @@ from arroyo import (models)
 
 
 @app.register('selector', 'source')
-class SourceSelector:
+class Selector:
     handles = []
 
     model = models.Source
@@ -25,14 +25,13 @@ class SourceSelector:
                 self.handles.append(colname + '_min')
                 self.handles.append(colname + '_max')
 
-    def select(self, query=None, **params):
-        if query is None:
-            query = app.db.session.query(models.Source)
+    def select(self, **filters):
+        qs = app.db.session.query(models.Source)
 
-        for (k, v) in params.items():
-            query = self.filter(query, k, v)
+        for (k, v) in filters.items():
+            qs = self.filter(qs, k, v)
 
-        return query
+        return qs
 
     def filter(self, query, key, value):
         if '_' in key:

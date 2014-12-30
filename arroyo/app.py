@@ -339,7 +339,8 @@ class Db:
     def update_all_states(self, state):
         for src in self._sess.query(models.Source):
             src.state = state
-        self._sess.query(models.Selection).delete()
+        if state == models.Source.State.NONE:
+            self._sess.query(models.Selection).delete()
         self._sess.commit()
 
     def shell(self):
@@ -389,9 +390,9 @@ app = Arroyo()
 
 extensions = {
     'importers': ('eztv', 'spanishtracker', 'thepiratebay'),
-    'selectors': ('sourceselector',),
+    'selectors': ('source', 'episode'),
     'commands': ('analyze', 'db', 'downloads', 'mediainfo', 'search'),
-    'downloaders': ('mock',)
+    'downloaders': ('mock', 'transmission')
 }
 
 for (k, v) in extensions.items():

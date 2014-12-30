@@ -37,6 +37,9 @@ class Query(dict):
         else:
             super(dict, self).__setitem__(k, v)
 
+    def __delitem__(self, k):
+        raise ValueError('Query objects are inmutable')
+
 
 class Selector:
     def __init__(self, app):
@@ -51,60 +54,20 @@ class Selector:
         selector_name = query.pop('selector', 'source')
         return self.app.get_implementation('selector', selector_name)()
 
-    def select(self, query):
+    def select(self, query, download=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
 
+        # FIXME: selector API is a bit redundant
+        # The following block is equivalent to:
+        # > self.get_selector(query).select(**query)
+        # where the second query parameter is redundant.
+        # That operation must be rework to the following one:
+        # > self.get_selector(query).select()
+
         selector = self.get_selector(query)
-        return selector.select(None, **query)
-
-    # def _select(self, filters, all_states=False):
-    #     def _glob_to_sa_like(query_params):
-    #         ret = {}
-
-    #         for (param, value) in query_params.items():
-    #             if param.endswith('_like'):
-    #                 value = ldotsa.glob_to_like(value)
-
-    #                 if not value.startswith('%'):
-    #                     value = '%' + value
-
-    #                 if not value.endswith('%'):
-    #                     value = value + '%'
-
-    #             ret[param] = value
-
-    #         return ret
-
-    #     if not filters:
-    #         raise ValueError('At least one filter is needed')
-
-    #     if not isinstance(filters, dict):
-    #         raise ValueError('Filters must be a dictionary')
-
-    #     if not isinstance(all_states, bool):
-    #         raise ValueError('all_states parameter must be a bool')
-
-    #     filters = _glob_to_sa_like(filters)
-
-    #     filter_impls = self.app.get_all('filter')
-    #     query = self.app.db.session.query(models.Source)
-
-    #     for (key, value) in filters.items():
-    #         filter_impl = None
-    #         for f_i in filter_impls:
-    #             if key in f_i.handles:
-    #                 filter_impl = f_i
-    #                 break
-
-    #         if filter_impl is None:
-    #             msg = "filter {filter} is not recognized"
-    #             _logger.warning(msg.format(filter=key))
-    #             continue
-
-    #         query = filter_impl.filter(query, key, value)
-
-    #     if not all_states:
-    #         query = query.filter(models.Source.state == models.Source.State.NONE)
-
-    #     return query
+        for (src, data) in selector.select(**query):
+            if download:
+                self.app.downloader.add(src)
+                selector.post_download(src, data)
+            yield src

@@ -23,11 +23,12 @@ class Source(Base):
     class State:
         NONE = 0
         INITIALIZING = 1
-        PAUSED = 2
-        DOWNLOADING = 3
-        SHARING = 4
-        DONE = 5
-        ARCHIVED = 6
+        QUEUED = 2
+        PAUSED = 3
+        DOWNLOADING = 4
+        SHARING = 5
+        DONE = 6
+        ARCHIVED = 7
 
     id = Column(Integer, primary_key=True)
     urn = Column(String, unique=True)
@@ -127,6 +128,7 @@ class Source(Base):
     def pretty_repr(self):
         symbol_table = {
             Source.State.INITIALIZING: '⋯',
+            Source.State.QUEUED: '⋯',
             Source.State.PAUSED: '‖',
             Source.State.DOWNLOADING: '↓',
             Source.State.SHARING: '⇅',

@@ -16,6 +16,7 @@ import arroyo.exc
 @app.register('downloader', 'transmission')
 class Downloader:
     _STATE_MAP = {
+        'download pending': models.Source.State.QUEUED,
         'downloading': models.Source.State.DOWNLOADING,
         'seeding': models.Source.State.SHARING,
         # other states need more logic
@@ -25,13 +26,20 @@ class Downloader:
         self._sess = db_session
         self._logger = logging.get_logger('transmission')
 
+        error = None
+
         try:
             self._api = transmissionrpc.Client(**kwargs)
-        except transmissionrpc.error.TransmissionError as e:
-            raise arroyo.exc.BackendError(e)
+            self._shield = {
+                'urn:btih:' + x.hashString: x
+                for x in self._api.list().values()}
 
-        self._shield = {
-            'urn:btih:' + x.hashString: x for x in self._api.list().values()}
+        except transmissionrpc.error.TransmissionError as e:
+            msg = "Unable to connect to transmission daemon: {message}"
+            error = msg.format(message=e.original.message)
+
+        if error:
+            raise arroyo.exc.BackendError(error)
 
     def do_list(self):
         return self._api.get_torrents()

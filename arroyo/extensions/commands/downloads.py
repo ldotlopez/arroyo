@@ -74,32 +74,6 @@ class DownloadsCommand:
             app.downloader.remove(src)
 
         elif filters:
-            srcs = app.selector.select(selector.Query(**filters))
+            srcs = app.selector.select(selector.Query(**filters), download=True)
             for src in srcs:
                 print(src.pretty_repr)
-
-        return
-
-        # Downloader control
-        if any([show, add, remove]):
-            downloads(show=show, add=add, remove=remove, source_id=source_id)
-
-        # Source selection
-        elif filters:
-            print(repr(filters))
-
-            if 'series' in filters:
-                sync()
-                download_episodes(**filters)
-            elif 'movie' in filters:
-                sync()
-                download_movies(**filters)
-
-            # Download sources
-            else:
-                sync()
-                sources = query(filters)
-                for src in sources:
-                    print(source_repr(src))
-                    if not dry_run:
-                        app.downloader.add(src)
