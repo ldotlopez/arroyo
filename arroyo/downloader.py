@@ -97,21 +97,6 @@ class Downloader:
 
         return ret
 
-    # def sync(self):
-    #     ret = {'sources-state-change': []}
-
-    #     downloads = set(self.list())
-    #     actives = set(self._app.db.get_active())
-
-    #     for source in actives - downloads:
-    #         source.state = models.Source.State.ARCHIVED
-    #         ret['sources-state-change'].append(source)
-    #         self._app.signals.send('source-state-change', source=source)
-
-    #     self._app.db.session.commit()
-
-    #     return ret
-
 
 def calculate_urns(urn):
     """
@@ -173,3 +158,24 @@ def rewrite_uri(uri):
     query = '&'.join(['{}={}'.format(k, v) for (k, v) in parsed_map])
 
     return 'magnet:?' + query
+
+
+#
+# Old sync function (now integrated in Downloader.list but left here for
+# reference or future reusage
+#
+
+# def sync(self):
+#     ret = {'sources-state-change': []}
+#
+#     downloads = set(self.list())
+#     actives = set(self._app.db.get_active())
+#
+#     for source in actives - downloads:
+#         source.state = models.Source.State.ARCHIVED
+#         ret['sources-state-change'].append(source)
+#         self._app.signals.send('source-state-change', source=source)
+#
+#     self._app.db.session.commit()
+#
+#     return ret
