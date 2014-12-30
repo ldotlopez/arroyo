@@ -63,7 +63,7 @@ class QueryCommand:
         # sync()
 
         for (label, query) in queries.items():
-            res = list(app.selector.select(query), download=False)
+            res = list(app.selector.select(query, download=False))
 
             msg = "- Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))
