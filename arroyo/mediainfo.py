@@ -13,10 +13,10 @@ class Mediainfo:
     def __init__(self, app):
         app.signals.connect('sources-added-batch', self._on_source_batch)
         app.signals.connect('sources-updated-batch', self._on_source_batch)
-        self.app = app
+        self._app = app
 
     def _on_source_batch(self, sender, sources):
-        self.app.mediainfo.process(*sources)
+        self._process(*sources)
 
     def _get_mediainfo(self, source):
         # TODO:
@@ -131,11 +131,9 @@ class Mediainfo:
         else:
             raise ValueError('invalid type in info data: ' + info['type'])
 
-        # arguments = {k: v for (k, v) in arguments.items() if v is not None}
+        return self._app.db.get_or_create(model, **arguments)
 
-        return self.app.db.get_or_create(model, **arguments)
-
-    def process(self, *sources):
+    def _process(self, *sources):
         for src in sources:
             info = self._get_mediainfo(src)
 
@@ -166,7 +164,7 @@ class Mediainfo:
             try:
                 specilized_source, created = self._get_specilized_source(info)
                 if created:
-                    self.app.db.session.add(specilized_source)
+                    self._app.db.session.add(specilized_source)
             except ValueError as e:
                 msg = "unable to get specilized data for '{source}': {reason}"
                 _logger.warning(msg.format(source=src, reason=e))
@@ -182,4 +180,4 @@ class Mediainfo:
                 src.episode = specilized_source
 
         # Apply changes
-        self.app.db.session.commit()
+        self._app.db.session.commit()

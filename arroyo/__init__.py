@@ -1,16 +1,18 @@
 from .core import Arroyo
-from .analyzer import Analyzer
+from .analyzer import Analyzer, Importer
 from .downloader import Downloader
 from .mediainfo import Mediainfo
-from .selector import Selector
+from .selector import Selector, Query
+from .signaler import Signaler
 
 from . import exc
 
 __all__ = [
     'exc',
-    'Arroyo',
+    'Arroyo', 'Importer',
     'Analyzer',
     'Downloader',
     'Mediainfo',
-    'Selector'
+    'Selector', 'Query',
+    'Signaler'
 ]
