@@ -1,50 +1,51 @@
-from arroyo.app import app, argument
-from arroyo import models
-import arroyo.exc
+from arroyo import (
+    exc,
+    exts,
+    models
+)
 
 
-@app.register('command', 'db')
-class DbCommand:
+class DbCommand(exts.Command):
     help = 'Database commands'
     arguments = (
-        argument(
+        exts.argument(
             '--shell',
             dest='shell',
             action='store_true',
             help=('Start a interactive python interpreter in the db '
                   'environment')),
 
-        argument(
+        exts.argument(
             '--reset-db',
             dest='reset',
             action='store_true',
             help='Empty db'),
 
-        argument(
+        exts.argument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
             help='Sets state to NONE on all sources'),
 
-        argument(
+        exts.argument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
             help='Sets state to ARCHIVED on all sources'),
 
-        argument(
+        exts.argument(
             '--reset',
             dest='reset_source_id',
             help='Reset state of a source'),
 
-        argument(
+        exts.argument(
             '--archive',
             dest='archive_source_id',
             help='Archive a source')
         )
 
     def run(self):
-        var_args = vars(app.arguments)
+        var_args = vars(self.app.arguments)
         keys = ('shell reset_db reset_states archive_all '
                 'reset_source_id archive_source_id').split()
         opts = {k: var_args.get(k) for k in keys}
@@ -61,23 +62,23 @@ class DbCommand:
                             reset_source_id, archive_source_id) if x]
 
         if sum(test) == 0:
-            raise arroyo.exc.ArgumentError('No action specified')
+            raise exc.ArgumentError('No action specified')
 
         elif sum(test) > 1:
             msg = 'Just one option can be specified at one time'
-            raise arroyo.exc.ArgumentError(msg)
+            raise exc.ArgumentError(msg)
 
         if reset:
-            app.db.reset()
+            self.app.db.reset()
 
         if reset_states:
-            app.db.update_all_states(models.Source.State.NONE)
+            self.app.db.update_all_states(models.Source.State.NONE)
 
         if archive_all:
-            app.db.update_all_states(models.Source.State.ARCHIVED)
+            self.app.db.update_all_states(models.Source.State.ARCHIVED)
 
         if shell:
-            app.db.shell()
+            self.app.db.shell()
 
         source_id = reset_source_id or archive_source_id
         if source_id:
@@ -86,10 +87,14 @@ class DbCommand:
             else:
                 state = models.Source.State.ARCHIVED
 
-            source = app.db.get(models.Source, id=source_id)
+            source = self.app.db.get(models.Source, id=source_id)
             if not source:
                 msg = "No source with ID={id}".format(id=source_id)
-                raise arroyo.exc.ArgumentError(msg)
+                raise exc.ArgumentError(msg)
 
             source.state = state
-            app.db.session.commit()
+            self.app.db.session.commit()
+
+__arroyo_extensions__ = [
+    ('command', 'db', DbCommand)
+]

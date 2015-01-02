@@ -6,14 +6,17 @@ import re
 import time
 from urllib import parse
 
+
 import bs4
 
-from arroyo.app import app
-import arroyo.exc
+
+from arroyo import (
+    exc,
+    exts
+)
 
 
-@app.register('importer', 'spanishtracker')
-class SpanishtrackerImporter:
+class SpanishtrackerImporter(exts.Importer):
     BASE_URL = 'http://www.spanishtracker.com/torrents.php?page=0'
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
     _MAGNET_STR = (
@@ -50,8 +53,6 @@ class SpanishtrackerImporter:
                   parse.urlencode(tmp, doseq=True)
 
     def process(self, buff):
-        import ipdb; ipdb.set_trace()
-
         """
         Finds referentes to sources in buffer.
         Returns a list with sources infos
@@ -61,7 +62,7 @@ class SpanishtrackerImporter:
         soup = bs4.BeautifulSoup(buff)
         table = soup.select("table table table table table")
         if not table:
-            raise arroyo.exc.ProcessException('Invalid markup')
+            raise exc.ProcessException('Invalid markup')
 
         table = table[0]
 
@@ -76,7 +77,7 @@ class SpanishtrackerImporter:
                     fields[1].find('a')['href'],
                     re.IGNORECASE)[0]
             except IndexError:
-                raise arroyo.exc.ProcessException('Invalid markup')
+                raise exc.ProcessException('Invalid markup')
 
             magnet = self._MAGNET_STR.format(
                 hash_string=hash_string,
@@ -131,3 +132,7 @@ class SpanishtrackerImporter:
                 'type': typ})
 
         return sources
+
+__arroyo_extensions__ = [
+    ('importer', 'spanishtracker', SpanishtrackerImporter)
+]

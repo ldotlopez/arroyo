@@ -80,7 +80,7 @@ class Analyzer:
         return origins
 
     def get_importer(self, origin):
-        backend = self.app.get_implementation('importer', origin.importer)()
+        backend = self.app.get_extension('importer', origin.importer)
         return Importer(backend, origin)
 
     def analyze(self, origin):

@@ -9,11 +9,10 @@ import bs4
 import feedparser
 from ldotcommons.utils import utcnow_timestamp
 
-from arroyo.app import app
+from arroyo import Importer
 
 
-@app.register('importer', 'tpb')
-class TpbImporter:
+class TpbImporter(Importer):
     BASE_URL = 'http://thepiratebay.com/recent/0/'
 
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
@@ -62,8 +61,7 @@ class TpbImporter:
         return sources
 
 
-@app.register('importer', 'tpbrss')
-class TpbRssImporter:
+class TpbRssImporter(Importer):
     BASE_URL = 'http://rss.thepiratebay.se/100'
 
     def url_generator(self, url=None):
@@ -86,3 +84,8 @@ class TpbRssImporter:
             }
 
         return list(map(_build_source, feedparser.parse(buff)['entries']))
+
+__arroyo_extensions__ = [
+    ('importer', 'tpb', TpbImporter),
+    ('importer', 'tpbrss', TpbRssImporter)
+]

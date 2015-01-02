@@ -52,7 +52,7 @@ class Selector:
 
     def get_selector(self, query):
         selector_name = query.pop('selector', 'source')
-        return self.app.get_implementation('selector', selector_name)()
+        return self.app.get_extension('selector', selector_name)
 
     def select(self, query, download=False):
         if not isinstance(query, Query):

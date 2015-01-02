@@ -94,7 +94,7 @@ class Arroyo:
             help='additional help')
 
         # for cmd in self._instances['command'].values():
-        for (name, cmd) in self.get_all_implementations('command').items():
+        for (name, cmd) in self.get_implementations('command').items():
             command_parser = subparser.add_parser(name)
             for argument in cmd.arguments:
                 args, kwargs = argument()
@@ -107,13 +107,14 @@ class Arroyo:
         if apply:
             self._apply_settings()
 
-    def get_all_implementations(self, extension_point):
+    def get_implementations(self, extension_point):
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
 
-    def get_implementation(self, extension_point, name):
+    def get_extension(self, extension_point, name, **params):
         try:
-            return self._registry.get(extension_point, {})[name]
+            impl_cls = self._registry.get(extension_point, {})[name]
+            return impl_cls(self, **params)
         except KeyError:
             pass
 
@@ -148,7 +149,7 @@ class Arroyo:
         db_uri = \
             self.arguments.db_uri or \
             self.config.get('main', 'db-uri', fallback=None) or \
-            'sqlite:///' + utils.prog_datafile('arroyo.db', create=True)
+            'sqlite:///' + utils.user_path('data', 'arroyo.db', create=True)
         self.db = db.Db(db_uri)
 
         downloader_name = self.arguments.downloader or \
@@ -164,31 +165,32 @@ class Arroyo:
                 continue
 
             # Load module
-            module_name = 'arroyo.extensions.' + name
+            module_name = 'arroyo.exts.' + name
 
             try:
-                importlib.import_module(module_name)
+                m = importlib.import_module(module_name)
+                exts = getattr(m, '__arroyo_extensions__', [])
+                if not exts:
+                    raise ImportError("Module doesn't define any extension")
+                for (ext_point, ext_name, ext_cls) in exts:
+                    self.register(ext_point, ext_name, ext_cls)
                 self._extensions.add(name)
             except ImportError as e:
-                msg = "Extension '{name}' missing or invalid"
-                self._logger.warning(msg.format(name=name))
+                msg = "Extension '{name}' missing or invalid: {msg}"
+                self._logger.warning(msg.format(name=name, msg=str(e)))
                 self._logger.warning(e)
                 continue
 
-    def register(self, extension_point, extension_name):
-        def decorator(cls):
-            if extension_point not in self._registry:
-                self._registry[extension_point] = {}
+    def register(self, extension_point, extension_name, extension_class):
+        if extension_point not in self._registry:
+            self._registry[extension_point] = {}
 
-            if extension_name in self._registry[extension_point]:
-                msg = "Extension '{name}' already registered, skipping"
-                self._logger.warning(msg.format(name=cls.name))
-                return cls
+        if extension_name in self._registry[extension_point]:
+            msg = "Extension '{name}' already registered, skipping"
+            msg = msg.format(name=extension_name)
+            raise ImportError(msg)
 
-            self._registry[extension_point][extension_name] = cls
-            return cls
-
-        return decorator
+        self._registry[extension_point][extension_name] = extension_class
 
     def run(self, arguments=None):
         self.parse_arguments(arguments)
@@ -201,6 +203,6 @@ class Arroyo:
 
     def run_command(self, command):
         try:
-            self._registry['command'][command]().run()
+            self.get_extension('command', command).run()
         except arroyo.exc.ArgumentError as e:
             self._logger.error(e)

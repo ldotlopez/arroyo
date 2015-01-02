@@ -2,17 +2,16 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-from arroyo.app import app
-
 import re
 from urllib import parse
 
 import bs4
 from ldotcommons import utils
 
+from arroyo import exts
 
-@app.register('importer', 'eztv')
-class EztvImporter:
+
+class EztvImporter(exts.Importer):
     BASE_URL = 'http://eztv.it/page_0'
 
     def url_generator(self, url=None):
@@ -59,3 +58,7 @@ class EztvImporter:
                 continue
 
         return sources
+
+__arroyo_extensions__ = [
+    ('importer', 'eztv', EztvImporter)
+]

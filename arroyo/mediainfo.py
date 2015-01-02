@@ -16,7 +16,7 @@ class Mediainfo:
         self._app = app
 
     def _on_source_batch(self, sender, sources):
-        self._process(*sources)
+        self.process(*sources)
 
     def _get_mediainfo(self, source):
         # TODO:
@@ -133,13 +133,13 @@ class Mediainfo:
 
         return self._app.db.get_or_create(model, **arguments)
 
-    def _process(self, *sources):
+    def process(self, *sources):
         for src in sources:
             info = self._get_mediainfo(src)
 
             # Give up if info's type is unknow
-            if info['type'] == 'unknown':
-                msg = "unknown type for {source}"
+            if info.get('type', 'unknown') == 'unknown':
+                msg = "unknown type for '{source}'"
                 _logger.warning(msg.format(source=src))
                 continue
 

@@ -1,32 +1,15 @@
 from ldotcommons import utils
-import sqlalchemy
-
-from arroyo.app import app
-from arroyo import (models)
 
 
-@app.register('selector', 'source')
-class Selector:
-    handles = []
+from arroyo import (
+    exts,
+    models
+)
 
-    model = models.Source
 
-    def __init__(self):
-        for (colname, column) in self.model.__table__.columns.items():
-            coltype = column.type
-
-            if isinstance(coltype, sqlalchemy.String):
-                self.handles.append(colname)
-                self.handles.append(colname + '_like')
-                self.handles.append(colname + '_regexp')
-
-            if isinstance(coltype, sqlalchemy.Integer):
-                self.handles.append(colname)
-                self.handles.append(colname + '_min')
-                self.handles.append(colname + '_max')
-
+class Selector(exts.Selector):
     def select(self, **filters):
-        qs = app.db.session.query(models.Source)
+        qs = self.app.db.session.query(models.Source)
 
         for (k, v) in filters.items():
             qs = self.filter(qs, k, v)
@@ -45,7 +28,7 @@ class Selector:
             key = key
             mod = None
 
-        attr = getattr(self.model, key, None)
+        attr = getattr(models.Source, key, None)
 
         if mod == 'like':
             query = query.filter(attr.like(value))
@@ -65,3 +48,8 @@ class Selector:
             query = query.filter(attr == value)
 
         return query
+
+
+__arroyo_extensions__ = [
+    ('selector', 'source', Selector)
+]

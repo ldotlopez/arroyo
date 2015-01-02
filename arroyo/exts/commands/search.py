@@ -1,42 +1,42 @@
 from ldotcommons import utils
 
-from arroyo.app import app, argument
-from arroyo import selector
-import arroyo.exc
 
-from pprint import pprint
+from arroyo import (
+    exc,
+    exts,
+    selector
+)
 
 
-@app.register('command', 'search')
-class QueryCommand:
+class QueryCommand(exts.Command):
     help = 'Query database'
     arguments = (
-        argument(
+        exts.argument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
             help=('Include all results '
                   '(by default only sources with NONE state are displayed)')),
-        argument(
+        exts.argument(
             '-f', '--filter',
             dest='filters',
             required=False,
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
-        argument(
+        exts.argument(
             'keywords',
             nargs='*',
             help='Keywords.')
     )
 
     def run(self):
-        filters = app.arguments.filters
-        keywords = app.arguments.keywords
+        filters = self.app.arguments.filters
+        keywords = self.app.arguments.keywords
 
         if all([filters, keywords]):
-            raise arroyo.exc.ArgumentError('Filters and keywords are mutually '
-                                           'exclusive')
+            raise exc.ArgumentError('Filters and keywords are mutually '
+                                    'exclusive')
 
         queries = {}
 
@@ -53,19 +53,23 @@ class QueryCommand:
             }
 
         else:
-            queries = app.selector.get_queries()
+            queries = self.app.selector.get_queries()
 
         if not queries:
-            raise arroyo.exc.ArgumentError(
+            raise exc.ArgumentError(
                 'One filter or one keyword or one [query.label] is required')
 
         # FIXME: Missing sync
         # sync()
 
         for (label, query) in queries.items():
-            res = list(app.selector.select(query, download=False))
+            res = list(self.app.selector.select(query, download=False))
 
             msg = "- Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))
             for src in res:
                 print(src.pretty_repr)
+
+__arroyo_extensions__ = [
+    ('command', 'search', QueryCommand)
+]

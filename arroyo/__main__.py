@@ -3,8 +3,10 @@
 
 if __name__ == '__main__':
     import sys
-    import arroyo.exc
-    from arroyo.app import app
+
+    import arroyo
+
+    app = arroyo.Arroyo()
 
     extensions = {
         'importers': ('eztv', 'spanishtracker', 'thepiratebay'),

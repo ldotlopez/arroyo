@@ -22,11 +22,11 @@ class Downloader:
 
     def _get_backend(self):
         if not self._backend[0]:
-            backend_cls = self._app.get_implementation(
-                'downloader', self._backend[1])
-
-            self._backend[0] = backend_cls(
-                self._app.db.session, **self._backend[2])
+            self._backend[0] = self._app.get_extension(
+                'downloader',
+                self._backend[1],
+                **self._backend[2]
+            )
 
         return self._backend[0]
 

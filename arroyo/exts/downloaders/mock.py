@@ -2,11 +2,10 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-from arroyo.app import app
+from arroyo import exts
 
 
-@app.register('downloader', 'mock')
-class Downloader:
+class MockDownloader(exts.Downloader):
     def __init__(self, db_session, *args, **kwargs):
         self.sources = set()
 
@@ -24,3 +23,8 @@ class Downloader:
 
     def get_state(self, source):
         return source.state
+
+
+__arroyo_extensions__ = [
+    ('downloader', 'mock', MockDownloader)
+]

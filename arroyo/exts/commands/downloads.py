@@ -1,39 +1,41 @@
 from ldotcommons import utils
 
 
-from arroyo.app import app, argument
-from arroyo import models, selector
-import arroyo.exc
+from arroyo import (
+    exc,
+    exts,
+    models,
+    selector
+)
 
 
-@app.register('command', 'downloads')
-class DownloadsCommand:
+class DownloadCommand(exts.Command):
     help = 'Show and manage downloads'
     arguments = (
-        argument(
+        exts.argument(
             '-l', '--list',
             dest='show',
             action='store_true',
             help='Show current downloads'),
 
-        argument(
+        exts.argument(
             '-a', '--add',
             dest='add',
             help='Download a source ID'),
 
-        argument(
+        exts.argument(
             '-r', '--remove',
             dest='remove',
             help='Cancel (and/or remove) a source ID'),
 
-        argument(
+        exts.argument(
             '-f', '--filter',
             dest='filters',
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
 
-        argument(
+        exts.argument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
@@ -41,11 +43,11 @@ class DownloadsCommand:
     )
 
     def run(self):
-        show = app.arguments.show
-        source_id_add = app.arguments.add
-        source_id_remove = app.arguments.remove
-        filters = app.arguments.filters
-        dry_run = app.arguments.dry_run
+        show = self.app.arguments.show
+        source_id_add = self.app.arguments.add
+        source_id_remove = self.app.arguments.remove
+        filters = self.app.arguments.filters
+        dry_run = self.app.arguments.dry_run
 
         add, remove, source_id = False, False, False
         if source_id_add:
@@ -55,25 +57,29 @@ class DownloadsCommand:
             remove, source_id = True, source_id_remove
 
         if not any([show, add, remove, filters]):
-            raise arroyo.exc.ArgumentError('No action specified')
+            raise exc.ArgumentError('No action specified')
 
         if sum([1 for x in (show, add, remove, filters) if x]) > 1:
             msg = 'Only one action at time is supported'
-            raise arroyo.exc.ArgumentError(msg)
+            raise exc.ArgumentError(msg)
 
         if show:
-            for src in app.downloader.list():
+            for src in self.app.downloader.list():
                 print(src.pretty_repr)
 
         elif source_id_add:
-            src = app.db.get(models.Source, id=source_id_add)
-            app.downloader.add(src)
+            src = self.app.db.get(models.Source, id=source_id)
+            self.app.downloader.add(src)
 
         elif source_id_remove:
-            src = app.db.get(models.Source, id=source_id_remove)
-            app.downloader.remove(src)
+            src = self.app.db.get(models.Source, id=source_id)
+            self.app.downloader.remove(src)
 
         elif filters:
-            srcs = app.selector.select(selector.Query(**filters), download=True)
+            srcs = self.app.selector.select(selector.Query(**filters), download=True)
             for src in srcs:
                 print(src.pretty_repr)
+
+__arroyo_extensions__ = [
+    ('command', 'download', DownloadCommand)
+]

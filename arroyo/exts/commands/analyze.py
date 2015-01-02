@@ -1,37 +1,37 @@
-from arroyo.app import app, argument
-from arroyo import analyzer
+from arroyo import (
+    analyzer,
+    exc,
+    exts
+)
 
-import arroyo.exc
 
-
-@app.register('command', 'analyze')
-class AnalyzeCommand:
+class AnalyzeCommand(exts.Command):
     help = 'Analyze an origin merging discovered sources into the database'
 
     arguments = (
-        argument(
+        exts.argument(
             '--importer',
             dest='importer',
             type=str,
             help='importer to use'),
-        argument(
+        exts.argument(
             '-u', '--url',
             dest='url',
             type=str,
             default=None,
             help='Seed URL'),
-        argument(
+        exts.argument(
             '-i', '--iterations',
             dest='iterations',
             type=int,
             help='iterations to run',
             default=1),
-        argument(
+        exts.argument(
             '-t', '--type',
             dest='type',
             type=str,
             help='force type of found sources'),
-        argument(
+        exts.argument(
             '-l', '--language',
             dest='language',
             type=str,
@@ -39,27 +39,27 @@ class AnalyzeCommand:
     )
 
     def run(self):
-        importer = app.arguments.importer
-        seed_url = app.arguments.url
-        iterations = app.arguments.iterations
-        typ = app.arguments.type
-        language = app.arguments.language
+        importer = self.app.arguments.importer
+        seed_url = self.app.arguments.url
+        iterations = self.app.arguments.iterations
+        typ = self.app.arguments.type
+        language = self.app.arguments.language
 
         if importer and isinstance(importer, str):
             if not isinstance(seed_url, (str, type(None))):
-                raise arroyo.exc.ArgumentError(
+                raise exc.ArgumentError(
                     'seed_url must be an string or None')
 
             if not isinstance(iterations, int) or iterations < 1:
-                raise arroyo.exc.ArgumentError(
+                raise exc.ArgumentError(
                     'iterations must be an integer greater than 1')
 
             if not isinstance(typ, (str, type(None))):
-                raise arroyo.exc.ArgumentError(
+                raise exc.ArgumentError(
                     'type must be an string or None')
 
             if not isinstance(language, (str, type(None))):
-                raise arroyo.exc.ArgumentError(
+                raise exc.ArgumentError(
                     'languge must be an string or None')
 
             origins = [analyzer.Origin(
@@ -71,10 +71,17 @@ class AnalyzeCommand:
                 language=language)]
 
         else:
-            origins = app.analyzer.get_origins()
+            origins = self.app.analyzer.get_origins()
 
         for origin in origins:
             try:
-                app.analyzer.analyze(origin)
-            except arroyo.exc.NoImplementationError:
-                print("Invalid origin {name}".format(name=origin.name))
+                self.app.analyzer.analyze(origin)
+            except exc.NoImplementationError as e:
+                msg = "Invalid origin {name}: {msg}"
+                msg = msg.format(name=origin.name, msg=str(e))
+                print(msg)
+
+
+__arroyo_extensions__ = [
+    ('command', 'analyze', AnalyzeCommand)
+]

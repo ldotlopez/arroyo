@@ -5,16 +5,18 @@
 from urllib import parse
 
 from ldotcommons import logging
-from sqlalchemy import orm
+from sqlalchemy.orm import exc as orm_exc
 import transmissionrpc
 
-from arroyo.app import app
-from arroyo import downloader, models
-import arroyo.exc
+from arroyo import (
+    downloader,
+    exc,
+    exts,
+    models
+)
 
 
-@app.register('downloader', 'transmission')
-class Downloader:
+class TransmissionDownloader(exts.Downloader):
     _STATE_MAP = {
         'download pending': models.Source.State.QUEUED,
         'downloading': models.Source.State.DOWNLOADING,
@@ -39,7 +41,7 @@ class Downloader:
             error = msg.format(message=e.original.message)
 
         if error:
-            raise arroyo.exc.BackendError(error)
+            raise exc.BackendError(error)
 
     def do_list(self):
         return self._api.get_torrents()
@@ -54,7 +56,7 @@ class Downloader:
         try:
             ret = self._api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
-            raise arroyo.exc.BackendError(e)
+            raise exc.BackendError(e)
 
         self._shield[sha1_urn] = ret
         return ret
@@ -80,7 +82,7 @@ class Downloader:
         if state in self._STATE_MAP:
             return self._STATE_MAP[state]
         else:
-            raise arroyo.exc.NoMatchingState(state)
+            raise exc.NoMatchingState(state)
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
@@ -97,11 +99,11 @@ class Downloader:
                 ret = q.one()
                 break
 
-            except orm.exc.NoResultFound:
+            except orm_exc.NoResultFound:
                 pass
 
         if not ret:
-            raise arroyo.exc.NoMatchingItem(tr_obj.name)
+            raise exc.NoMatchingItem(tr_obj.name)
 
         # Attach some fields to item
         for k in ('progress', ):
@@ -111,3 +113,8 @@ class Downloader:
                 setattr(ret, k, None)
 
         return ret
+
+
+__arroyo_extensions__ = [
+    ('downloader', 'transmission', TransmissionDownloader)
+]
