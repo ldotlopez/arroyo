@@ -76,9 +76,13 @@ class DownloadCommand(exts.Command):
             self.app.downloader.remove(src)
 
         elif filters:
-            srcs = self.app.selector.select(selector.Query(**filters), download=True)
+            srcs = self.app.selector.select(selector.Query(**filters),
+                                            download=True)
             for src in srcs:
+                if not dry_run:
+                    self.app.downloader.add(src)
                 print(src.pretty_repr)
+
 
 __arroyo_extensions__ = [
     ('command', 'download', DownloadCommand)

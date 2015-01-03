@@ -44,7 +44,8 @@ class SpanishtrackerImporter(exts.Importer):
         except (ValueError, IndexError, TypeError):
             pass
 
-        # Convert to sorted tuple to mantain a coherent URL (it's good for tests)
+        # Convert to sorted tuple to mantain a coherent URL (it's good for
+        # tests)
         query = sorted([(k, v) for (k, v) in query.items()])
         while True:
             tmp = query + [('page', [npage])]
@@ -85,16 +86,17 @@ class SpanishtrackerImporter(exts.Importer):
             )
 
             # Get added date
-            timestamp = int(time.mktime(time.strptime(fields[5].text, '%d/%m/%Y')))
+            timestamp = int(time.mktime(time.strptime(fields[5].text,
+                                                      '%d/%m/%Y')))
 
             # Size
             try:
                 m = re.findall('([0-9\.]+) ([GMK])B', fields[6].text)[0]
             except IndexError:
-                raise arroyo.exc.ProcessException('Invalid markup')
+                raise exc.ProcessException('Invalid markup')
 
             if len(m) != 2:
-                raise arroyo.exc.ProcessException('Invalid markup')
+                raise exc.ProcessException('Invalid markup')
 
             size = int(float(m[0]) * self._SIZE_TABLE[m[1]])
 
@@ -132,6 +134,7 @@ class SpanishtrackerImporter(exts.Importer):
                 'type': typ})
 
         return sources
+
 
 __arroyo_extensions__ = [
     ('importer', 'spanishtracker', SpanishtrackerImporter)

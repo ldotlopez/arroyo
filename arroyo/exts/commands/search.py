@@ -70,6 +70,7 @@ class QueryCommand(exts.Command):
             for src in res:
                 print(src.pretty_repr)
 
+
 __arroyo_extensions__ = [
     ('command', 'search', QueryCommand)
 ]

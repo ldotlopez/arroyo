@@ -59,6 +59,7 @@ class EztvImporter(exts.Importer):
 
         return sources
 
+
 __arroyo_extensions__ = [
     ('importer', 'eztv', EztvImporter)
 ]

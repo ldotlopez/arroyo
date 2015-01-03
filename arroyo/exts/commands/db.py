@@ -95,6 +95,7 @@ class DbCommand(exts.Command):
             source.state = state
             self.app.db.session.commit()
 
+
 __arroyo_extensions__ = [
     ('command', 'db', DbCommand)
 ]

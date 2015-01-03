@@ -46,7 +46,9 @@ class TpbImporter(Importer):
         for tr in trs:
             details = tr.select('font.detDesc')[0].text
 
-            (amount, suffix) = re.findall(r'([0-9\.]+)\s([GMK])iB', details, re.IGNORECASE)[0]
+            (amount, suffix) = re.findall(r'([0-9\.]+)\s([GMK])iB',
+                                          details,
+                                          re.IGNORECASE)[0]
             size = int(float(amount) * self._SIZE_TABLE[suffix])
 
             sources.append({
