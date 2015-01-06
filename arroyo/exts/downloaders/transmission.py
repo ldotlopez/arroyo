@@ -24,14 +24,14 @@ class TransmissionDownloader(exts.Downloader):
         # other states need more logic
     }
 
-    def __init__(self, db_session, *args, **kwargs):
-        self._sess = db_session
+    def __init__(self, app):
+        super(TransmissionDownloader, self).__init__(app)
         self._logger = logging.get_logger('transmission')
 
         error = None
 
         try:
-            self._api = transmissionrpc.Client(**kwargs)
+            self._api = transmissionrpc.Client(address='192.168.1.10')
             self._shield = {
                 'urn:btih:' + x.hashString: x
                 for x in self._api.list().values()}
@@ -94,7 +94,7 @@ class TransmissionDownloader(exts.Downloader):
         for u in urns:
             try:
                 # Use like here for case-insensitive filter
-                q = self._sess.query(models.Source)
+                q = self.app.db.session.query(models.Source)
                 q = q.filter(models.Source.urn.like(u))
                 ret = q.one()
                 break
