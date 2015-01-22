@@ -36,6 +36,7 @@ class KickAssImporter(exts.Importer):
                 p.params,
                 parse.urlencode(q),
                 p.fragment))
+            q['page'] = str(int(q['page']) + 1)
             yield url
 
 
