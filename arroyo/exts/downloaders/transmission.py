@@ -31,7 +31,7 @@ class TransmissionDownloader(exts.Downloader):
         error = None
 
         try:
-            self._api = transmissionrpc.Client(address='192.168.1.10')
+            self._api = transmissionrpc.Client(address='localhost')
             self._shield = {
                 'urn:btih:' + x.hashString: x
                 for x in self._api.list().values()}
