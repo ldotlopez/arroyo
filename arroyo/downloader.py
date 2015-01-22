@@ -17,6 +17,10 @@ class Downloader:
         self._logger = logging.get_logger('downloader')
         self.set_backend(downloader_name, **downloader_params)
 
+    def get_queries(self):
+        return {name: params for (name, params) in 
+                self._app.config_subdict('query').items()}
+
     def set_backend(self, name, **params):
         self._backend = [None, name, params]
 

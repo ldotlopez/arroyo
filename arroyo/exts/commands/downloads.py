@@ -56,9 +56,6 @@ class DownloadCommand(exts.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        if not any([show, add, remove, filters]):
-            raise exc.ArgumentError('No action specified')
-
         if sum([1 for x in (show, add, remove, filters) if x]) > 1:
             msg = 'Only one action at time is supported'
             raise exc.ArgumentError(msg)
@@ -75,13 +72,20 @@ class DownloadCommand(exts.Command):
             src = self.app.db.get(models.Source, id=source_id)
             self.app.downloader.remove(src)
 
-        elif filters:
-            srcs = self.app.selector.select(selector.Query(**filters),
-                                            download=True)
-            for src in srcs:
-                if not dry_run:
-                    self.app.downloader.add(src)
-                print(src.pretty_repr)
+        else:
+            if not filters:
+                filters = self.app.downloader.get_queries()
+            else:
+                filters = {'Command line': filters}
+
+            for (name, filters) in filters.items():
+                print(name)
+                srcs = self.app.selector.select(selector.Query(**filters),
+                                                download=True)
+                for src in srcs:
+                    if not dry_run:
+                        self.app.downloader.add(src)
+                    print(src.pretty_repr)
 
 
 __arroyo_extensions__ = [
