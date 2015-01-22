@@ -9,7 +9,7 @@ if __name__ == '__main__':
     app = arroyo.Arroyo()
 
     extensions = {
-        'importers': ('eztv', 'spanishtracker', 'thepiratebay'),
+        'importers': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
         'selectors': ('source', 'episode'),
         'commands': ('analyze', 'db', 'downloads', 'mediainfo', 'search'),
         'downloaders': ('mock', 'transmission')
