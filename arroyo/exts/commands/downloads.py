@@ -80,8 +80,8 @@ class DownloadCommand(exts.Command):
 
             for (name, filters) in filters.items():
                 print(name)
-                srcs = self.app.selector.select(selector.Query(**filters),
-                                                download=True)
+                # FIXME: onion code!!! 
+                srcs = self.app.selector.select(selector.Query(**filters), download=not dry_run)
                 for src in srcs:
                     if not dry_run:
                         self.app.downloader.add(src)
