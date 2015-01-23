@@ -11,8 +11,9 @@ from arroyo import (
 
 
 class Selector(exts.Selector):
-    def __init__(self, app):
+    def __init__(self, app, **filters):
         super(Selector, self).__init__(app)
+        self._filters = filters.copy()
         self._source_table = {}
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
@@ -35,14 +36,14 @@ class Selector(exts.Selector):
     def quality_filter(x, regexp):
         return re.search(regexp, x.name, re.IGNORECASE)
 
-    def select(self, **filters):
+    def select(self):
         # Get various parameters
-        series = filters.pop('series')
-        year = filters.pop('year', None)
-        language = filters.pop('language', None)
-        season = filters.pop('season', None)
-        number = filters.pop('episode', None)
-        quality = filters.pop('quality', None)
+        series = self._filters.get('series')
+        year = self._filters.get('year', None)
+        language = self._filters.get('language', None)
+        season = self._filters.get('season', None)
+        number = self._filters.get('episode', None)
+        quality = self._filters.get('quality', None)
 
         # Strip episodes with a selection
         qs = self.app.db.session.query(models.Episode)

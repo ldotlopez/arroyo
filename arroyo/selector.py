@@ -52,19 +52,12 @@ class Selector:
 
     def get_selector(self, query):
         selector_name = query.pop('selector', 'source')
-        return self.app.get_extension('selector', selector_name)
+        return self.app.get_extension('selector', selector_name, **query)
 
     def select(self, query, download=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
 
-        # FIXME: selector API is a bit redundant
-        # The following block is equivalent to:
-        # > self.get_selector(query).select(**query)
-        # where the second query parameter is redundant.
-        # That operation must be rework to the following one:
-        # > self.get_selector(query).select()
-
         selector = self.get_selector(query)
-        for src in selector.select(**query):
+        for src in selector.select():
             yield src

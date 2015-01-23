@@ -8,16 +8,11 @@ from arroyo import (
 
 
 class Selector(exts.Selector):
-    def select(self, **filters):
-        qs = self.app.db.session.query(models.Source)
+    def __init__(self, app, **filters):
+        super(Selector, self).__init__(app)
+        self._filters = filters.copy()
 
-        for (k, v) in filters.items():
-            qs = self.filter(qs, k, v)
-
-        for src in qs:
-            yield src
-
-    def filter(self, query, key, value):
+    def _filter(self, query, key, value):
         if '_' in key:
             mod = key.split('_')[-1]
             key = '_'.join(key.split('_')[:-1])
@@ -45,6 +40,15 @@ class Selector(exts.Selector):
             query = query.filter(attr == value)
 
         return query
+
+    def select(self):
+        qs = self.app.db.session.query(models.Source)
+
+        for (k, v) in self._filters.items():
+            qs = self._filter(qs, k, v)
+
+        for src in qs:
+            yield src
 
 
 __arroyo_extensions__ = [
