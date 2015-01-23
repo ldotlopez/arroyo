@@ -2,7 +2,7 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-from arroyo import exts
+from arroyo import (exts, models)
 
 
 class MockDownloader(exts.Downloader):
@@ -11,6 +11,7 @@ class MockDownloader(exts.Downloader):
 
     def do_add(self, source, **kwargs):
         self.sources.add(source)
+        source.state = models.Source.State.INITIALIZING
 
     def do_remove(self, source):
         self.sources.remove(source)

@@ -15,10 +15,7 @@ class Selector(exts.Selector):
             qs = self.filter(qs, k, v)
 
         for src in qs:
-            yield (src, None)
-
-    def post_download(self, src, data):
-        pass
+            yield src
 
     def filter(self, query, key, value):
         if '_' in key:

@@ -66,8 +66,5 @@ class Selector:
         # > self.get_selector(query).select()
 
         selector = self.get_selector(query)
-        for (src, data) in selector.select(**query):
-            if download:
-                self.app.downloader.add(src)
-                selector.post_download(src, data)
+        for src in selector.select(**query):
             yield src

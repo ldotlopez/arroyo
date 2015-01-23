@@ -18,7 +18,7 @@ class Downloader:
         self.set_backend(downloader_name, **downloader_params)
 
     def get_queries(self):
-        return {name: params for (name, params) in 
+        return {name: params for (name, params) in
                 self._app.config_subdict('query').items()}
 
     def set_backend(self, name, **params):
@@ -40,7 +40,10 @@ class Downloader:
         for src in sources:
             backend.do_add(src)
             src.state = models.Source.State.INITIALIZING
-            self._app.db.session.commit()
+
+        self._app.db.session.commit()
+        for src in sources:
+            self._app.signals.send('source-state-change', src)
 
     def remove(self, *sources):
         backend = self._get_backend()

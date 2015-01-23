@@ -11,6 +11,22 @@ from arroyo import (
 
 
 class Selector(exts.Selector):
+    def __init__(self, app):
+        super(Selector, self).__init__(app)
+        self._source_table = {}
+        self.app.signals.connect('source-state-change',
+                                 self._on_source_state_change)
+
+    def _on_source_state_change(self, src):
+        if src not in self._source_table:
+            return
+
+        # Link src and episode
+        ep = self._source_table[src]
+        ep.selection = models.EpisodeSelection(source=src)
+        self.app.db.session.commit()
+        del(self._source_table[src])
+
     @staticmethod
     def proper_sort(x):
         return re.search(r'\b(PROPER|REPACK)\b', x.name) is None
@@ -62,11 +78,8 @@ class Selector(exts.Selector):
             # print("=>", repr(srcs))
 
             if srcs:
-                yield (srcs[0], ep)
-
-    def post_download(self, src, ep):
-        ep.selection = models.EpisodeSelection(source=src)
-        self.app.db.session.commit()
+                self._source_table[srcs[0]] = ep
+                yield srcs[0]
 
 
 __arroyo_extensions__ = [

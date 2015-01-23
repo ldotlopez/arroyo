@@ -30,7 +30,7 @@ class DownloadCommand(exts.Command):
 
         exts.argument(
             '-f', '--filter',
-            dest='filters',
+            dest='query',
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
@@ -46,7 +46,7 @@ class DownloadCommand(exts.Command):
         show = self.app.arguments.show
         source_id_add = self.app.arguments.add
         source_id_remove = self.app.arguments.remove
-        filters = self.app.arguments.filters
+        query = self.app.arguments.query
         dry_run = self.app.arguments.dry_run
 
         add, remove, source_id = False, False, False
@@ -56,7 +56,7 @@ class DownloadCommand(exts.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        if sum([1 for x in (show, add, remove, filters) if x]) > 1:
+        if sum([1 for x in (show, add, remove, query) if x]) > 1:
             msg = 'Only one action at time is supported'
             raise exc.ArgumentError(msg)
 
@@ -73,15 +73,14 @@ class DownloadCommand(exts.Command):
             self.app.downloader.remove(src)
 
         else:
-            if not filters:
-                filters = self.app.downloader.get_queries()
+            if not query:
+                queries = self.app.downloader.get_queries()
             else:
-                filters = {'Command line': filters}
+                queries = {'Command line': query}
 
-            for (name, filters) in filters.items():
+            for (name, filters) in queries.items():
                 print(name)
-                # FIXME: onion code!!! 
-                srcs = self.app.selector.select(selector.Query(**filters), download=not dry_run)
+                srcs = self.app.selector.select(selector.Query(**filters))
                 for src in srcs:
                     if not dry_run:
                         self.app.downloader.add(src)
