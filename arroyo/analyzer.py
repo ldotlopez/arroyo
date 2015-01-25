@@ -1,10 +1,10 @@
 import collections
 from urllib import parse
-from ldotcommons import fetchers, logging
+from ldotcommons import (fetchers, logging)
 
-from arroyo import models
+from arroyo import (exc, models)
 
-_logger = logging.get_logger('analyzer')
+
 _UA = 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
 
 Origin = collections.namedtuple('Origin', (
@@ -16,6 +16,7 @@ class Importer:
     def __init__(self, backend, origin):
         self._backend = backend
         self._origin = origin
+        self._logger = logging.get_logger(origin.importer)
         self._iteration = 0
         self._overrides = {k: v for (k, v) in {
             'type': origin.type,
@@ -53,6 +54,7 @@ class Importer:
 class Analyzer:
     def __init__(self, app):
         self.app = app
+        self._logger = logging.get_logger('analyzer')
         app.signals.register('source-added')
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')
@@ -66,7 +68,7 @@ class Analyzer:
                 importer = params['importer']
             except KeyError:
                 msg = 'Origins {name} has no analyzer defined'
-                _logger(msg.format(name=name))
+                self._logger(msg.format(name=name))
                 continue
 
             origins.append(Origin(
@@ -92,13 +94,16 @@ class Analyzer:
         sources = []
         for url in importer.get_urls():
             msg = "{origin}: iteration {iteration}: {url}"
-            _logger.debug(msg.format(
+            self._logger.debug(msg.format(
                 origin=origin.name,
                 iteration=importer.iteration,
                 iterations=origin.iterations,
                 url=url))
-
-            sources += importer.process(fetcher.fetch(url))
+            try:
+                sources += importer.process(fetcher.fetch(url))
+            except (ValueError, exc.ProcessException) as e:
+                msg = "Unable to process '{url}': {error}"
+                self._logger.error(msg.format(url=url, error=e))
 
         ret = {
             'added-sources': [],

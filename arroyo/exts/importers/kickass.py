@@ -39,7 +39,6 @@ class KickAssImporter(exts.Importer):
             q['page'] = str(int(q['page']) + 1)
             yield url
 
-
     def process(self, buff):
         """
         Finds referentes to sources in buffer.
@@ -64,7 +63,9 @@ class KickAssImporter(exts.Importer):
                 seeds = tds[-2].text
                 leechers = tds[-2].text
             except IndexError:
-                raise exc.ProcessException('Invalid markup')
+                msg = 'Invalid markup (Are you trying to import main page? ' + \
+                      'That is unsupported)'
+                raise exc.ProcessException(msg)
 
             if not(all([uri, name, size, seeds, leechers])):
                 raise exc.ProcessException('Invalid markup')
