@@ -64,7 +64,9 @@ class KickAssImporter(exts.Importer):
                 leechers = tds[-2].text
             except IndexError:
                 msg = 'Invalid markup (Are you trying to import main page? ' + \
-                      'That is unsupported)'
+                      'That is unsupported, try with "{suggestion}")'.format(
+                          suggestion=self.BASE_URL + 'new/'
+                      )
                 raise exc.ProcessException(msg)
 
             if not(all([uri, name, size, seeds, leechers])):
