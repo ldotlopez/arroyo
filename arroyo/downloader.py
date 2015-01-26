@@ -77,7 +77,7 @@ class Downloader:
                 db_obj = backend.translate_item(dler_obj)
             except arroyo.exc.NoMatchingItem as e:
                 msg = "No matching db object for {item}"
-                self._logger.warn(msg.format(item=e.item))
+                self._logger.warn(msg.format(item=e))
                 continue
 
             # Warn about unknow states
