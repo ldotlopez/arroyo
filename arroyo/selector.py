@@ -28,6 +28,12 @@ class Query(dict):
         if 'selector' not in params:
             params['selector'] = 'source'
 
+        if 'language' in params:
+            params['language'] = params['language'].lower()
+
+        if 'type' in params:
+            params['type'] = params['type'].lower()
+
         super(Query, self).__init__(**params)
         self._ready = True
 

@@ -64,28 +64,28 @@ class Source(Base):
     #
     @hybrid_property
     def type(self):
-        return self._type
+        return self._type.lower()
 
     @type.setter
     def type(self, value):
         if not _check_type(value):
             raise ValueError(value)
 
-        self._type = value
+        self._type = value.lower()
 
     #
     # Language property
     #
     @hybrid_property
     def language(self):
-        return self._language
+        return self._language.lower()
 
     @language.setter
     def language(self, value):
         if not _check_language(value):
             raise ValueError(value)
 
-        self._language = value
+        self._language = value.lower()
 
     def __str__(self):
         return self.__unicode__()
