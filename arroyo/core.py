@@ -52,7 +52,7 @@ class Arroyo:
         parser.add_argument(
             '--config-file',
             dest='config_file',
-            default=utils.prog_config_file())
+            default=utils.user_path('config', 'arroyo.ini'))
 
         parser.add_argument(
             '--extension',

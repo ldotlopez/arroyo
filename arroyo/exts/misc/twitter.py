@@ -1,27 +1,28 @@
-from ldotcommons.messaging import twitter
-
-from arroyo import plugins
-from arroyo.app import app
+import twitter as twapi
+from arroyo import (exc, exts)
 
 
-@app.register('generic')
-class TwitterNotifier:
-    name = 'notifier.twitter'
+class TwitterNotifier(exts.Extension):
+    def __init__(self, app):
+        import ipdb; ipdb.set_trace()
+        super(TwitterNotifier, self).__init__(app)
 
-    def __init__(self):
-        if not app.config.has_section('plugin.twitter'):
-            raise plugins.ArgumentError("Section [plugin.twitter] not found")
+        if not self.app.config.has_section('plugin.twitter'):
+            raise exc.ArgumentError("Section [plugin.twitter] not found")
 
         keys = 'consumer_key consumer_secret token token_secret'.split()
         try:
-            api_params = {k: app.config['plugin.twitter'][k] for k in keys}
+            api_params = {k: self.app.config['plugin.twitter'][k]
+                          for k in keys}
         except KeyError as e:
             msg = "Section [plugin.twitter] doesn't have {key} key"
-            raise plugins.ArgumentError(msg.format(key=e.args[0]))
+            raise exc.ArgumentError(msg.format(key=e.args[0]))
 
-        self._api = twitter.Twitter(**api_params)
+        self._api = twapi.Twitter(**api_params)
 
-        notify_on = app.config.get('plugin.twitter', 'notify_on', fallback='')
+        notify_on = self.app.config.get('plugin.twitter',
+                                        'notify_on',
+                                        fallback='')
 
         self.signals = {}
         for signal in [x.strip() for x in notify_on.split(',')]:
@@ -34,7 +35,7 @@ class TwitterNotifier:
                 self.signals[k] = []
             self.signals[k].append(v)
 
-        app.signals.connect('source-state-change', self.on_state_change)
+        self.app.signals.connect('source-state-change', self.on_state_change)
         # app.signals.connect('origin-failed', self.on_origin_failed)
 
     def on_state_change(self, sender, source):
@@ -53,3 +54,8 @@ class TwitterNotifier:
 
     def on_origin_failed(self, sender, **kwargs):
         self._api.send(r'[Arroyo] Origin failed: {}'.format(repr(kwargs)))
+
+
+__arroyo_extensions__ = [
+    ('generic', 'twitter-notifier', TwitterNotifier)
+]
