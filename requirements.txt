@@ -7,7 +7,7 @@ transmissionrpc
 guessit
 blinker
 ipdb
--e git+https://github.com/ldotlopez/ldotcommons.git@3ae2d23dca36f5b1a23e2cc9b498cc1042a45acf#egg=ldotcommons
+-e git+https://github.com/ldotlopez/ldotcommons.git@babbf77772307318fdbc7ac53ec281d45741e458#egg=ldotcommons
 
 # Webui 
 flask
