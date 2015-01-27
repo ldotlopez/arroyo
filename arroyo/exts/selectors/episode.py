@@ -1,16 +1,23 @@
 import re
 
 
+import guessit
 from sqlalchemy.sql import functions
 
 
 from arroyo import (
+    exc,
     exts,
     models
 )
 
 
 class Selector(exts.Selector):
+    _SUPPORTED_Q = ('1080p', '720p', '480p', 'hdtv')
+    _SUPPORTED_Q_STRING = ", ".join([
+        "'{}'".format(x) for x in _SUPPORTED_Q
+    ])
+
     def __init__(self, app, **filters):
         super(Selector, self).__init__(app)
         self._filters = filters.copy()
@@ -33,8 +40,15 @@ class Selector(exts.Selector):
         return re.search(r'\b(PROPER|REPACK)\b', x.name) is None
 
     @staticmethod
-    def quality_filter(x, regexp):
-        return re.search(regexp, x.name, re.IGNORECASE)
+    def quality_filter(x, quality):
+        info = guessit.guess_episode_info(x.name)
+        screen_size = info.get('screenSize', '').lower()
+        fmt = info.get('format', '').lower()
+
+        if quality != 'hdtv':
+            return quality == screen_size
+        else:
+            return not screen_size and fmt == 'hdtv'
 
     def select(self):
         # Get various parameters
@@ -44,6 +58,22 @@ class Selector(exts.Selector):
         season = self._filters.get('season', None)
         number = self._filters.get('episode', None)
         quality = self._filters.get('quality', None)
+
+        if not series:
+            raise exc.ArgumentError('series filter is required')
+
+        if quality:
+            quality = quality.lower()
+            if quality not in self.__class__._SUPPORTED_Q:
+                msg = (
+                    "quality '{quality}' not supported, "
+                    "only {supported_qualities} are supported"
+                )
+                msg = msg.format(
+                    quality=quality,
+                    supported_qualities=self.__class__._SUPPORTED_Q_STRING
+                )
+                raise exc.ArgumentError(msg)
 
         # Strip episodes with a selection
         qs = self.app.db.session.query(models.Episode)
@@ -69,8 +99,7 @@ class Selector(exts.Selector):
 
             # Filter out by quality
             if quality:
-                regexp = r'\b' + quality + r'\b'
-                srcs = filter(lambda x: self.quality_filter(x, regexp), srcs)
+                srcs = filter(lambda x: self.quality_filter(x, quality), srcs)
 
             # Put PROPER's first
             srcs = sorted(srcs, key=self.proper_sort)

@@ -4,6 +4,10 @@ class Extension:
         super(Extension, self).__init__()
 
 
+class Service(Extension):
+    pass
+
+
 class Importer(Extension):
     pass
 

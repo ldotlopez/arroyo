@@ -2,11 +2,20 @@
 
 
 if __name__ == '__main__':
+    from itertools import chain
     import sys
 
     import arroyo
 
-    app = arroyo.Arroyo()
+    # Parse command line
+    argparser = arroyo.core.build_argument_parser()
+    args, remaining = argparser.parse_known_args()
+
+    if args.help:
+        argparser.print_help()
+        sys.exit(1)
+
+    config = arroyo.core.build_config_parser(args)
 
     extensions = {
         'importers': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
@@ -14,13 +23,14 @@ if __name__ == '__main__':
         'commands': ('analyze', 'db', 'downloads', 'mediainfo', 'search'),
         'downloaders': ('mock', 'transmission')
     }
-
-    for (k, v) in extensions.items():
-        exts = ["%s.%s" % (k, e) for e in v]
-        app.load_extension(*exts)
+    extensions = chain.from_iterable([
+        [ns+'.'+ext for ext in extensions[ns]]
+        for ns in extensions])
+    extensions = [x for x in extensions]
 
     try:
-        app.run()
+        app = arroyo.Arroyo(extensions=extensions, config=config)
+        app.run_from_args()
     except arroyo.exc.ArgumentError as e:
         print(str(e), file=sys.stderr)
         sys.exit(2)

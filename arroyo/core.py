@@ -1,6 +1,7 @@
 import argparse
 import configparser
 import importlib
+from itertools import chain
 
 from ldotcommons import logging, utils
 
@@ -8,41 +9,14 @@ from arroyo import (
     analyzer,
     db,
     downloader,
+    exts,
     mediainfo,
     selector,
     signaler)
 import arroyo.exc
 
 
-class Arroyo:
-    def __init__(self, *args,
-                 db_uri='sqlite:///:memory:', downloader_name='mock'):
-
-        # Support structures for plugins
-        self._extensions = set()
-        self._registry = {}
-        self._logger = logging.get_logger('app')
-
-        # Support structures for arguments and configs
-        self.arguments = argparse.Namespace()
-        self.config = configparser.ConfigParser()
-        self.config.add_section('main')
-        self._arg_parser = argparse.ArgumentParser()
-
-        # Built-in providers
-        self.signals = signaler.Signaler()
-        self.db = db.Db(db_uri)
-        self.downloader = downloader.Downloader(self, downloader_name)
-
-        self.analyzer = analyzer.Analyzer(self)
-        self.selector = selector.Selector(self)
-
-        # Mediainfo instance is not never used directly, it can be considered
-        # as a "service", but it's keep anyway
-        self.mediainfo = mediainfo.Mediainfo(self)
-
-    @staticmethod
-    def _build_minimal_parser():
+def build_argument_parser():
         parser = argparse.ArgumentParser(add_help=False)
         parser.add_argument(
             '-h', '--help',
@@ -51,8 +25,9 @@ class Arroyo:
 
         parser.add_argument(
             '--config-file',
-            dest='config_file',
-            default=utils.user_path('config', 'arroyo.ini'))
+            dest='config_files',
+            action='append',
+            default=[utils.user_path('config', 'arroyo.ini')])
 
         parser.add_argument(
             '--extension',
@@ -60,52 +35,102 @@ class Arroyo:
             action='append',
             default=[])
 
+        parser.add_argument(
+            '--db-uri',
+            dest='db_uri')
+
+        parser.add_argument(
+            '--downloader',
+            dest='downloader')
+
         return parser
+
+
+def build_config_parser(arguments):
+    cp = configparser.ConfigParser()
+    cp.add_section('main')
+
+    if 'config_files' in arguments:
+        cp.read(arguments.config_files)
+
+    for attr in ('db_uri', 'downloader'):
+        if attr in arguments:
+            # Dont use gettattr default value, None is still a valid valid for
+            # an attribute but invalid for a configparser value
+            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr) or ''
+
+    if 'extensions' in arguments:
+        cp['main']['extensions'] = ','.join(arguments.extensions)
+
+    for ext in arguments.extensions:
+        sectname = 'extension.' + ext
+        if sectname not in cp:
+            cp.add_section(sectname)
+
+        cp[sectname]['enabled'] = 'yes'
+
+    return cp
+
+
+class Arroyo:
+    def __init__(self,
+                 db_uri=None, downloader_name=None, extensions=[],
+                 config=None):
+        if config is None:
+            config = configparser.ConfigParser()
+
+        if not config.has_section('main'):
+            config.add_section('main')
+
+        # Support structures for plugins
+        self._extensions = set()
+        self._services = {}
+        self._registry = {}
+        self._logger = logging.get_logger('app')
+
+        self.config = config
+
+        # Built-in providers
+        self.signals = signaler.Signaler()
+
+        self.db = db.Db(
+            db_uri or
+            self.config.get('main', 'db-uri', fallback=None) or
+            'sqlite:///' + utils.user_path('data', 'arroyo.db', create=True))
+
+        self.downloader = downloader.Downloader(
+            self,
+            (downloader_name or
+             self.config.get('main', 'downloader', fallback=None) or
+             'mock'))
+
+        self.analyzer = analyzer.Analyzer(self)
+        self.selector = selector.Selector(self)
+
+        # Mediainfo instance is not never used directly, it can be considered
+        # as a "service", but it's keep anyway
+        self.mediainfo = mediainfo.Mediainfo(self)
+
+        # Load extensions
+        # FIXME: Weird, I know, I will work on this some day
+        exts = chain(
+            extensions,
+            (x.strip() for x in
+             self.config.get('main', 'extensions', fallback='').split(',')
+             if x),
+            (ext for ext in
+             self.config_subdict('extension')
+             if self.config.getboolean('extension.'+ext, 'enabled',
+                                       fallback=True))
+        )
+
+        for ext in exts:
+            self.load_extension(ext)
 
     def config_subdict(self, ns):
         cfg_dict = utils.configparser_to_dict(self.config)
         multi_depth_cfg = utils.MultiDepthDict(cfg_dict)
         return multi_depth_cfg.subdict(ns)
-
-    def parse_arguments(self, arguments=None, apply=True):
-        # Load config and plugins in a first phase
-        self._arg_parser = self._build_minimal_parser()
-        self._arg_parser.add_argument(
-            '--db-uri',
-            dest='db_uri')
-
-        self._arg_parser.add_argument(
-            '--downloader',
-            dest='downloader')
-
-        phase1_args, remaing_args = self._arg_parser.parse_known_args()
-
-        if phase1_args.config_file:
-            self.parse_config(phase1_args.config_file, apply=False)
-
-        if phase1_args.extensions:
-            self.load_extension(*phase1_args.extensions)
-
-        # Build subcommands
-        subparser = self._arg_parser.add_subparsers(
-            title='subcommands',
-            dest='subcommand',
-            description='valid subcommands',
-            help='additional help')
-
-        # for cmd in self._instances['command'].values():
-        for (name, cmd) in self.get_implementations('command').items():
-            command_parser = subparser.add_parser(name)
-            for argument in cmd.arguments:
-                args, kwargs = argument()
-                command_parser.add_argument(*args, **kwargs)
-
-        # With a full bootstraped app (with plugins loaded and other stuff)
-        # do a full parsing
-        self.arguments = self._arg_parser.parse_args(arguments)
-
-        if apply:
-            self._apply_settings()
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
@@ -120,43 +145,6 @@ class Arroyo:
 
         raise arroyo.exc.NoImplementationError(extension_point, name)
 
-    def parse_config(self, config_file, apply=True):
-        if config_file is None:
-            return
-
-        read = self.config.read(config_file)
-        if not read or read[0] != config_file:
-            self._logger.warning("'{config_file}' can't be read".format(
-                config_file=config_file))
-
-        extension_sections = [s for s in self.config.sections()
-                              if s.startswith('extension.')]
-        for extension_section in extension_sections:
-            enabled = self.config.getboolean(extension_section, 'enabled',
-                                             fallback=False)
-            if enabled:
-                extension_name = extension_section[len('extension.'):]
-                self.load_extension(extension_name)
-
-        if apply:
-            self._apply_settings()
-
-    def _apply_settings(self):
-        """
-        Aplies global settings from arguments and config
-        """
-
-        db_uri = \
-            self.arguments.db_uri or \
-            self.config.get('main', 'db-uri', fallback=None) or \
-            'sqlite:///' + utils.user_path('data', 'arroyo.db', create=True)
-        self.db = db.Db(db_uri)
-
-        downloader_name = self.arguments.downloader or \
-            self.config.get('main', 'downloader', fallback=None) or \
-            'mock'
-        self.downloader.set_backend(downloader_name)
-
     def load_extension(self, *names):
         for name in names:
             if name in self._extensions:
@@ -169,12 +157,18 @@ class Arroyo:
 
             try:
                 m = importlib.import_module(module_name)
-                exts = getattr(m, '__arroyo_extensions__', [])
-                if not exts:
+                mod_exts = getattr(m, '__arroyo_extensions__', [])
+                if not mod_exts:
                     raise ImportError("Module doesn't define any extension")
-                for (ext_point, ext_name, ext_cls) in exts:
+
+                for (ext_point, ext_name, ext_cls) in mod_exts:
                     self.register(ext_point, ext_name, ext_cls)
+                    if issubclass(ext_cls, exts.Service) and \
+                       ext_cls not in self._services:
+                        self._services[ext_cls] = ext_cls(self)
+
                 self._extensions.add(name)
+
             except ImportError as e:
                 msg = "Extension '{name}' missing or invalid: {msg}"
                 self._logger.warning(msg.format(name=name, msg=str(e)))
@@ -192,17 +186,33 @@ class Arroyo:
 
         self._registry[extension_point][extension_name] = extension_class
 
-    def run(self, arguments=None):
-        self.parse_arguments(arguments)
+    def run_from_args(self, arguments=None):
+        argparser = build_argument_parser()
 
-        if not self.arguments.subcommand:
-            self._arg_parser.print_help()
+        subparser = argparser.add_subparsers(
+            title='subcommands',
+            dest='subcommand',
+            description='valid subcommands',
+            help='additional help')
+
+        for (name, cmd) in self.get_implementations('command').items():
+            command_parser = subparser.add_parser(name)
+            for argument in cmd.arguments:
+                args, kwargs = argument()
+                command_parser.add_argument(*args, **kwargs)
+
+        args = argparser.parse_args(arguments)
+        if not args.subcommand:
+            argparser.print_help()
             return
 
-        self.run_command(self.arguments.subcommand)
+        return self.run_command(args.subcommand, args)
 
-    def run_command(self, command):
+    def run_command(self, command, args):
         try:
+            # FIXME: Remove arguments from self
+            self.arguments = args
             self.get_extension('command', command).run()
+            delattr(self, 'arguments')
         except arroyo.exc.ArgumentError as e:
             self._logger.error(e)
