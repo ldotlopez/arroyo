@@ -12,7 +12,7 @@ from arroyo import exts
 
 
 class EztvImporter(exts.Importer):
-    BASE_URL = 'http://eztv.it/page_0'
+    BASE_URL = 'https://eztv.ch/page_0'
 
     def url_generator(self, url=None):
         if not url:
