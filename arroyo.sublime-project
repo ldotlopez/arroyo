@@ -3,7 +3,14 @@
 	[
 		{
 			"follow_symlinks": true,
-			"path": "."
+			"path": ".",
+		    "file_exclude_patterns": ["*.pyc", ".*"],
+		    "folder_exclude_patterns": ["env", "__pycache__"]
 		}
-	]
+	],
+    "SublimeLinter":
+    {
+        "@python": 3
+    },
+
 }

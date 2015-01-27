@@ -23,11 +23,12 @@ class Source(Base):
     class State:
         NONE = 0
         INITIALIZING = 1
-        PAUSED = 2
-        DOWNLOADING = 3
-        SHARING = 4
-        DONE = 5
-        ARCHIVED = 6
+        QUEUED = 2
+        PAUSED = 3
+        DOWNLOADING = 4
+        SHARING = 5
+        DONE = 6
+        ARCHIVED = 7
 
     id = Column(Integer, primary_key=True)
     urn = Column(String, unique=True)
@@ -63,28 +64,28 @@ class Source(Base):
     #
     @hybrid_property
     def type(self):
-        return self._type
+        return self._type.lower()
 
     @type.setter
     def type(self, value):
         if not _check_type(value):
             raise ValueError(value)
 
-        self._type = value
+        self._type = value.lower()
 
     #
     # Language property
     #
     @hybrid_property
     def language(self):
-        return self._language
+        return self._language.lower()
 
     @language.setter
     def language(self, value):
         if not _check_language(value):
             raise ValueError(value)
 
-        self._language = value
+        self._language = value.lower()
 
     def __str__(self):
         return self.__unicode__()
@@ -122,6 +123,23 @@ class Source(Base):
             if getattr(Source.State, attr) == self.state:
                 return attr.lower()
         return "unknow-{}".format(self.state)
+
+    @property
+    def pretty_repr(self):
+        symbol_table = {
+            Source.State.INITIALIZING: '⋯',
+            Source.State.QUEUED: '⋯',
+            Source.State.PAUSED: '‖',
+            Source.State.DOWNLOADING: '↓',
+            Source.State.SHARING: '⇅',
+            Source.State.DONE: '✓',
+            Source.State.ARCHIVED: '▣'
+        }
+
+        return "[{icon}] {id} {name}".format(
+            icon=symbol_table.get(self.state, ' '),
+            id=self.id,
+            name=self.name)
 
 
 class Episode(Base):

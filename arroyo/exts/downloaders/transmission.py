@@ -4,51 +4,59 @@
 
 from urllib import parse
 
-from sqlalchemy.orm import exc
-
+from ldotcommons import logging
+from sqlalchemy.orm import exc as orm_exc
 import transmissionrpc
 
-from ldotcommons import logging
-
-from arroyo import models, downloaders
-
-
-_STATE_MAP = {
-    'downloading': models.Source.State.DOWNLOADING,
-    'seeding': models.Source.State.SHARING,
-    # other states need more logic
-}
-
-_logger = logging.get_logger('downloader.transmission')
+from arroyo import (
+    downloader,
+    exc,
+    exts,
+    models
+)
 
 
-class Downloader:
+class TransmissionDownloader(exts.Downloader):
+    _STATE_MAP = {
+        'download pending': models.Source.State.QUEUED,
+        'downloading': models.Source.State.DOWNLOADING,
+        'seeding': models.Source.State.SHARING,
+        # other states need more logic
+    }
 
-    def __init__(self, db_session, *args, **kwargs):
-        self._sess = db_session
+    def __init__(self, app):
+        super(TransmissionDownloader, self).__init__(app)
+        self._logger = logging.get_logger('transmission')
+
+        error = None
 
         try:
-            self._api = transmissionrpc.Client(**kwargs)
-        except transmissionrpc.error.TransmissionError as e:
-            raise downloaders.BackendError(e)
+            self._api = transmissionrpc.Client(address='localhost')
+            self._shield = {
+                'urn:btih:' + x.hashString: x
+                for x in self._api.list().values()}
 
-        self._shield = {
-            'urn:btih:' + x.hashString: x for x in self._api.list().values()}
+        except transmissionrpc.error.TransmissionError as e:
+            msg = "Unable to connect to transmission daemon: {message}"
+            error = msg.format(message=e.original.message)
+
+        if error:
+            raise exc.BackendError(error)
 
     def do_list(self):
         return self._api.get_torrents()
 
     def do_add(self, source, **kwargs):
-        sha1_urn = downloaders.calculate_urns(source.urn)[0]
+        sha1_urn = downloader.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
-            _logger.warning('Avoid duplicate')
+            self._logger.warning('Avoid duplicate')
             return self._shield[sha1_urn]
 
         try:
             ret = self._api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
-            raise downloaders.BackendError(e)
+            raise exc.BackendError(e)
 
         self._shield[sha1_urn] = ret
         return ret
@@ -71,31 +79,31 @@ class Downloader:
 
         state = tr_obj.status
 
-        if state in _STATE_MAP:
-            return _STATE_MAP[state]
+        if state in self._STATE_MAP:
+            return self._STATE_MAP[state]
         else:
-            raise downloaders.NoMatchingState(state)
+            raise exc.NoMatchingState(state)
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloaders.calculate_urns(urn)
+        urns = downloader.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None
         for u in urns:
             try:
                 # Use like here for case-insensitive filter
-                q = self._sess.query(models.Source)
+                q = self.app.db.session.query(models.Source)
                 q = q.filter(models.Source.urn.like(u))
                 ret = q.one()
                 break
 
-            except exc.NoResultFound:
+            except orm_exc.NoResultFound:
                 pass
 
         if not ret:
-            raise downloaders.NoMatchingItem(tr_obj.name)
+            raise exc.NoMatchingItem(tr_obj.name)
 
         # Attach some fields to item
         for k in ('progress', ):
@@ -105,3 +113,8 @@ class Downloader:
                 setattr(ret, k, None)
 
         return ret
+
+
+__arroyo_extensions__ = [
+    ('downloader', 'transmission', TransmissionDownloader)
+]
