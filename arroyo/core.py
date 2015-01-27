@@ -55,9 +55,9 @@ def build_config_parser(arguments):
 
     for attr in ('db_uri', 'downloader'):
         if attr in arguments:
-            # Dont use gettattr default value, None is still a valid valid for
-            # an attribute but invalid for a configparser value
-            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr) or ''
+            v = getattr(arguments, attr, None)
+            if v:
+                cp['main'][attr.replace('_', '-')] = v
 
     if 'extensions' in arguments:
         cp['main']['extensions'] = ','.join(arguments.extensions)
