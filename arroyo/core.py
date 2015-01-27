@@ -55,7 +55,7 @@ def build_config_parser(arguments):
 
     for attr in ('db_uri', 'downloader'):
         if attr in arguments:
-            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr)
+            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr) or ''
 
     if 'extensions' in arguments:
         cp['main']['extensions'] = ','.join(arguments.extensions)
