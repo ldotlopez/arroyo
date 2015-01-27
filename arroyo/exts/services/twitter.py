@@ -1,26 +1,30 @@
-import twitter as twapi
+from ldotcommons.messaging import twitter as ldottwitter
 from arroyo import (exc, exts)
 
 
-class TwitterNotifier(exts.Extension):
+class TwitterNotifier(exts.Service):
+    _SECTION_NAME = 'extension.services.twitter'
+
     def __init__(self, app):
-        import ipdb; ipdb.set_trace()
         super(TwitterNotifier, self).__init__(app)
 
-        if not self.app.config.has_section('plugin.twitter'):
-            raise exc.ArgumentError("Section [plugin.twitter] not found")
+        if not self.app.config.has_section(self._SECTION_NAME):
+            msg = "Section [{section_name}] not found"
+            msg = msg.format(section_name=self._SECTION_NAME)
+            raise exc.ArgumentError(msg)
 
         keys = 'consumer_key consumer_secret token token_secret'.split()
         try:
-            api_params = {k: self.app.config['plugin.twitter'][k]
+            api_params = {k: self.app.config[self._SECTION_NAME][k]
                           for k in keys}
         except KeyError as e:
-            msg = "Section [plugin.twitter] doesn't have {key} key"
-            raise exc.ArgumentError(msg.format(key=e.args[0]))
+            msg = "Section [{section_name}] doesn't have {key} key"
+            msg = msg.format(section_name=self._SECTION_NAME, key=e.args[0])
+            raise exc.ArgumentError(msg)
 
-        self._api = twapi.Twitter(**api_params)
+        self._api = ldottwitter.Twitter(**api_params)
 
-        notify_on = self.app.config.get('plugin.twitter',
+        notify_on = self.app.config.get(self._SECTION_NAME,
                                         'notify_on',
                                         fallback='')
 
@@ -38,7 +42,7 @@ class TwitterNotifier(exts.Extension):
         self.app.signals.connect('source-state-change', self.on_state_change)
         # app.signals.connect('origin-failed', self.on_origin_failed)
 
-    def on_state_change(self, sender, source):
+    def on_state_change(self, source):
         state = source.state_name
 
         # Check if this trigger is enabled

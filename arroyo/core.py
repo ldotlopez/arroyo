@@ -55,7 +55,9 @@ def build_config_parser(arguments):
 
     for attr in ('db_uri', 'downloader'):
         if attr in arguments:
-            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr)
+            # Dont use gettattr default value, None is still a valid valid for
+            # an attribute but invalid for a configparser value
+            cp['main'][attr.replace('_', '-')] = getattr(arguments, attr) or ''
 
     if 'extensions' in arguments:
         cp['main']['extensions'] = ','.join(arguments.extensions)
@@ -82,6 +84,7 @@ class Arroyo:
 
         # Support structures for plugins
         self._extensions = set()
+        self._services = {}
         self._registry = {}
         self._logger = logging.get_logger('app')
 
@@ -118,7 +121,7 @@ class Arroyo:
             (ext for ext in
              self.config_subdict('extension')
              if self.config.getboolean('extension.'+ext, 'enabled',
-                                       fallback=False))
+                                       fallback=True))
         )
 
         for ext in exts:
@@ -155,14 +158,14 @@ class Arroyo:
             try:
                 m = importlib.import_module(module_name)
                 mod_exts = getattr(m, '__arroyo_extensions__', [])
-                if not exts:
+                if not mod_exts:
                     raise ImportError("Module doesn't define any extension")
 
                 for (ext_point, ext_name, ext_cls) in mod_exts:
                     self.register(ext_point, ext_name, ext_cls)
-                    print(ext_cls)
-                    if issubclass(ext_cls, exts.Service):
-                        ext_cls(self)
+                    if issubclass(ext_cls, exts.Service) and \
+                       ext_cls not in self._services:
+                        self._services[ext_cls] = ext_cls(self)
 
                 self._extensions.add(name)
 
