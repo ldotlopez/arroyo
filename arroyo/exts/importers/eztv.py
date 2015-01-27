@@ -30,7 +30,7 @@ class EztvImporter(exts.Importer):
             idx = int(m.group(1))
 
         while True:
-            yield 'http://eztv.it/page_{}'.format(idx)
+            yield 'https://eztv.ch/page_{}'.format(idx)
             idx += 1
 
     def process(self, buff):
