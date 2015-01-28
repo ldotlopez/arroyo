@@ -34,5 +34,5 @@ class Signaler:
     def disconnect(self, name, call, **kwargs):
         self.get_signal(name).disconnect(call, **kwargs)
 
-    def send(self, name, *args, **kwargs):
-        self.get_signal(name).send(*args, **kwargs)
+    def send(self, name, **kwargs):
+        self.get_signal(name).send(**kwargs)

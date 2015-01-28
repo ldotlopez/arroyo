@@ -43,7 +43,7 @@ class Downloader:
 
         self._app.db.session.commit()
         for src in sources:
-            self._app.signals.send('source-state-change', src)
+            self._app.signals.send('source-state-change', source=src)
 
     def remove(self, *sources):
         backend = self._get_backend()

@@ -1,4 +1,7 @@
+from ldotcommons import logging
 from ldotcommons.messaging import twitter as ldottwitter
+
+
 from arroyo import (exc, exts)
 
 
@@ -7,6 +10,7 @@ class TwitterNotifier(exts.Service):
 
     def __init__(self, app):
         super(TwitterNotifier, self).__init__(app)
+        self._logger = logging.get_logger('twitter-notifier')
 
         if not self.app.config.has_section(self._SECTION_NAME):
             msg = "Section [{section_name}] not found"
@@ -42,7 +46,7 @@ class TwitterNotifier(exts.Service):
         self.app.signals.connect('source-state-change', self.on_state_change)
         # app.signals.connect('origin-failed', self.on_origin_failed)
 
-    def on_state_change(self, source):
+    def on_state_change(self, sender, source):
         state = source.state_name
 
         # Check if this trigger is enabled
@@ -54,10 +58,16 @@ class TwitterNotifier(exts.Service):
             return
 
         msg = r'[Arroyo] {source.name} is {source.state_name}'
-        self._api.send(msg.format(source=source))
+        msg = msg.format(source=source)
+        self._logger.info(msg)
+        self._api.send(msg)
 
     def on_origin_failed(self, sender, **kwargs):
-        self._api.send(r'[Arroyo] Origin failed: {}'.format(repr(kwargs)))
+        msg = r'[Arroyo] Origin failed: {}'
+        msg = msg.format(repr(kwargs))
+
+        self._logger.info(msg)
+        self._api.send(msg)
 
 
 __arroyo_extensions__ = [
