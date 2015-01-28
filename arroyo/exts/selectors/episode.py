@@ -25,7 +25,8 @@ class Selector(exts.Selector):
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
 
-    def _on_source_state_change(self, src):
+    def _on_source_state_change(self, sender, **kwargs):
+        src = kwargs['source']
         if src not in self._source_table:
             return
 
