@@ -64,7 +64,7 @@ class Source(Base):
     #
     @hybrid_property
     def type(self):
-        return self._type.lower()
+        return self._type
 
     @type.setter
     def type(self, value):
@@ -78,7 +78,7 @@ class Source(Base):
     #
     @hybrid_property
     def language(self):
-        return self._language.lower()
+        return self._language
 
     @language.setter
     def language(self, value):
