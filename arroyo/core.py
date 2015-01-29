@@ -124,7 +124,8 @@ class Arroyo:
                                        fallback=True))
         )
 
-        for ext in exts:
+        # Load while removing duplicates
+        for ext in set([x for x in exts]):
             self.load_extension(ext)
 
     def config_subdict(self, ns):
