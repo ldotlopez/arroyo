@@ -90,12 +90,6 @@ class Selector(exts.Selector):
             qs = qs.filter(functions.coalesce(models.Episode.number, '') == number)  # nopep8
 
         for ep in qs:
-            print("Sources for {} ({}) s{}e{}".format(
-                ep.series,
-                ep.year,
-                ep.season,
-                ep.number))
-
             srcs = ep.sources
 
             # Filter out by quality
