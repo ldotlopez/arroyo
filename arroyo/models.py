@@ -30,6 +30,16 @@ class Source(Base):
         DONE = 6
         ARCHIVED = 7
 
+    _SYMBOL_TABLE = {
+        State.INITIALIZING: '⋯',
+        State.QUEUED: '⋯',
+        State.PAUSED: '‖',
+        State.DOWNLOADING: '↓',
+        State.SHARING: '⇅',
+        State.DONE: '✓',
+        State.ARCHIVED: '▣'
+        }
+
     id = Column(Integer, primary_key=True)
     urn = Column(String, unique=True)
     name = Column(String, nullable=False)
@@ -58,6 +68,13 @@ class Source(Base):
     movie = relationship("Movie",
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
+
+    @hybrid_property
+    def superitem(self):
+        return (
+            self.episode or
+            self.movie
+        )
 
     #
     # Type property
@@ -125,19 +142,13 @@ class Source(Base):
         return "unknow-{}".format(self.state)
 
     @property
-    def pretty_repr(self):
-        symbol_table = {
-            Source.State.INITIALIZING: '⋯',
-            Source.State.QUEUED: '⋯',
-            Source.State.PAUSED: '‖',
-            Source.State.DOWNLOADING: '↓',
-            Source.State.SHARING: '⇅',
-            Source.State.DONE: '✓',
-            Source.State.ARCHIVED: '▣'
-        }
+    def state_symbol(self):
+        return self._SYMBOL_TABLE.get(self.state, ' ')
 
+    @property
+    def pretty_repr(self):
         return "[{icon}] {id} {name}".format(
-            icon=symbol_table.get(self.state, ' '),
+            icon=self.state_symbol,
             id=self.id,
             name=self.name)
 
@@ -169,6 +180,21 @@ class Episode(Base):
             raise ValueError(value)
 
         self._language = value
+
+    def __str__(self):
+        ret = '{series}{year} ({language}){season}{number}'
+        ret = ret.format(
+            series=self.series,
+            year=' ({})'.format(self.year) if self.year else '',
+            language=self.language or 'no region',
+            season=', season {}'.format(self.season) if self.season else '',
+            number=', episode {}'.format(self.number) if self.number else ''
+        )
+
+        return ret
+
+    def __unicode__(self):
+        return self.__str__()
 
     def __repr__(self):
         ret = self.series
@@ -212,6 +238,19 @@ class Movie(Base):
             ret += ' (%04d)' % self.year
 
         return "<Movie ('%s')>" % ret
+
+    def __str__(self):
+        ret = '{title}{year} ({language})'
+        ret = ret.format(
+            title=self.title,
+            year=' ({})'.format(self.year) if self.year else '',
+            language=self.language or 'no region'
+        )
+
+        return ret
+
+    def __unicode__(self):
+        return self.__str__()
 
 
 class Selection(Base):

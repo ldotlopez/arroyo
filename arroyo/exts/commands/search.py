@@ -1,3 +1,6 @@
+import itertools
+
+
 from ldotcommons import utils
 
 
@@ -6,6 +9,19 @@ from arroyo import (
     exts,
     selector
 )
+
+
+def fmt_src(src):
+    return "{id:5d} [{icon}] {source}".format(
+        icon=src.state_symbol,
+        id=src.id,
+        source=src)
+
+
+def fmt_grp(prefix, iterable):
+    return "\n".join([
+        "{} {}".format(prefix, x) for x in iterable
+        ])
 
 
 class QueryCommand(exts.Command):
@@ -61,14 +77,15 @@ class QueryCommand(exts.Command):
 
         # FIXME: Missing sync
         # sync()
-
         for (label, query) in queries.items():
             res = list(self.app.selector.select(query, download=False))
 
-            msg = "- Search '{label}: {n_results} result(s)'"
+            msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))
-            for src in res:
-                print(src.pretty_repr)
+            grouping = itertools.groupby(res, lambda src: src.superitem)
+            for (superitem, grouper) in grouping:
+                print('+ {}'.format(superitem or 'Ungroupped'))
+                print(fmt_grp('|-', (fmt_src(x) for x in grouper)))
 
 
 __arroyo_extensions__ = [
