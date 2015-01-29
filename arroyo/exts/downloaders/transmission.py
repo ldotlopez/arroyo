@@ -17,6 +17,7 @@ from arroyo import (
 
 
 class TransmissionDownloader(exts.Downloader):
+    _CONFIG_SECTION_NAME = 'extension.downloaders.transmission'
     _STATE_MAP = {
         'download pending': models.Source.State.QUEUED,
         'downloading': models.Source.State.DOWNLOADING,
@@ -26,12 +27,21 @@ class TransmissionDownloader(exts.Downloader):
 
     def __init__(self, app):
         super(TransmissionDownloader, self).__init__(app)
+
+        if self._CONFIG_SECTION_NAME not in self.app.config:
+            self.app.config.add_section(self._CONFIG_SECTION_NAME)
+        self.config_sect = app.config[self._CONFIG_SECTION_NAME]
         self._logger = logging.get_logger('transmission')
 
         error = None
 
         try:
-            self._api = transmissionrpc.Client(address='localhost')
+            self._api = transmissionrpc.Client(
+                address=self.config_sect.get('address', fallback='localhost'),
+                port=self.config_sect.getint('port', fallback=9091),
+                user=self.config_sect.get('user', fallback=None),
+                password=self.config_sect.get('password', fallback=None)
+            )
             self._shield = {
                 'urn:btih:' + x.hashString: x
                 for x in self._api.list().values()}
