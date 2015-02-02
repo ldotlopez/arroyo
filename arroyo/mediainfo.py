@@ -97,6 +97,14 @@ class Mediainfo:
                     if f not in info and f in fake_info:
                         info[f] = fake_info[f]
 
+        # Misc fixes. Maybe this needs its own module
+
+        # 12 Monkeys series
+        if info.get('type', None) == 'episode' and \
+           info.get('series', None) == 'Monkeys' and \
+           source.name.lower().startswith('12 monkeys'):
+            info['series'] = '12 Monkeys'
+
         if 'language' in info:
             # FIXME: Handle all languages
             info['language'] = info['language'][0].alpha3
