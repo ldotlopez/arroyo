@@ -54,15 +54,14 @@ class Selector(exts.Selector):
     def list(self):
         # Get various parameters
         title = self._filters.get('title')
-        year = self._filters.get('year', None)
-        language = self._filters.get('language', None)
-
-        if not title:
-            raise exc.ArgumentError('title filter is required')
+        year = self._filters.get('year')
+        language = self._filters.get('language')
 
         # Strip Movies with a selection
         qs = self.app.db.session.query(models.Movie)
-        qs = qs.filter(models.Movie.title.ilike(title))
+
+        if title:
+            qs = qs.filter(models.Movie.title.ilike(title))
 
         if year:
             qs = qs.filter(functions.coalesce(models.Movie.year, '') == year)
@@ -73,7 +72,10 @@ class Selector(exts.Selector):
         return qs
 
     def select(self):
-        quality = self._filters.get('quality', None)
+        if not self._filters.get('title'):
+            raise exc.ArgumentError('title filter is required')
+
+        quality = self._filters.get('quality')
         if quality:
             quality = quality.lower()
             if quality not in self.__class__._SUPPORTED_Q:

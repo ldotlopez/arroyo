@@ -54,17 +54,15 @@ class Selector(exts.Selector):
     def list(self):
         # Get various parameters
         series = self._filters.get('series')
-        year = self._filters.get('year', None)
-        language = self._filters.get('language', None)
-        season = self._filters.get('season', None)
-        number = self._filters.get('episode', None)
-
-        if not series:
-            raise exc.ArgumentError('series filter is required')
+        year = self._filters.get('year')
+        language = self._filters.get('language')
+        season = self._filters.get('season')
+        number = self._filters.get('episode')
 
         # Strip episodes with a selection
         qs = self.app.db.session.query(models.Episode)
-        qs = qs.filter(models.Episode.series.ilike(series))
+        if series:
+            qs = qs.filter(models.Episode.series.ilike(series))
 
         if year:
             qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
@@ -81,6 +79,9 @@ class Selector(exts.Selector):
         return qs
 
     def select(self):
+        if not self._filters.get('series'):
+            raise exc.ArgumentError('series filter is required')
+
         quality = self._filters.get('quality', None)
         if quality:
             quality = quality.lower()
