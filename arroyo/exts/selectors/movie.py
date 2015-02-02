@@ -42,7 +42,7 @@ class Selector(exts.Selector):
 
     @staticmethod
     def quality_filter(x, quality):
-        info = guessit.guess_Movie_info(x.name)
+        info = guessit.guess_movie_info(x.name)
         screen_size = info.get('screenSize', '').lower()
         fmt = info.get('format', '').lower()
 
@@ -87,7 +87,7 @@ class Selector(exts.Selector):
                 )
                 raise exc.ArgumentError(msg)
 
-        # Strip Movies with a selection
+        # Strip movies with a selection
         qs = self.list()
         qs = qs.filter(models.Movie.selection == None)  # nopep8
 
