@@ -41,7 +41,7 @@ class Selector(exts.Selector):
 
         return query
 
-    def select(self):
+    def list(self):
         qs = self.app.db.session.query(models.Source)
 
         for (k, v) in self._filters.items():
@@ -49,6 +49,9 @@ class Selector(exts.Selector):
 
         for src in qs:
             yield src
+
+    def select(self):
+        return self.list()
 
 
 __arroyo_extensions__ = [
