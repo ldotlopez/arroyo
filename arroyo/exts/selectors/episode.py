@@ -51,18 +51,37 @@ class Selector(exts.Selector):
         else:
             return not screen_size and fmt == 'hdtv'
 
-    def select(self):
+    def list(self):
         # Get various parameters
         series = self._filters.get('series')
         year = self._filters.get('year', None)
         language = self._filters.get('language', None)
         season = self._filters.get('season', None)
         number = self._filters.get('episode', None)
-        quality = self._filters.get('quality', None)
 
         if not series:
             raise exc.ArgumentError('series filter is required')
 
+        # Strip episodes with a selection
+        qs = self.app.db.session.query(models.Episode)
+        qs = qs.filter(models.Episode.series.ilike(series))
+
+        if year:
+            qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
+
+        if language:
+            qs = qs.filter(models.Episode.language == language)
+
+        if season:
+            qs = qs.filter(functions.coalesce(models.Episode.season, '') == season)  # nopep8
+
+        if number:
+            qs = qs.filter(functions.coalesce(models.Episode.number, '') == number)  # nopep8
+
+        return qs
+
+    def select(self):
+        quality = self._filters.get('quality', None)
         if quality:
             quality = quality.lower()
             if quality not in self.__class__._SUPPORTED_Q:
@@ -77,25 +96,10 @@ class Selector(exts.Selector):
                 raise exc.ArgumentError(msg)
 
         # Strip episodes with a selection
-        qs = self.app.db.session.query(models.Episode)
+        qs = self.list()
         qs = qs.filter(models.Episode.selection == None)  # nopep8
-        qs = qs.filter(models.Episode.series.ilike(series))
-        if year:
-            qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
-        if language:
-            qs = qs.filter(models.Episode.language == language)
-        if season:
-            qs = qs.filter(functions.coalesce(models.Episode.season, '') == season)  # nopep8
-        if number:
-            qs = qs.filter(functions.coalesce(models.Episode.number, '') == number)  # nopep8
 
         for ep in qs:
-            print("Sources for {} ({}) s{}e{}".format(
-                ep.series,
-                ep.year,
-                ep.season,
-                ep.number))
-
             srcs = ep.sources
 
             # Filter out by quality
@@ -104,10 +108,6 @@ class Selector(exts.Selector):
 
             # Put PROPER's first
             srcs = sorted(srcs, key=self.proper_sort)
-
-            # print("Check {}: {} sources".format(ep, len(srcs)))
-            # print("=>", repr(srcs))
-
             if srcs:
                 self._source_table[srcs[0]] = ep
                 yield srcs[0]
