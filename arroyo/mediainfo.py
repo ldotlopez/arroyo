@@ -97,17 +97,26 @@ class Mediainfo:
                     if f not in info and f in fake_info:
                         info[f] = fake_info[f]
 
-        # Misc fixes. Maybe this needs its own module
+        if 'date' in info and \
+           info.get('type', None) == 'episode':
+            if not info.get('season', None):
+                info['season'] = -1
+            if not info.get('episodeNumber', None):
+                info['episodeNumber'] = '{year}{month}{day}'.format(
+                    year=info['date'].year,
+                    month=info['date'].month,
+                    day=info['date'].day)
 
+        if 'language' in info:
+            # FIXME: Handle all languages
+            info['language'] = info['language'][0].alpha3
+
+        # Misc fixes. Maybe this needs its own module
         # 12 Monkeys series
         if info.get('type', None) == 'episode' and \
            info.get('series', None) == 'Monkeys' and \
            source.name.lower().startswith('12 monkeys'):
             info['series'] = '12 Monkeys'
-
-        if 'language' in info:
-            # FIXME: Handle all languages
-            info['language'] = info['language'][0].alpha3
 
         return info
 
