@@ -19,7 +19,7 @@ if __name__ == '__main__':
 
     extensions = {
         'importers': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-        'selectors': ('source', 'episode'),
+        'selectors': ('source', 'episode', 'movie'),
         'commands': ('analyze', 'db', 'downloads', 'mediainfo', 'search'),
         'downloaders': ('mock', 'transmission')
     }
