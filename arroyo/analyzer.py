@@ -101,7 +101,7 @@ class Analyzer:
                 url=url))
             try:
                 sources += importer.process(fetcher.fetch(url))
-            except (ValueError, exc.ProcessException) as e:
+            except (ValueError, exc.ProcessException, fetchers.FetchError) as e:
                 msg = "Unable to process '{url}': {error}"
                 self._logger.error(msg.format(url=url, error=e))
 

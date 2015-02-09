@@ -207,6 +207,14 @@ class Episode(Base):
 
         return "<Episode ('%s')>" % ret
 
+    def __iter__(self):
+        keys = 'id series year language season number'.split(' ')
+        for k in keys:
+            yield (k, getattr(self, k))
+
+    def as_dict(self):
+        return {k: v for (k, v) in self}
+
 
 class Movie(Base):
     __tablename__ = 'movie'
@@ -251,6 +259,14 @@ class Movie(Base):
 
     def __unicode__(self):
         return self.__str__()
+
+    def __iter__(self):
+        keys = 'id title year language'.split(' ')
+        for k in keys:
+            yield (k, getattr(self, k))
+
+    def as_dict(self):
+        return {k: v for (k, v) in self}
 
 
 class Selection(Base):

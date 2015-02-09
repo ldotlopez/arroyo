@@ -30,9 +30,9 @@ class Selector(exts.Selector):
         if src not in self._source_table:
             return
 
-        # Link src and episode
-        ep = self._source_table[src]
-        ep.selection = models.EpisodeSelection(source=src)
+        # Link src and Movie
+        mov = self._source_table[src]
+        mov.selection = models.MovieSelection(source=src)
         self.app.db.session.commit()
         del(self._source_table[src])
 
@@ -42,7 +42,7 @@ class Selector(exts.Selector):
 
     @staticmethod
     def quality_filter(x, quality):
-        info = guessit.guess_episode_info(x.name)
+        info = guessit.guess_movie_info(x.name)
         screen_size = info.get('screenSize', '').lower()
         fmt = info.get('format', '').lower()
 
@@ -53,36 +53,29 @@ class Selector(exts.Selector):
 
     def list(self):
         # Get various parameters
-        series = self._filters.get('series')
+        title = self._filters.get('title')
         year = self._filters.get('year')
         language = self._filters.get('language')
-        season = self._filters.get('season')
-        number = self._filters.get('episode')
 
-        # Strip episodes with a selection
-        qs = self.app.db.session.query(models.Episode)
-        if series:
-            qs = qs.filter(models.Episode.series.ilike(series))
+        # Strip Movies with a selection
+        qs = self.app.db.session.query(models.Movie)
+
+        if title:
+            qs = qs.filter(models.Movie.title.ilike(title))
 
         if year:
-            qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
+            qs = qs.filter(functions.coalesce(models.Movie.year, '') == year)
 
         if language:
-            qs = qs.filter(models.Episode.language == language)
-
-        if season:
-            qs = qs.filter(functions.coalesce(models.Episode.season, '') == season)  # nopep8
-
-        if number:
-            qs = qs.filter(functions.coalesce(models.Episode.number, '') == number)  # nopep8
+            qs = qs.filter(models.Movie.language == language)
 
         return qs
 
     def select(self):
-        if not self._filters.get('series'):
-            raise exc.ArgumentError('series filter is required')
+        if not self._filters.get('title'):
+            raise exc.ArgumentError('title filter is required')
 
-        quality = self._filters.get('quality', None)
+        quality = self._filters.get('quality')
         if quality:
             quality = quality.lower()
             if quality not in self.__class__._SUPPORTED_Q:
@@ -96,12 +89,12 @@ class Selector(exts.Selector):
                 )
                 raise exc.ArgumentError(msg)
 
-        # Strip episodes with a selection
+        # Strip movies with a selection
         qs = self.list()
-        qs = qs.filter(models.Episode.selection == None)  # nopep8
+        qs = qs.filter(models.Movie.selection == None)  # nopep8
 
-        for ep in qs:
-            srcs = ep.sources
+        for mov in qs:
+            srcs = mov.sources
 
             # Filter out by quality
             if quality:
@@ -110,10 +103,10 @@ class Selector(exts.Selector):
             # Put PROPER's first
             srcs = sorted(srcs, key=self.proper_sort)
             if srcs:
-                self._source_table[srcs[0]] = ep
+                self._source_table[srcs[0]] = mov
                 yield srcs[0]
 
 
 __arroyo_extensions__ = [
-    ('selector', 'episode', Selector)
+    ('selector', 'movie', Selector)
 ]
