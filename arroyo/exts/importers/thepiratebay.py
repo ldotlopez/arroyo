@@ -9,10 +9,10 @@ import bs4
 import feedparser
 from ldotcommons.utils import utcnow_timestamp
 
-from arroyo import Importer
+from arroyo import exts
 
 
-class TpbImporter(Importer):
+class TpbImporter(exts.Importer):
     BASE_URL = 'http://thepiratebay.com/recent/0/'
 
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
@@ -63,7 +63,7 @@ class TpbImporter(Importer):
         return sources
 
 
-class TpbRssImporter(Importer):
+class TpbRssImporter(exts.Importer):
     BASE_URL = 'http://rss.thepiratebay.se/100'
 
     def url_generator(self, url=None):
