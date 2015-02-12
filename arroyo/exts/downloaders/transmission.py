@@ -109,6 +109,11 @@ class TransmissionDownloader(exts.Downloader):
                 ret = q.one()
                 break
 
+            except orm_exc.MultipleResultsFound:
+                msg = "Multiple results found for urn '{urn}'"
+                msg = msg.format(urn=u)
+                self._logger.error(msg)
+
             except orm_exc.NoResultFound:
                 pass
 
