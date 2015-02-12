@@ -13,7 +13,7 @@ from arroyo import exc, exts
 
 
 class KickAssImporter(exts.Importer):
-    BASE_URL = 'http://kickass.so/'
+    BASE_URL = 'http://kickass.to/'
     _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
 
     def url_generator(self, url=None):
