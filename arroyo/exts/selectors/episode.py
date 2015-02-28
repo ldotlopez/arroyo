@@ -65,16 +65,16 @@ class Selector(exts.Selector):
             qs = qs.filter(models.Episode.series.ilike(series))
 
         if year:
-            qs = qs.filter(functions.coalesce(models.Episode.year, '') == year)
+            qs = qs.filter(models.Episode.year == year)
 
         if language:
             qs = qs.filter(models.Episode.language == language)
 
         if season:
-            qs = qs.filter(functions.coalesce(models.Episode.season, '') == season)  # nopep8
+            qs = qs.filter(models.Episode.season == season)
 
         if number:
-            qs = qs.filter(functions.coalesce(models.Episode.number, '') == number)  # nopep8
+            qs = qs.filter(models.Episode.number == number)
 
         return qs
 
