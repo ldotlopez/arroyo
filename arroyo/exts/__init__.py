@@ -9,7 +9,8 @@ class Service(Extension):
 
 
 class Importer(Extension):
-    pass
+    def search(self, query):
+        yield None
 
 
 class Command(Extension):

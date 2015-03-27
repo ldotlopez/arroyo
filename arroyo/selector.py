@@ -1,4 +1,5 @@
 from ldotcommons import (sqlalchemy as ldotsa, utils)
+from arroyo import analyzer
 
 
 # Probabily there is a better solution for this inmutable dict
@@ -60,9 +61,22 @@ class Selector:
         selector_name = query.pop('selector', 'source')
         return self.app.get_extension('selector', selector_name, **query)
 
+    def _fetch_search(self, query):
+        for (name, impl) in self.app.get_implementations('importer').items():
+            importer = impl(self.app)
+            url = next(importer.search(query))
+            if url:
+                # print(url)
+                origin = analyzer.Origin(name='foo', importer=name, url=url,
+                                         iterations=1, type=None,
+                                         language=None)
+                self.app.analyzer.analyze(origin)
+
     def select(self, query, download=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
+
+        self._fetch_search(query)
 
         selector = self.get_selector(query)
         for src in selector.select():

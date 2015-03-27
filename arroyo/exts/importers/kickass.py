@@ -16,6 +16,29 @@ class KickAssImporter(exts.Importer):
     BASE_URL = 'http://kickass.to/'
     _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
 
+    def search(self, search):
+        selector = search.get('selector')
+        if selector == 'episode':
+            catstr = '%20category:tv'
+            q = search.get('series')
+        elif selector == 'movie':
+            catstr = '%20category:movies'
+            q = search.get('title')
+        else:
+            q = search.get('name')
+
+        d = {
+            'base': KickAssImporter.BASE_URL,
+            'q': parse.quote(q),
+            'catstr': catstr,
+            'page': 1
+        }
+
+        while True:
+            yield ('{base}usearch/{q}{catstr}/{page}/?'
+                   'field=time_add&sorder=desc').format(**d)
+            d['page'] += 1
+
     def url_generator(self, url=None):
         if not url:
             url = self.BASE_URL
