@@ -1,6 +1,6 @@
 __all__ = [
     'Arroyo',
-    'Analyzer', 'Importer',
+    'Importer',
     'Downloader',
     'Mediainfo',
     'Selector', 'Query',
@@ -8,7 +8,7 @@ __all__ = [
 ]
 
 from .core import Arroyo
-from .analyzer import Analyzer, Importer
+from .importer import Importer
 from .downloader import Downloader
 from .mediainfo import Mediainfo
 from .selector import Selector, Query

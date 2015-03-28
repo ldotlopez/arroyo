@@ -6,7 +6,7 @@ from itertools import chain
 from ldotcommons import logging, utils
 
 from arroyo import (
-    analyzer,
+    importer,
     db,
     downloader,
     exts,
@@ -104,7 +104,7 @@ class Arroyo:
              self.config.get('main', 'downloader', fallback=None) or
              'mock'))
 
-        self.analyzer = analyzer.Analyzer(self)
+        self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
 
         # Mediainfo instance is not never used directly, it can be considered

@@ -4,7 +4,6 @@ from arroyo import (exc, exts)
 
 class TwitterNotifier(exts.Extension):
     def __init__(self, app):
-        import ipdb; ipdb.set_trace()
         super(TwitterNotifier, self).__init__(app)
 
         if not self.app.config.has_section('plugin.twitter'):

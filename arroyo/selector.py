@@ -1,5 +1,5 @@
 from ldotcommons import (sqlalchemy as ldotsa, utils)
-from arroyo import analyzer
+from arroyo import importer
 
 
 # Probabily there is a better solution for this inmutable dict
@@ -63,14 +63,13 @@ class Selector:
 
     def _fetch_search(self, query):
         for (name, impl) in self.app.get_implementations('importer').items():
-            importer = impl(self.app)
-            url = next(importer.search(query))
+            url = next(impl(self.app).search(query))
             if url:
                 # print(url)
-                origin = analyzer.Origin(name='foo', importer=name, url=url,
-                                         iterations=1, type=None,
-                                         language=None)
-                self.app.analyzer.analyze(origin)
+                origin = importer.OriginDefinition(
+                    name='foo', backend=name, url=url,
+                    iterations=1, type=None, language=None)
+                self.app.importer.import_origin(origin)
 
     def select(self, query, download=False):
         if not isinstance(query, Query):

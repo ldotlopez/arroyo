@@ -11,7 +11,7 @@ from ldotcommons import utils
 from arroyo import exts
 
 
-class EztvImporter(exts.Importer):
+class Eztv(exts.Origin):
     BASE_URL = 'https://eztv.ch/page_0'
 
     def url_generator(self, url=None):
@@ -33,7 +33,7 @@ class EztvImporter(exts.Importer):
             yield 'https://eztv.ch/page_{}'.format(idx)
             idx += 1
 
-    def process(self, buff):
+    def process_buffer(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
@@ -61,5 +61,5 @@ class EztvImporter(exts.Importer):
 
 
 __arroyo_extensions__ = [
-    ('importer', 'eztv', EztvImporter)
+    ('origin', 'eztv', Eztv)
 ]

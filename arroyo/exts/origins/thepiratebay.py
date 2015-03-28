@@ -12,7 +12,7 @@ from ldotcommons.utils import utcnow_timestamp
 from arroyo import exts
 
 
-class TpbImporter(exts.Importer):
+class Tpb(exts.Origin):
     BASE_URL = 'http://thepiratebay.com/recent/0/'
 
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
@@ -38,7 +38,7 @@ class TpbImporter(exts.Importer):
             yield pre + '/' + str(page) + '/' + post
             page += 1
 
-    def process(self, buff):
+    def process_buffer(self, buff):
         soup = bs4.BeautifulSoup(buff)
         trs = soup.select('table > tr')[:-1]
 
@@ -63,7 +63,7 @@ class TpbImporter(exts.Importer):
         return sources
 
 
-class TpbRssImporter(exts.Importer):
+class TpbRss(exts.Origin):
     BASE_URL = 'http://rss.thepiratebay.se/100'
 
     def url_generator(self, url=None):
@@ -76,7 +76,7 @@ class TpbRssImporter(exts.Importer):
         yield url
         raise StopIteration()
 
-    def process(self, buff):
+    def process_buffer(self, buff):
         def _build_source(entry):
             return {
                 'uri': entry['link'],
@@ -88,6 +88,6 @@ class TpbRssImporter(exts.Importer):
         return list(map(_build_source, feedparser.parse(buff)['entries']))
 
 __arroyo_extensions__ = [
-    ('importer', 'tpb', TpbImporter),
-    ('importer', 'tpbrss', TpbRssImporter)
+    ('origin', 'tpb', Tpb),
+    ('origin', 'tpbrss', TpbRss)
 ]

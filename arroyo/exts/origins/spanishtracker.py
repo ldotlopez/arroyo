@@ -16,7 +16,7 @@ from arroyo import (
 )
 
 
-class SpanishtrackerImporter(exts.Importer):
+class Spanishtracker(exts.Origin):
     BASE_URL = 'http://www.spanishtracker.com/torrents.php?page=0'
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
     _MAGNET_STR = (
@@ -53,7 +53,7 @@ class SpanishtrackerImporter(exts.Importer):
             yield "http://www.spanishtracker.com/torrents.php?" + \
                   parse.urlencode(tmp, doseq=True)
 
-    def process(self, buff):
+    def process_buffer(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with sources infos
@@ -137,5 +137,5 @@ class SpanishtrackerImporter(exts.Importer):
 
 
 __arroyo_extensions__ = [
-    ('importer', 'spanishtracker', SpanishtrackerImporter)
+    ('origin', 'spanishtracker', Spanishtracker)
 ]

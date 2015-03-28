@@ -1,5 +1,4 @@
 import collections
-from urllib import parse
 from ldotcommons import (fetchers, logging)
 
 from arroyo import (exc, models)
@@ -7,51 +6,12 @@ from arroyo import (exc, models)
 
 _UA = 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
 
-Origin = collections.namedtuple('Origin', (
-    'name', 'importer', 'url', 'iterations', 'type', 'language'
+OriginDefinition = collections.namedtuple('OriginDefinition', (
+    'name', 'backend', 'url', 'iterations', 'type', 'language'
 ))
 
 
 class Importer:
-    def __init__(self, backend, origin):
-        self._backend = backend
-        self._origin = origin
-        self._logger = logging.get_logger(origin.importer)
-        self._iteration = 0
-        self._overrides = {k: v for (k, v) in {
-            'type': origin.type,
-            'language': origin.language,
-            'provider': origin.importer
-        }.items() if v is not None}
-
-    @property
-    def iteration(self):
-        return self._iteration
-
-    def get_urls(self):
-        iterations = max(1, self._origin.iterations)
-        g = self._backend.url_generator(self._origin.url)
-        for itr in range(0, iterations):
-            self._iteration += 1
-            yield next(g)
-
-    def process(self, buff):
-        def _fix(src):
-            src['urn'] = parse.parse_qs(
-                parse.urlparse(src['uri']).query)['xt'][-1]
-
-            src.update(self._overrides)
-            return src
-
-        return list(map(_fix, self._backend.process(buff)))
-
-    def __repr__(self):
-        return "<%s (%s)>" % (
-            self.__class__.name,
-            self._backend.__class__.name)
-
-
-class Analyzer:
     def __init__(self, app):
         self.app = app
         self._logger = logging.get_logger('analyzer')
@@ -60,47 +20,47 @@ class Analyzer:
         app.signals.register('sources-added-batch')
         app.signals.register('sources-updated-batch')
 
-    def get_origins(self):
-        origins = []
+    def get_origin_defs(self):
+        origin_defs = []
 
         for (name, params) in self.app.config_subdict('origin').items():
             try:
-                importer = params['importer']
+                backend = params['backend']
             except KeyError:
-                msg = 'Origins {name} has no analyzer defined'
-                self._logger(msg.format(name=name))
+                msg = 'Origins {name} has no backend defined'
+                self._logger.error(msg.format(name=name))
                 continue
 
-            origins.append(Origin(
+            origin_defs.append(OriginDefinition(
                 name=name,
-                importer=importer,
+                backend=backend,
                 url=params.get('seed_url'),
                 iterations=int(params.get('iterations', 1)),
                 type=params.get('type'),
                 language=params.get('language')))
 
-        return origins
+        return origin_defs
 
-    def get_importer(self, origin):
-        backend = self.app.get_extension('importer', origin.importer)
-        return Importer(backend, origin)
+    def get_origin(self, origin_def):
+        return self.app.get_extension('origin', origin_def.backend,
+                                      origin_def=origin_def)
 
-    def analyze(self, origin):
-        importer = self.get_importer(origin)
+    def import_origin(self, origin_def):
+        origin = self.get_origin(origin_def)
 
         fetcher = fetchers.UrllibFetcher(
             cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA})
 
         sources = []
-        for url in importer.get_urls():
+        for url in origin.get_urls():
             msg = "{origin}: iteration {iteration}: {url}"
             self._logger.debug(msg.format(
-                origin=origin.name,
-                iteration=importer.iteration,
-                iterations=origin.iterations,
+                origin=origin_def.name,
+                iteration=origin.iteration,
+                iterations=origin_def.iterations,
                 url=url))
             try:
-                sources += importer.process(fetcher.fetch(url))
+                sources += origin.process(fetcher.fetch(url))
             except (ValueError, exc.ProcessException, fetchers.FetchError) as e:
                 msg = "Unable to process '{url}': {error}"
                 self._logger.error(msg.format(url=url, error=e))

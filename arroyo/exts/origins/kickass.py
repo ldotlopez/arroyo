@@ -12,7 +12,7 @@ from ldotcommons import utils
 from arroyo import exc, exts
 
 
-class KickAssImporter(exts.Importer):
+class KickAss(exts.Origin):
     BASE_URL = 'http://kickass.to/'
     _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
 
@@ -28,7 +28,7 @@ class KickAssImporter(exts.Importer):
             q = search.get('name')
 
         d = {
-            'base': KickAssImporter.BASE_URL,
+            'base': KickAss.BASE_URL,
             'q': parse.quote(q),
             'catstr': catstr,
             'page': 1
@@ -62,7 +62,7 @@ class KickAssImporter(exts.Importer):
             q['page'] = str(int(q['page']) + 1)
             yield url
 
-    def process(self, buff):
+    def process_buffer(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
@@ -109,5 +109,5 @@ class KickAssImporter(exts.Importer):
 
 
 __arroyo_extensions__ = [
-    ('importer', 'kickass', KickAssImporter)
+    ('origin', 'kickass', KickAss)
 ]
