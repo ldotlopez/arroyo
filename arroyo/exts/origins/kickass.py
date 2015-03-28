@@ -13,54 +13,33 @@ from arroyo import exc, exts
 
 
 class KickAss(exts.Origin):
-    BASE_URL = 'http://kickass.to/'
+    BASE_URL = 'http://kickass.to/new/?page=1'
     _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
 
-    def search(self, search):
-        selector = search.get('selector')
+    def paginate(self, url):
+        yield from self.paginate_by_query_param(url, 'page', default=1)
+
+    def get_query_url(self, query):
+        selector = query.get('selector')
         if selector == 'episode':
             catstr = '%20category:tv'
-            q = search.get('series')
+            q = query.get('series', '')
         elif selector == 'movie':
             catstr = '%20category:movies'
-            q = search.get('title')
+            q = query.get('title', '')
         else:
-            q = search.get('name')
+            catstr = ''
+            q = query.get('name') or \
+                query.get('name_like', '').replace('%', ' ').replace('*', ' ')
+            q = q.strip()
 
         d = {
             'base': KickAss.BASE_URL,
             'q': parse.quote(q),
             'catstr': catstr,
-            'page': 1
         }
-
-        while True:
-            yield ('{base}usearch/{q}{catstr}/{page}/?'
-                   'field=time_add&sorder=desc').format(**d)
-            d['page'] += 1
-
-    def url_generator(self, url=None):
-        if not url:
-            url = self.BASE_URL
-
-        if not url.endswith('/'):
-            url += '/'
-
-        p = parse.urlparse(url)
-        q = parse.parse_qs(p.query)
-        if 'page' not in q:
-            q['page'] = '1'
-
-        while True:
-            url = parse.urlunparse((
-                p.scheme,
-                p.netloc,
-                p.path,
-                p.params,
-                parse.urlencode(q),
-                p.fragment))
-            q['page'] = str(int(q['page']) + 1)
-            yield url
+        return ('http://kickass.to/usearch/{q}{catstr}/?'
+                'field=time_add&sorder=desc').format(**d)
 
     def process_buffer(self, buff):
         """

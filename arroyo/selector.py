@@ -65,6 +65,8 @@ class Selector:
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
 
+        self.app.importer.import_query(query)
+
         selector = self.get_selector(query)
         for src in selector.select():
             yield src

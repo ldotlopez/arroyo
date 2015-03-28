@@ -17,7 +17,7 @@ from arroyo import (
 
 
 class Spanishtracker(exts.Origin):
-    BASE_URL = 'http://www.spanishtracker.com/torrents.php?page=0'
+    BASE_URL = 'http://www.spanishtracker.com/torrents.php'
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
     _MAGNET_STR = (
         r'magnet:?xt=urn:btih:{hash_string}&dn={name}&'
@@ -33,25 +33,38 @@ class Spanishtracker(exts.Origin):
         r'tr=udp%3A%2F%2Ftracker.istole.it%3A6969'
         )
 
-    def url_generator(self, url=None):
-        if url is None:
-            url = self.BASE_URL
+    def paginate(self, url):
+        yield from self.paginate_by_query_param(url, 'page', default=0)
 
-        query = parse.parse_qs(parse.urlparse(url).query)
-        npage = 0
-        try:
-            npage = int(query.pop('page', 0)[0])
-        except (ValueError, IndexError, TypeError):
-            pass
+    def get_query_url(self, query):
+        categories = {
+            'episode': '7',
+            'movie': '1'
+        }
+        catstr = categories.get(query.get('selector', None), '')
 
-        # Convert to sorted tuple to mantain a coherent URL (it's good for
-        # tests)
-        query = sorted([(k, v) for (k, v) in query.items()])
-        while True:
-            tmp = query + [('page', [npage])]
-            npage += 1
-            yield "http://www.spanishtracker.com/torrents.php?" + \
-                  parse.urlencode(tmp, doseq=True)
+        selector = query.get('selector', None)
+
+        if selector == 'episode':
+            catstr = '7'
+            q = query.get('series')
+
+        elif selector == 'movie':
+            catstr = '1'
+            q = query.get('title')
+
+        elif selector == 'source':
+            q = query.get('name') or \
+                query.get('name_like').replace('%', ' ').replace('*', ' ').strip() or \
+                ''
+
+        url = ('{base}?category={category}&search={q}'
+               '&active=1&order=data&by=DESC')
+
+        return url.format(
+            base=self.BASE_URL,
+            category=catstr,
+            q=q)
 
     def process_buffer(self, buff):
         """

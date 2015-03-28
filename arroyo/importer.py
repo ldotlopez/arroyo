@@ -45,19 +45,26 @@ class Importer:
         return self.app.get_extension('origin', origin_def.backend,
                                       origin_def=origin_def)
 
+    def import_query(self, query_def):
+        for (name, impl) in self.app.get_implementations('origin').items():
+            origin = impl(self.app, query_def=query_def)
+            self._import(origin)
+
     def import_origin(self, origin_def):
         origin = self.get_origin(origin_def)
+        self._import(origin)
 
+    def _import(self, origin):
         fetcher = fetchers.UrllibFetcher(
             cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA})
 
         sources = []
         for url in origin.get_urls():
-            msg = "{origin}: iteration {iteration}: {url}"
+            msg = "{name} {iteration}/{iterations}: {url}"
             self._logger.debug(msg.format(
-                origin=origin_def.name,
+                name=origin.name,
                 iteration=origin.iteration,
-                iterations=origin_def.iterations,
+                iterations=origin.iterations,
                 url=url))
             try:
                 sources += origin.process(fetcher.fetch(url))
