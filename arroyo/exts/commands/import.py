@@ -62,7 +62,7 @@ class ImportCommand(exts.Command):
                 raise exc.ArgumentError(
                     'languge must be an string or None')
 
-            origins = [importer.OriginDefinition(
+            origin_defs = [importer.OriginDefinition(
                 name='Command line',
                 backend=backend,
                 url=seed_url,
