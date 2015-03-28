@@ -61,21 +61,9 @@ class Selector:
         selector_name = query.pop('selector', 'source')
         return self.app.get_extension('selector', selector_name, **query)
 
-    def _fetch_search(self, query):
-        for (name, impl) in self.app.get_implementations('importer').items():
-            url = next(impl(self.app).search(query))
-            if url:
-                # print(url)
-                origin = importer.OriginDefinition(
-                    name='foo', backend=name, url=url,
-                    iterations=1, type=None, language=None)
-                self.app.importer.import_origin(origin)
-
     def select(self, query, download=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
-
-        self._fetch_search(query)
 
         selector = self.get_selector(query)
         for src in selector.select():
