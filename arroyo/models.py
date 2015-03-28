@@ -88,7 +88,7 @@ class Source(Base):
         if not _check_type(value):
             raise ValueError(value)
 
-        self._type = value.lower()
+        self._type = value.lower() if value else None
 
     #
     # Language property
@@ -102,7 +102,7 @@ class Source(Base):
         if not _check_language(value):
             raise ValueError(value)
 
-        self._language = value.lower()
+        self._language = value.lower() if value else None
 
     def __str__(self):
         return self.__unicode__()

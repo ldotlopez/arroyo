@@ -14,24 +14,34 @@ from arroyo import exts
 class Eztv(exts.Origin):
     BASE_URL = 'https://eztv.ch/page_0'
 
-    def url_generator(self, url=None):
-        if not url:
-            url = self.BASE_URL
+    def paginate(self, url):
+        parsed = parse.urlparse(url)
+        pathcomponents = parsed.path.split('/')
+        pathcomponents = list(filter(lambda x: x, pathcomponents))
 
-        p = parse.urlparse(url)
-        if p.path.startswith('/shows/'):
+        # https://eztv.ch/ -> 0
+        # https://eztv.ch/shows/546/black-mirror/ -> 3
+        if len(pathcomponents) != 1:
             yield url
-            raise StopIteration()
+            return
 
-        m = re.match('/page_(\d+)', p.path)
+        # Anything non standard
+        m = re.findall(r'^page_(\d+)$', pathcomponents[0])
         if not m:
-            idx = 0
-        else:
-            idx = int(m.group(1))
+            yield url
+            return
 
+        # https://eztv.ch/page_0
+        page = int(m[0])
         while True:
-            yield 'https://eztv.ch/page_{}'.format(idx)
-            idx += 1
+            yield '{scheme}://{netloc}/page_{page}'.format(
+                scheme=parsed.scheme,
+                netloc=parsed.netloc,
+                page=page)
+            page += 1
+
+    def get_query_url(self, query):
+        return
 
     def process_buffer(self, buff):
         """

@@ -18,7 +18,7 @@ if __name__ == '__main__':
     config = arroyo.core.build_config_parser(args)
 
     extensions = {
-        'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
+        'origins': ('eztv', 'kickass', 'spanishtracker'),
         'selectors': ('source', 'episode', 'movie'),
         'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
         'downloaders': ('mock', 'transmission')
