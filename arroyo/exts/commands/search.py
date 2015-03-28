@@ -33,6 +33,7 @@ class QueryCommand(exts.Command):
             action='store_true',
             help=('Include all results '
                   '(by default only sources with NONE state are displayed)')),
+
         exts.argument(
             '-f', '--filter',
             dest='filters',
@@ -40,6 +41,7 @@ class QueryCommand(exts.Command):
             type=str,
             action=utils.DictAction,
             help='Filters to apply in key_mod=value form'),
+
         exts.argument(
             'keywords',
             nargs='*',
@@ -78,7 +80,7 @@ class QueryCommand(exts.Command):
         # FIXME: Missing sync
         # sync()
         for (label, query) in queries.items():
-            res = list(self.app.selector.select(query, download=False))
+            res = list(self.app.selector.select(query))
 
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))

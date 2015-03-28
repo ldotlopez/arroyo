@@ -51,6 +51,8 @@ class Query(dict):
 class Selector:
     def __init__(self, app):
         self.app = app
+        self._auto_import = self.app.config.getboolean(
+            'main', 'auto-import', fallback=False)
 
     def get_queries(self):
         cfg_dict = utils.configparser_to_dict(self.app.config)
@@ -61,11 +63,12 @@ class Selector:
         selector_name = query.pop('selector', 'source')
         return self.app.get_extension('selector', selector_name, **query)
 
-    def select(self, query, download=False):
+    def select(self, query, auto_import=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
 
-        self.app.importer.import_query(query)
+        if self._auto_import:
+            self.app.importer.import_query(query)
 
         selector = self.get_selector(query)
         for src in selector.select():
