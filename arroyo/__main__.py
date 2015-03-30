@@ -7,13 +7,10 @@ if __name__ == '__main__':
 
     import arroyo
 
-    # Parse command line
+    # Parse command line in a first phase to allow extensions and config file
+    # loading from command line
     argparser = arroyo.core.build_argument_parser()
     args, remaining = argparser.parse_known_args()
-
-    if args.help:
-        argparser.print_help()
-        sys.exit(1)
 
     config = arroyo.core.build_config_parser(args)
 
