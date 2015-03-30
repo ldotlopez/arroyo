@@ -8,7 +8,7 @@ class TwitterNotifier(exts.Service):
 
     def __init__(self, app):
         super(TwitterNotifier, self).__init__(app)
-        self._logger = self.app.getChild('twitter-notifier')
+        self._logger = self.app.logger.getChild('twitter-notifier')
 
         if not self.app.config.has_section(self._SECTION_NAME):
             msg = "Section [{section_name}] not found"
