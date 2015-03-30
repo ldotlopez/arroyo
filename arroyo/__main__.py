@@ -25,8 +25,15 @@ if __name__ == '__main__':
         for ns in extensions])
     extensions = [x for x in extensions]
 
+    log_levels = 'ERROR CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+    if args.verbose or args.quiet:
+        log_level = max(4, min(0, 2 + args.verbose - args.quiet))
+    else:
+        log_level = None
+
     try:
-        app = arroyo.Arroyo(extensions=extensions, config=config)
+        app = arroyo.Arroyo(extensions=extensions, config=config,
+                            log_level=log_level)
         app.run_from_args()
     except arroyo.exc.ArgumentError as e:
         print(str(e), file=sys.stderr)

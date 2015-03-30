@@ -7,14 +7,11 @@ import re
 from urllib import parse
 
 
-from ldotcommons import logging, utils
+from ldotcommons import utils
 from ldotcommons.sqlalchemy import Base
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
-
-
-_logger = logging.get_logger('models')
 
 
 class Source(Base):

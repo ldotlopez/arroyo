@@ -4,7 +4,6 @@
 
 from urllib import parse
 
-from ldotcommons import logging
 from sqlalchemy.orm import exc as orm_exc
 import transmissionrpc
 
@@ -31,7 +30,7 @@ class TransmissionDownloader(exts.Downloader):
         if self._CONFIG_SECTION_NAME not in self.app.config:
             self.app.config.add_section(self._CONFIG_SECTION_NAME)
         self.config_sect = app.config[self._CONFIG_SECTION_NAME]
-        self._logger = logging.get_logger('transmission')
+        self._logger = self.app.logger.getChild('transmission')
 
         error = None
 

@@ -1,9 +1,10 @@
 import argparse
 import configparser
 import importlib
+import logging
 from itertools import chain
 
-from ldotcommons import logging, utils
+from ldotcommons import utils
 
 from arroyo import (
     importer,
@@ -22,6 +23,18 @@ def build_argument_parser():
             '-h', '--help',
             action='store_true',
             dest='help')
+
+        parser.add_argument(
+            '-v', '--verbose',
+            dest='verbose',
+            default=0,
+            action='count')
+
+        parser.add_argument(
+            '-q', '--quiet',
+            dest='quiet',
+            default=0,
+            action='count')
 
         parser.add_argument(
             '--config-file',
@@ -72,10 +85,27 @@ def build_config_parser(arguments):
     return cp
 
 
+class EncodedStreamHandler(logging.StreamHandler):
+    def __init__(self, encoding='utf-8', *args, **kwargs):
+        super(EncodedStreamHandler, self).__init__(*args, **kwargs)
+        self.encoding = encoding
+        self.terminator = self.terminator.encode(self.encoding)
+
+    def emit(self, record):
+        try:
+            msg = self.format(record).encode(self.encoding)
+            stream = self.stream
+            stream.buffer.write(msg)
+            stream.buffer.write(self.terminator)
+            self.flush()
+        except Exception:
+            self.handleError(record)
+
+
 class Arroyo:
     def __init__(self,
                  db_uri=None, downloader_name=None, extensions=[],
-                 config=None):
+                 config=None, log_level=None):
         if config is None:
             config = configparser.ConfigParser()
 
@@ -86,9 +116,19 @@ class Arroyo:
         self._extensions = set()
         self._services = {}
         self._registry = {}
-        self._logger = logging.get_logger('app')
 
         self.config = config
+
+        # Build and configure logger
+        handler = EncodedStreamHandler()
+        handler.setFormatter(logging.Formatter(
+            "[%(levelname)s] [%(name)s] %(message)s"
+        ))
+        self.logger = logging.getLogger('arroyo')
+        self.logger.setLevel(
+            log_level or
+            self.config.get('main', 'log-level', fallback='WARNING'))
+        self.logger.addHandler(handler)
 
         # Built-in providers
         self.signals = signaler.Signaler()

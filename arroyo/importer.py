@@ -1,5 +1,5 @@
 import collections
-from ldotcommons import (fetchers, logging)
+from ldotcommons import fetchers
 
 from arroyo import (exc, models)
 
@@ -14,7 +14,7 @@ OriginDefinition = collections.namedtuple('OriginDefinition', (
 class Importer:
     def __init__(self, app):
         self.app = app
-        self._logger = logging.get_logger('analyzer')
+        self._logger = app.logger.getChild('importer')
         app.signals.register('source-added')
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')

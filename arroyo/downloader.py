@@ -3,8 +3,6 @@ import binascii
 import re
 from urllib import parse
 
-from ldotcommons import logging
-
 from arroyo import models
 import arroyo.exc
 
@@ -14,7 +12,7 @@ class Downloader:
         app.signals.register('source-state-change')
 
         self._app = app
-        self._logger = logging.get_logger('downloader')
+        self._logger = app.logger.getChild('downloader')
         self.set_backend(downloader_name, **downloader_params)
 
     def get_queries(self):

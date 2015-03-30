@@ -1,6 +1,4 @@
-from ldotcommons import logging
 from ldotcommons.messaging import twitter as ldottwitter
-
 
 from arroyo import (exc, exts)
 
@@ -10,7 +8,7 @@ class TwitterNotifier(exts.Service):
 
     def __init__(self, app):
         super(TwitterNotifier, self).__init__(app)
-        self._logger = logging.get_logger('twitter-notifier')
+        self._logger = self.app.getChild('twitter-notifier')
 
         if not self.app.config.has_section(self._SECTION_NAME):
             msg = "Section [{section_name}] not found"

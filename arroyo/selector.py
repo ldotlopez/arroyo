@@ -1,5 +1,4 @@
 from ldotcommons import (sqlalchemy as ldotsa, utils)
-from arroyo import importer
 
 
 # Probabily there is a better solution for this inmutable dict

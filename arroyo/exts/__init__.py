@@ -3,8 +3,8 @@ from urllib import parse
 
 class Extension:
     def __init__(self, app):
-        self.app = app
         super(Extension, self).__init__()
+        self.app = app
 
 
 class Service(Extension):

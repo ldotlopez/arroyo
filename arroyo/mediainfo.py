@@ -1,12 +1,8 @@
 from os import path
 
 import guessit
-from ldotcommons import logging
 
 from arroyo import models
-
-
-_logger = logging.get_logger('metainfo')
 
 
 class Mediainfo:
@@ -14,6 +10,7 @@ class Mediainfo:
         app.signals.connect('sources-added-batch', self._on_source_batch)
         app.signals.connect('sources-updated-batch', self._on_source_batch)
         self._app = app
+        self._logger = app.logger.getChild('mediainfo')
 
     def _on_source_batch(self, sender, sources):
         self.process(*sources)
@@ -157,7 +154,7 @@ class Mediainfo:
             # Give up if info's type is unknow
             if info.get('type', 'unknown') == 'unknown':
                 msg = "unknown type for '{source}'"
-                _logger.warning(msg.format(source=src))
+                self._logger.warning(msg.format(source=src))
                 continue
 
             # Update source.type only if it is unknow
@@ -184,7 +181,7 @@ class Mediainfo:
                     self._app.db.session.add(specilized_source)
             except ValueError as e:
                 msg = "unable to get specilized data for '{source}': {reason}"
-                _logger.warning(msg.format(source=src, reason=e))
+                self._logger.warning(msg.format(source=src, reason=e))
                 continue
 
             # Link source and specialized_source
