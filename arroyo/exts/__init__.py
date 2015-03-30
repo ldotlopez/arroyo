@@ -59,7 +59,7 @@ class Origin(Extension):
 
         iterations = max(1, self._iterations)
         g = self.paginate(self._url)
-        for itr in range(0, iterations):
+        while self._iteration < iterations:
             self._iteration += 1
             yield next(g)
 
