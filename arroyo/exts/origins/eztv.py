@@ -40,9 +40,6 @@ class Eztv(exts.Origin):
                 page=page)
             page += 1
 
-    def get_query_url(self, query):
-        return
-
     def process_buffer(self, buff):
         """
         Finds referentes to sources in buffer.
