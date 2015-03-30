@@ -1,9 +1,6 @@
 import re
 
-
 import guessit
-from sqlalchemy.sql import functions
-
 
 from arroyo import (
     exc,
