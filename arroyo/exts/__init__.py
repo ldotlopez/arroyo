@@ -61,7 +61,7 @@ class Origin(Extension):
         g = self.paginate(self._url)
         for itr in range(0, iterations):
             self._iteration += 1
-            yield from g
+            yield next(g)
 
     def get_query_url(self, query):
         return
