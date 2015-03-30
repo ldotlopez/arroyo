@@ -15,9 +15,9 @@ class Selector(exts.Selector):
         "'{}'".format(x) for x in _SUPPORTED_Q
     ])
 
-    def __init__(self, app, **filters):
+    def __init__(self, app, query):
         super(Selector, self).__init__(app)
-        self._filters = filters.copy()
+        self._query = query
         self._source_table = {}
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
@@ -48,16 +48,35 @@ class Selector(exts.Selector):
         else:
             return not screen_size and fmt == 'hdtv'
 
-    def list(self):
+    def select(self, everything):
         # Get various parameters
-        series = self._filters.get('series')
-        year = self._filters.get('year')
-        language = self._filters.get('language')
-        season = self._filters.get('season')
-        number = self._filters.get('episode')
+        series = self._query.get('series')
+        year = self._query.get('year')
+        language = self._query.get('language')
+        season = self._query.get('season')
+        number = self._query.get('episode')
 
-        # Strip episodes with a selection
+        # Basic checks
+        if not series:
+            raise exc.ArgumentError('series filter is required')
+
+        # Parse quality filter
+        quality = self._query.get('quality', None)
+        if quality:
+            quality = quality.lower()
+            if quality not in self.__class__._SUPPORTED_Q:
+                msg = (
+                    "quality '{quality}' not supported, "
+                    "only {supported_qualities} are supported"
+                )
+                msg = msg.format(
+                    quality=quality,
+                    supported_qualities=self.__class__._SUPPORTED_Q_STRING
+                )
+                raise exc.ArgumentError(msg)
+
         qs = self.app.db.session.query(models.Episode)
+
         if series:
             qs = qs.filter(models.Episode.series.ilike(series))
 
@@ -73,35 +92,15 @@ class Selector(exts.Selector):
         if number:
             qs = qs.filter(models.Episode.number == number)
 
-        return qs
-
-    def select(self):
-        if not self._filters.get('series'):
-            raise exc.ArgumentError('series filter is required')
-
-        quality = self._filters.get('quality', None)
-        if quality:
-            quality = quality.lower()
-            if quality not in self.__class__._SUPPORTED_Q:
-                msg = (
-                    "quality '{quality}' not supported, "
-                    "only {supported_qualities} are supported"
-                )
-                msg = msg.format(
-                    quality=quality,
-                    supported_qualities=self.__class__._SUPPORTED_Q_STRING
-                )
-                raise exc.ArgumentError(msg)
-
         # Strip episodes with a selection
-        qs = self.list()
-        qs = qs.filter(models.Episode.selection == None)  # nopep8
+        if not everything:
+            qs = qs.filter(models.Episode.selection == None)  # nopep8
 
         for ep in qs:
             srcs = ep.sources
 
             # Filter out by quality
-            if quality:
+            if not everything and quality:
                 srcs = filter(lambda x: self.quality_filter(x, quality), srcs)
 
             # Put PROPER's first

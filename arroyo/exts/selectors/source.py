@@ -8,11 +8,11 @@ from arroyo import (
 
 
 class Selector(exts.Selector):
-    def __init__(self, app, **filters):
+    def __init__(self, app, query):
         super(Selector, self).__init__(app)
-        self._filters = filters.copy()
+        self._query = query
 
-    def _filter(self, query, key, value):
+    def _filter(self, qs, key, value):
         if '_' in key:
             mod = key.split('_')[-1]
             key = '_'.join(key.split('_')[:-1])
@@ -23,35 +23,35 @@ class Selector(exts.Selector):
         attr = getattr(models.Source, key, None)
 
         if mod == 'like':
-            query = query.filter(attr.like(value))
+            qs = qs.filter(attr.like(value))
 
         elif mod == 'regexp':
-            query = query.filter(attr.op('regexp')(value))
+            qs = qs.filter(attr.op('regexp')(value))
 
         elif mod == 'min':
             value = utils.parse_size(value)
-            query = query.filter(attr >= value)
+            qs = qs.filter(attr >= value)
 
         elif mod == 'max':
             value = utils.parse_size(value)
-            query = query.filter(attr <= value)
+            qs = qs.filter(attr <= value)
 
         else:
-            query = query.filter(attr == value)
+            qs = qs.filter(attr == value)
 
-        return query
+        return qs
 
-    def list(self):
+    def select(self, everything):
         qs = self.app.db.session.query(models.Source)
 
-        for (k, v) in self._filters.items():
+        for (k, v) in self._query.items():
             qs = self._filter(qs, k, v)
+
+        if not everything:
+            qs = qs.filter(models.Source.state == models.Source.State.NONE)
 
         for src in qs:
             yield src
-
-    def select(self):
-        return self.list()
 
 
 __arroyo_extensions__ = [

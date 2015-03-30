@@ -1,6 +1,5 @@
 from ldotcommons import utils
 
-
 from arroyo import (
     exc,
     exts,
@@ -77,14 +76,14 @@ class DownloadCommand(exts.Command):
             if not query:
                 queries = self.app.downloader.get_queries()
             else:
-                queries = {'Command line': query}
+                queries = {'Command line': selector.Query(**query)}
 
             # self.app.selector.multiselect({
             #     k: selector.Query(v) for (k, v) in queries.items()
             # })
-            for (name, filters) in queries.items():
+            for (name, query) in queries.items():
                 print(name)
-                srcs = self.app.selector.select(selector.Query(**filters))
+                srcs = self.app.selector.select(query, everything=False)
                 for src in srcs:
                     if not dry_run:
                         self.app.downloader.add(src)

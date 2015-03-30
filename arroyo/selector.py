@@ -37,6 +37,9 @@ class Query(dict):
         super(Query, self).__init__(**params)
         self._ready = True
 
+    def pop(self, k, **kwargs):
+        return self.__delitem__(k)
+
     def __setitem__(self, k, v):
         if self._ready:
             raise ValueError('Query objects are inmutable')
@@ -45,6 +48,9 @@ class Query(dict):
 
     def __delitem__(self, k):
         raise ValueError('Query objects are inmutable')
+
+    def __repr__(self):
+        return '<Query {}>'.format(super(Query, self).__repr__())
 
 
 class Selector:
@@ -59,10 +65,17 @@ class Selector:
         return {k: Query(**v) for (k, v) in queries.items()}
 
     def get_selector(self, query):
-        selector_name = query.pop('selector', 'source')
-        return self.app.get_extension('selector', selector_name, **query)
+        if not isinstance(query, Query):
+            raise ValueError('query is not a Query object')
 
-    def select(self, query, auto_import=False):
+        tmp = dict(query)
+        selector_type = tmp.pop('selector')
+
+        return self.app.get_extension(
+            'selector', selector_type,
+            query=tmp)
+
+    def select(self, query, everything=False):
         if not isinstance(query, Query):
             raise ValueError('query must be a Query instance')
 
@@ -70,5 +83,5 @@ class Selector:
             self.app.importer.import_query(query)
 
         selector = self.get_selector(query)
-        for src in selector.select():
+        for src in selector.select(everything):
             yield src
