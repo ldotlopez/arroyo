@@ -6,42 +6,43 @@ from arroyo import (
 
 
 class DbCommand(exts.Command):
-    help = 'Database commands'
+    help = 'manage database'
+
     arguments = (
         exts.argument(
             '--shell',
             dest='shell',
             action='store_true',
-            help=('Start a interactive python interpreter in the db '
+            help=('start a interactive python interpreter in the db '
                   'environment')),
 
         exts.argument(
             '--reset-db',
             dest='reset',
             action='store_true',
-            help='Empty db'),
+            help='empty db'),
 
         exts.argument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
-            help='Sets state to NONE on all sources'),
+            help='sets state to NONE on all sources'),
 
         exts.argument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
-            help='Sets state to ARCHIVED on all sources'),
+            help='sets state to ARCHIVED on all sources'),
 
         exts.argument(
             '--reset',
             dest='reset_source_id',
-            help='Reset state of a source'),
+            help='reset state of a source'),
 
         exts.argument(
             '--archive',
             dest='archive_source_id',
-            help='Archive a source')
+            help='archive a source')
         )
 
     def run(self):

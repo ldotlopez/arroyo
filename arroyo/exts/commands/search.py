@@ -25,13 +25,14 @@ def fmt_grp(prefix, iterable):
 
 
 class QueryCommand(exts.Command):
-    help = 'Query database'
+    help = 'Search sources'
+
     arguments = (
         exts.argument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
-            help=('Include all results '
+            help=('include all results '
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
@@ -40,12 +41,12 @@ class QueryCommand(exts.Command):
             required=False,
             type=str,
             action=utils.DictAction,
-            help='Filters to apply in key_mod=value form'),
+            help='filters to apply in key_mod=value form'),
 
         exts.argument(
             'keywords',
             nargs='*',
-            help='Keywords.')
+            help='keywords')
     )
 
     def run(self):

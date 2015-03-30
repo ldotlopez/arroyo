@@ -6,18 +6,19 @@ from arroyo import (
 
 
 class MediainfoCommand(exts.Command):
-    help = 'Guess mediainfo from sources'
+    help = 'guess mediainfo for sources.'
+
     arguments = (
         exts.argument(
             '-i', '--item',
             dest='item',
-            help='Run mediainfo process on selected item'
+            help='run mediainfo process on selected item'
         ),
         exts.argument(
             '-a', '--all',
             action='store_true',
             dest='all',
-            help='Run mediainfo process on all items'
+            help='run mediainfo process on all items'
         ),
     )
 

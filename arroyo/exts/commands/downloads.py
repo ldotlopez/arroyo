@@ -10,36 +10,37 @@ from arroyo import (
 
 
 class DownloadCommand(exts.Command):
-    help = 'Show and manage downloads'
+    help = 'manage downloads'
+
     arguments = (
         exts.argument(
             '-l', '--list',
             dest='show',
             action='store_true',
-            help='Show current downloads'),
+            help='show current downloads'),
 
         exts.argument(
             '-a', '--add',
             dest='add',
-            help='Download a source ID'),
+            help='download a source ID'),
 
         exts.argument(
             '-r', '--remove',
             dest='remove',
-            help='Cancel (and/or remove) a source ID'),
+            help='cancel (and/or remove) a source ID'),
 
         exts.argument(
             '-f', '--filter',
             dest='query',
             type=str,
             action=utils.DictAction,
-            help='Filters to apply in key_mod=value form'),
+            help='filters to apply in key_mod=value form'),
 
         exts.argument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
-            help='Push found sources to downloader.')
+            help='don\'t download matching sources, just show them')
     )
 
     def run(self):

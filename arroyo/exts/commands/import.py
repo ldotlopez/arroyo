@@ -6,7 +6,7 @@ from arroyo import (
 
 
 class ImportCommand(exts.Command):
-    help = 'Import an origin merging discovered sources into the database'
+    help = 'Import an origin.'
 
     arguments = (
         exts.argument(

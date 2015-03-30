@@ -197,7 +197,7 @@ class Arroyo:
             help='additional help')
 
         for (name, cmd) in self.get_implementations('command').items():
-            command_parser = subparser.add_parser(name)
+            command_parser = subparser.add_parser(name, help=cmd.help)
             for argument in cmd.arguments:
                 args, kwargs = argument()
                 command_parser.add_argument(*args, **kwargs)
@@ -211,7 +211,6 @@ class Arroyo:
 
     def run_command(self, command, args):
         try:
-            # FIXME: Remove arguments from self
             self.arguments = args
             self.get_extension('command', command).run()
             delattr(self, 'arguments')
