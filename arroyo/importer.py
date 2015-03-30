@@ -56,7 +56,8 @@ class Importer:
 
     def _import(self, origin):
         fetcher = fetchers.UrllibFetcher(
-            cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA})
+            cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA},
+            logger=self._logger.getChild('fetcher'))
 
         sources = []
         for url in origin.get_urls():
