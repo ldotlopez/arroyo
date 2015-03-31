@@ -48,6 +48,12 @@ class KickAss(exts.Origin):
         """
 
         sources = []
+        typs = {
+            'Movies': 'movie',
+            'TV': 'episode'
+            # 'Music': 'music',
+            # 'Books': 'book'
+        }
 
         soup = bs4.BeautifulSoup(buff)
         ts = utils.utcnow_timestamp()
@@ -64,10 +70,15 @@ class KickAss(exts.Origin):
                 size = int(float(m[0]) * self._SIZE_TABLE[m[1]])
                 seeds = tds[-2].text
                 leechers = tds[-2].text
+
+                m = re.findall(r'Posted by .+? in (.+?)\b', tds[0].text)
+                if m:
+                    typ = typs.get(m[0], None)
+
             except IndexError:
                 msg = 'Invalid markup (Are you trying to import main page? ' + \
                       'That is unsupported, try with "{suggestion}")'.format(
-                          suggestion=self.BASE_URL + 'new/'
+                          suggestion=self.BASE_URL
                       )
                 raise exc.ProcessException(msg)
 
@@ -80,7 +91,8 @@ class KickAss(exts.Origin):
                 'timestamp': ts,
                 'size': size,
                 'seeds': seeds,
-                'leechers': leechers
+                'leechers': leechers,
+                'type': typ
             })
 
         return sources
