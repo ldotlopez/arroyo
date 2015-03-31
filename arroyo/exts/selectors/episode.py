@@ -105,9 +105,16 @@ class Selector(exts.Selector):
 
             # Put PROPER's first
             srcs = sorted(srcs, key=self.proper_sort)
-            if srcs:
-                self._source_table[srcs[0]] = ep
-                yield srcs[0]
+            for src in srcs:
+                self._source_table[src] = ep
+                yield src
+
+                if not everything:
+                    return
+
+            # if srcs:
+            #     self._source_table[srcs[0]] = ep
+            #     yield srcs[0]
 
 
 __arroyo_extensions__ = [
