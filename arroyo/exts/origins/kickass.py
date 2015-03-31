@@ -79,7 +79,6 @@ class KickAss(exts.Origin):
                 'name': name,
                 'timestamp': ts,
                 'size': size,
-                'language': 'eng-US',
                 'seeds': seeds,
                 'leechers': leechers
             })

@@ -90,9 +90,7 @@ class Eztv(exts.Origin):
                 sources.append({
                     'name': children[1].text.strip(),
                     'uri': children[2].select('a.magnet')[0]['href'],
-                    'timestamp': utils.utcnow_timestamp(),
-                    'type': 'episode',
-                    'language': 'eng-US'
+                    'timestamp': utils.utcnow_timestamp()
                 })
             except IndexError:
                 continue

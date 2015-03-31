@@ -106,7 +106,9 @@ class Mediainfo:
 
         if 'language' in info:
             # FIXME: Handle all languages
-            info['language'] = info['language'][0].alpha3
+            info['language'] = '{}-{}'.format(
+                info['language'][0].alpha3,
+                info['language'][0].alpha2)
 
         # Misc fixes. Maybe this needs its own module
         # 12 Monkeys series
@@ -169,7 +171,7 @@ class Mediainfo:
             # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
             # For now only the 3 letter code is used.
             if src.language is None and 'language' in info:
-                src.language = info['language'].alpha3
+                src.language = info['language']
 
             elif src.language is not None:
                 info['language'] = src.language

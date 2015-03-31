@@ -81,7 +81,10 @@ class QueryCommand(exts.Command):
         # FIXME: Missing sync
         # sync()
         for (label, query) in queries.items():
-            res = list(self.app.selector.select(query, everything=self.app.arguments.all_states))
+            res = list(self.app.selector.select(
+                query,
+                everything=self.app.arguments.all_states
+            ))
 
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))
