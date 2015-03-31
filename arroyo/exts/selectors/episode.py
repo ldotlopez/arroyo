@@ -1,7 +1,7 @@
 import re
 
 import guessit
-
+from sqlalchemy.sql import functions
 from arroyo import (
     exc,
     exts,
@@ -84,7 +84,9 @@ class Selector(exts.Selector):
             qs = qs.filter(models.Episode.year == year)
 
         if language:
-            qs = qs.filter(models.Episode.language == language)
+            qs = qs.filter(
+                functions.coalesce(
+                    models.Episode.language, 'eng-us') == language)
 
         if season:
             qs = qs.filter(models.Episode.season == season)
