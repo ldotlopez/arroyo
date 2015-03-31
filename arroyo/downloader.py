@@ -3,7 +3,7 @@ import binascii
 import re
 from urllib import parse
 
-from arroyo import models
+from arroyo import models, selector
 import arroyo.exc
 
 
@@ -16,7 +16,7 @@ class Downloader:
         self.set_backend(downloader_name, **downloader_params)
 
     def get_queries(self):
-        return {name: params for (name, params) in
+        return {name: selector.Query(**params) for (name, params) in
                 self._app.config_subdict('query').items()}
 
     def set_backend(self, name, **params):
