@@ -110,7 +110,7 @@ class Selector(exts.Selector):
                 yield src
 
                 if not everything:
-                    return
+                    break  # Go to the next episode
 
             # if srcs:
             #     self._source_table[srcs[0]] = ep
