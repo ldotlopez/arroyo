@@ -18,9 +18,9 @@ class Selector(exts.Selector):
         "'{}'".format(x) for x in _SUPPORTED_Q
     ])
 
-    def __init__(self, app, **filters):
+    def __init__(self, app, query):
         super(Selector, self).__init__(app)
-        self._filters = filters.copy()
+        self._query = query.copy()
         self._source_table = {}
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
@@ -51,31 +51,16 @@ class Selector(exts.Selector):
         else:
             return not screen_size and fmt == 'hdtv'
 
-    def list(self):
-        # Get various parameters
-        title = self._filters.get('title')
-        year = self._filters.get('year')
-        language = self._filters.get('language')
-
-        # Strip Movies with a selection
-        qs = self.app.db.session.query(models.Movie)
-
-        if title:
-            qs = qs.filter(models.Movie.title.ilike(title))
-
-        if year:
-            qs = qs.filter(functions.coalesce(models.Movie.year, '') == year)
-
-        if language:
-            qs = qs.filter(models.Movie.language == language)
-
-        return qs
-
-    def select(self):
-        if not self._filters.get('title'):
+    def select(self, everything):
+        if not self._query.get('title'):
             raise exc.ArgumentError('title filter is required')
 
-        quality = self._filters.get('quality')
+        # Get various parameters
+        title = self._query.get('title')
+        year = self._query.get('year')
+        language = self._query.get('language')
+
+        quality = self._query.get('quality')
         if quality:
             quality = quality.lower()
             if quality not in self.__class__._SUPPORTED_Q:
@@ -90,8 +75,21 @@ class Selector(exts.Selector):
                 raise exc.ArgumentError(msg)
 
         # Strip movies with a selection
-        qs = self.list()
-        qs = qs.filter(models.Movie.selection == None)  # nopep8
+        qs = self.app.db.session.query(models.Movie)
+
+        if title:
+            qs = qs.filter(models.Movie.title.ilike(title))
+
+        if year:
+            qs = qs.filter(functions.coalesce(models.Movie.year, '') == year)
+
+        if language:
+            qs = qs.filter(
+                functions.coalesce(
+                    models.Movie.language, 'eng-us') == language)
+
+        if not everything:
+            qs = qs.filter(models.Movie.selection == None)  # nopep8
 
         for mov in qs:
             srcs = mov.sources
@@ -102,9 +100,12 @@ class Selector(exts.Selector):
 
             # Put PROPER's first
             srcs = sorted(srcs, key=self.proper_sort)
-            if srcs:
-                self._source_table[srcs[0]] = mov
-                yield srcs[0]
+            for src in srcs:
+                self._source_table[src] = mov
+                yield src
+
+                if not everything:
+                    break  # Go to the next title
 
 
 __arroyo_extensions__ = [

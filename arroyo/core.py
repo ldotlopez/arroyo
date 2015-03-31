@@ -255,4 +255,4 @@ class Arroyo:
             self.get_extension('command', command).run()
             delattr(self, 'arguments')
         except arroyo.exc.ArgumentError as e:
-            self._logger.error(e)
+            self.logger.error(e)
