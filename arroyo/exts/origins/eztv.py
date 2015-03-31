@@ -6,7 +6,7 @@ import re
 from urllib import parse
 
 import bs4
-from ldotcommons import utils
+from ldotcommons import fetchers, utils
 
 from arroyo import exts
 
@@ -39,6 +39,39 @@ class Eztv(exts.Origin):
                 netloc=parsed.netloc,
                 page=page)
             page += 1
+
+    def get_query_url(self, query):
+        selector = query.get('selector')
+        if selector != 'episode':
+            return
+
+        series = query.get('series')
+        if not series:
+            return
+
+        fetcher = fetchers.UrllibFetcher(
+            cache=True,
+            cache_delta=60*60*24*7,  # a week
+            logger=self.app.logger.getChild('fetcher')
+        )
+        buff = fetcher.fetch('https://eztv.it/showlist/')
+        soup = bs4.BeautifulSoup(buff)
+
+        series = series.lower()
+        if series.startswith('the '):
+            series = '{}, the'.format(series[4:])
+
+        year = query.get('year')
+        if year:
+            series += ' ({})'.format(year)
+
+        g = (x for x in soup.select('tr td a.thread_link') if x.text)
+        g = filter(lambda x: x.text.lower() == series, g)
+
+        try:
+            return 'https://eztv.it{}'.format(next(g).attrs['href'])
+        except (StopIteration, KeyError):
+            return None
 
     def process_buffer(self, buff):
         """
