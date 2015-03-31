@@ -78,9 +78,6 @@ class DownloadCommand(exts.Command):
             else:
                 queries = {'Command line': selector.Query(**query)}
 
-            # self.app.selector.multiselect({
-            #     k: selector.Query(v) for (k, v) in queries.items()
-            # })
             for (name, query) in queries.items():
                 print(name)
                 srcs = self.app.selector.select(query, everything=False)
