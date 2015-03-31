@@ -37,6 +37,9 @@ class Spanishtracker(exts.Origin):
         yield from self.paginate_by_query_param(url, 'page', default=0)
 
     def get_query_url(self, query):
+        if not query.get('language', '').startswith('spa-'):
+            return
+
         categories = {
             'episode': '7',
             'movie': '1'
