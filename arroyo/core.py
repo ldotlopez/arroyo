@@ -190,7 +190,7 @@ class Arroyo:
         for name in names:
             if name in self._extensions:
                 msg = "Extension '{name}' was already loaded"
-                self._logger.warning(msg.format(name=name))
+                self.logger.warning(msg.format(name=name))
                 continue
 
             # Load module
@@ -212,8 +212,7 @@ class Arroyo:
 
             except ImportError as e:
                 msg = "Extension '{name}' missing or invalid: {msg}"
-                self._logger.warning(msg.format(name=name, msg=str(e)))
-                self._logger.warning(e)
+                self.logger.warning(msg.format(name=name, msg=str(e)))
                 continue
 
     def register(self, extension_point, extension_name, extension_class):
