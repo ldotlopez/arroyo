@@ -67,11 +67,21 @@ class Importer:
                 iteration=origin.iteration,
                 iterations=origin.iterations,
                 url=url))
+
             try:
-                sources += origin.process(fetcher.fetch(url))
-            except (ValueError, exc.ProcessException, fetchers.FetchError) as e:
+                buff = fetcher.fetch(url)
+            except fetchers.FetchError as e:
+                msg = 'Unable to retrieve {url}: {msg}'
+                msg = msg.format(url=url, msg=e)
+                self._logger.warning(msg)
+                continue
+
+            try:
+                sources += origin.process(buff)
+            except (ValueError, exc.ProcessException) as e:
                 msg = "Unable to process '{url}': {error}"
                 self._logger.error(msg.format(url=url, error=e))
+                continue
 
         ret = {
             'added-sources': [],

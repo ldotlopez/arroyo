@@ -33,6 +33,9 @@ class KickAss(exts.Origin):
                 query.get('name_like', '').replace('%', ' ').replace('*', ' ')
             q = q.strip()
 
+        if not q:
+            return
+
         d = {
             'base': KickAss.BASE_URL,
             'q': parse.quote(q),

@@ -11,6 +11,7 @@ class Selector(exts.Selector):
     def __init__(self, app, query):
         super(Selector, self).__init__(app)
         self._query = query
+        self._logger = app.logger.getChild('source-selector')
 
     def _filter(self, qs, key, value):
         if '_' in key:
@@ -20,8 +21,15 @@ class Selector(exts.Selector):
             key = key
             mod = None
 
-        attr = getattr(models.Source, key, None)
+        if key not in ('urn', 'uri', 'name', 'size', 'provider', 'language',
+                       'type'):
+            msg = ("Unknow attribute parameter '{parameter}'. "
+                   "Are you using the right selector?")
+            msg = msg.format(parameter=key)
+            self._logger.warning(msg)
+            return qs
 
+        attr = getattr(models.Source, key)
         if mod == 'like':
             qs = qs.filter(attr.like(value))
 
