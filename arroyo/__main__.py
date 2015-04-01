@@ -17,7 +17,8 @@ if __name__ == '__main__':
     extensions = {
         'origins': ('eztv', 'kickass', 'spanishtracker'),
         'selectors': ('source', 'episode', 'movie'),
-        'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
+        'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo',
+                     'search'),
         'downloaders': ('mock', 'transmission')
     }
     extensions = chain.from_iterable([

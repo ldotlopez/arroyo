@@ -109,6 +109,11 @@ class Selector(Extension):
     pass
 
 
+class Cron(Extension):
+    def run(self):
+        raise NotImplementedError()
+
+
 def argument(*args, **kwargs):
     """argparse argument wrapper to ease the command argument definitions"""
     def wrapped_arguments():
