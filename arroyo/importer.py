@@ -77,12 +77,24 @@ class Importer:
                 continue
 
             try:
-                sources += origin.process(buff)
+                srcs = origin.process(buff)
             except exc.ProcessException as e:
                 msg = "Unable to process '{url}': {error}"
                 msg = msg.format(url=url, error=e)
                 self._logger.error(msg)
                 continue
+
+            if not srcs:
+                msg = "No sources found in '{url}'"
+                msg = msg.format(url=url)
+                self._logger.warning(msg)
+                continue
+
+            msg = "Found {n} source(s) in '{url}'"
+            msg = msg.format(n=len(srcs), url=url)
+            self._logger.info(msg)
+
+            sources += srcs
 
         ret = {
             'added-sources': [],
