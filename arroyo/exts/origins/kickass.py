@@ -16,6 +16,10 @@ class KickAss(exts.Origin):
     BASE_URL = 'http://kickass.to/new/?page=1'
     _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
 
+    def __init__(self, *args, **kwargs):
+        super(KickAss, self).__init__(*args, **kwargs)
+        self._logger = self.app.logger.getChild('kickass-importer')
+
     def paginate(self, url):
         yield from self.paginate_by_query_param(url, 'page', default=1)
 
@@ -58,6 +62,8 @@ class KickAss(exts.Origin):
             # 'Books': 'book'
         }
 
+        failures = 0
+
         soup = bs4.BeautifulSoup(buff)
         ts = utils.utcnow_timestamp()
         z = zip(soup.select('tr.odd'), soup.select('tr.even'))
@@ -71,32 +77,57 @@ class KickAss(exts.Origin):
                 size = tds[1].text.replace(' ', '')
                 m = re.findall(r'([0-9\.]+)(.+)', size)[0]
                 size = int(float(m[0]) * self._SIZE_TABLE[m[1]])
-                seeds = tds[-2].text
-                leechers = tds[-2].text
+                seeds = int(tds[-2].text)
+                leechers = int(tds[-1].text)
 
                 m = re.findall(r'Posted by .+? in (.+?)\b', tds[0].text)
                 if m:
                     typ = typs.get(m[0], None)
 
-            except IndexError:
-                msg = 'Invalid markup (Are you trying to import main page? ' + \
-                      'That is unsupported, try with "{suggestion}")'.format(
-                          suggestion=self.BASE_URL
-                      )
-                raise exc.ProcessException(msg)
-
-            if not(all([uri, name, size, seeds, leechers])):
-                raise exc.ProcessException('Invalid markup')
+            except IndexError as e:
+                if failures < 3:
+                    msg = 'Incorrect markup found on one row, continuing with remaining data'
+                    self._logger.warning(msg)
+                    failures += 1
+    
+                if failures == 3:
+                    self._logger.warning('Too many failures, ignoring future warnings')
+    
+                continue
 
             sources.append({
                 'uri': uri,
                 'name': name,
-                'timestamp': ts,
                 'size': size,
                 'seeds': seeds,
                 'leechers': leechers,
+                'timestamp': ts,
                 'type': typ
             })
+
+            # src = {
+            #     'uri': uri,
+            #     'name': name,
+            #     'size': size,
+            #     'seeds': seeds,
+            #     'leechers': leechers
+            # }
+            # for k in src:
+            #     if src[k] is None and src[k] != 0:
+            #         msg = 'Missing mandatory field \'{key}\''
+            #         msg = msg.format(key=k)
+            #         raise exc.ProcessException(msg, row=row, buffer=buff)
+            #
+            # src.update({
+            #     'timestamp': ts,
+            #     'type': typ
+            # })
+
+        if not sources:
+            msg = ('Invalid markup (Are you trying to import main page? '
+                   'That\'s unsupported, try with "{suggestion}")')
+            msg = msg.format(suggestion=self.BASE_URL)
+            raise exc.ProcessException(msg, buffer=buff)
 
         return sources
 

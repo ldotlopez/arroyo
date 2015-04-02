@@ -78,9 +78,10 @@ class Importer:
 
             try:
                 sources += origin.process(buff)
-            except (ValueError, exc.ProcessException) as e:
+            except exc.ProcessException as e:
                 msg = "Unable to process '{url}': {error}"
-                self._logger.error(msg.format(url=url, error=e))
+                msg = msg.format(url=url, error=e)
+                self._logger.error(msg)
                 continue
 
         ret = {

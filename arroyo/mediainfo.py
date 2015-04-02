@@ -1,5 +1,6 @@
 from os import path
 
+import babelfish
 import guessit
 
 from arroyo import models
@@ -151,7 +152,13 @@ class Mediainfo:
 
     def process(self, *sources):
         for src in sources:
-            info = self._get_mediainfo(src)
+            try:
+                info = self._get_mediainfo(src)
+            except babelfish.exceptions.LanguageConvertError as e:
+                msg = 'babelfish language error with \'{source}\': {msg}'
+                msg = msg.format(source=src, msg=e)
+                self._logger.warning(msg)
+                continue
 
             # Give up if info's type is unknow
             if info.get('type', 'unknown') == 'unknown':
