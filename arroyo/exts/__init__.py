@@ -109,7 +109,7 @@ class Selector(Extension):
     pass
 
 
-class Cron(Extension):
+class CronTask(Extension):
     def run(self):
         raise NotImplementedError()
 

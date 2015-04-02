@@ -19,7 +19,8 @@ if __name__ == '__main__':
         'selectors': ('source', 'episode', 'movie'),
         'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo',
                      'search'),
-        'downloaders': ('mock', 'transmission')
+        'downloaders': ('mock', 'transmission'),
+        'misc': ('importercron',)
     }
     extensions = chain.from_iterable([
         [ns+'.'+ext for ext in extensions[ns]]

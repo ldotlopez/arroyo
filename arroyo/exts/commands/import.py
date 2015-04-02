@@ -5,13 +5,6 @@ from arroyo import (
 )
 
 
-class ImportCron(exts.Cron):
-    interval = '1h'
-
-    def run(self):
-        print("hi!")
-
-
 class ImportCommand(exts.Command):
     help = 'Import an origin.'
 
@@ -91,5 +84,4 @@ class ImportCommand(exts.Command):
 
 __arroyo_extensions__ = [
     ('command', 'import', ImportCommand),
-    ('cron', 'import', ImportCron)
 ]
