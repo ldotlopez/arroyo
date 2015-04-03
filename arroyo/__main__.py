@@ -27,9 +27,10 @@ if __name__ == '__main__':
         for ns in extensions])
     extensions = [x for x in extensions]
 
-    log_levels = 'ERROR CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+    log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
     if args.verbose or args.quiet:
-        log_level = max(4, min(0, 2 + args.verbose - args.quiet))
+        log_level = max(0, min(4, 2 + args.verbose - args.quiet))
+        log_level = log_levels[log_level]
     else:
         log_level = None
 

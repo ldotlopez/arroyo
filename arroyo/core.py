@@ -119,16 +119,29 @@ class Arroyo:
 
         self.config = config
 
-        # Build and configure logger
+        # Build logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
             "[%(levelname)s] [%(name)s] %(message)s"
         ))
         self.logger = logging.getLogger('arroyo')
-        self.logger.setLevel(
-            log_level or
-            self.config.get('main', 'log-level', fallback='WARNING'))
         self.logger.addHandler(handler)
+        self.logger.setLevel('WARNING')
+
+        # Configure logger
+        valid_log_levels = [
+            'CRITICAL', 'ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG'
+        ]
+        log_level = log_level or \
+            self.config.get('main', 'log-level', fallback='WARNING')
+
+        if not isinstance(log_level, str) or \
+           log_level.upper() not in valid_log_levels:
+            msg = "Invalid log level '{log_level}'"
+            msg = msg.format(log_level=log_level)
+            self.logger.warning(msg)
+        else:
+            self.logger.setLevel(log_level.upper())
 
         # Built-in providers
         self.signals = signaler.Signaler()

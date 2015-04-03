@@ -9,12 +9,30 @@ from urllib import parse
 import bs4
 from ldotcommons import utils
 
-from arroyo import exc, exts
+from arroyo import exts
 
 
 class KickAss(exts.Origin):
     BASE_URL = 'http://kickass.to/new/?page=1'
-    _SIZE_TABLE = {'KB': 10 ** 3, 'MB': 10 ** 6, 'GB': 10 ** 9, 'TB': 10 ** 12}
+    PROVIDER_NAME = 'kickass'
+
+    _SIZE_TABLE = {
+        'KB': 10 ** 3,
+        'MB': 10 ** 6,
+        'GB': 10 ** 9,
+        'TB': 10 ** 12
+    }
+
+    _TYPES = {
+        'movies': 'movie',
+        'tv': 'episode'
+        # 'music': 'music',
+        # 'books': 'book'
+    }
+
+    def __init__(self, *args, **kwargs):
+        super(KickAss, self).__init__(*args, **kwargs)
+        self._logger = self.app.logger.getChild('kickass-importer')
 
     def paginate(self, url):
         yield from self.paginate_by_query_param(url, 'page', default=1)
@@ -50,55 +68,70 @@ class KickAss(exts.Origin):
         Returns a list with source infos
         """
 
-        sources = []
-        typs = {
-            'Movies': 'movie',
-            'TV': 'episode'
-            # 'Music': 'music',
-            # 'Books': 'book'
-        }
-
-        soup = bs4.BeautifulSoup(buff)
-        ts = utils.utcnow_timestamp()
-        z = zip(soup.select('tr.odd'), soup.select('tr.even'))
-        i = chain.from_iterable(z)
-        for row in i:
+        def process_row(row):
             try:
-                tds = row.findAll('td')
-
                 name = row.select('a.cellMainLink')[0].text
-                uri = row.select('a.imagnet')[0].attrs['href']
-                size = tds[1].text.replace(' ', '')
-                m = re.findall(r'([0-9\.]+)(.+)', size)[0]
-                size = int(float(m[0]) * self._SIZE_TABLE[m[1]])
-                seeds = tds[-2].text
-                leechers = tds[-2].text
-
-                m = re.findall(r'Posted by .+? in (.+?)\b', tds[0].text)
-                if m:
-                    typ = typs.get(m[0], None)
-
             except IndexError:
-                msg = 'Invalid markup (Are you trying to import main page? ' + \
-                      'That is unsupported, try with "{suggestion}")'.format(
-                          suggestion=self.BASE_URL
-                      )
-                raise exc.ProcessException(msg)
+                name = None
 
-            if not(all([uri, name, size, seeds, leechers])):
-                raise exc.ProcessException('Invalid markup')
+            try:
+                uri = row.select('a.imagnet')[0].attrs['href']
+            except (IndexError, AttributeError):
+                uri = None
 
-            sources.append({
-                'uri': uri,
+            try:
+                size = row.select('td')[1].text.replace(' ', '')
+                size = re.search(
+                    r'([0-9\.]+)\s*([a-z]*)',
+                    size,
+                    re.IGNORECASE)
+                amount = float(size.group(1))
+                mod = self._SIZE_TABLE.get(size.group(2).upper(), 1)
+                size = int(amount * mod)
+            except (IndexError, ValueError):
+                size = None
+
+            try:
+                seeds = int(row.select('td')[-2].text)
+            except (IndexError, ValueError):
+                seeds = None
+
+            try:
+                leechers = int(row.select('td')[-1].text)
+            except (IndexError, ValueError):
+                leechers = None
+
+            try:
+                lines = row.select('td')[0].text.split('\n')
+                lines = filter(lambda x: x, lines)
+                lines = map(lambda x: x.strip(), lines)
+                section_text = list(lines)[-1]
+                typ = re.search(
+                    r'\bin\s*(\S+?)\b',
+                    section_text,
+                    re.IGNORECASE)
+
+                # typ = re.search(
+                #     r'Posted by .+? in (.+?)\b',
+                #     row.select('td')[0].text,
+                #     re.IGNORECASE)
+
+                typ = typ.group(1).lower().strip()
+                typ = self._TYPES.get(typ)
+            except IndexError:
+                typ = None
+
+            return {
                 'name': name,
-                'timestamp': ts,
+                'uri': uri,
                 'size': size,
                 'seeds': seeds,
                 'leechers': leechers,
                 'type': typ
-            })
+            }
 
-        return sources
+        soup = bs4.BeautifulSoup(buff)
+        return map(process_row, soup.select('table.data tr')[1:])
 
 
 __arroyo_extensions__ = [

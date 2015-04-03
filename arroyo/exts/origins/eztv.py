@@ -13,6 +13,7 @@ from arroyo import exts
 
 class Eztv(exts.Origin):
     BASE_URL = 'https://eztv.ch/page_0'
+    PROVIDER_NAME = 'eztv'
 
     def paginate(self, url):
         parsed = parse.urlparse(url)
@@ -51,7 +52,7 @@ class Eztv(exts.Origin):
 
         fetcher = fetchers.UrllibFetcher(
             cache=True,
-            cache_delta=60*60*24*7,  # a week
+            cache_delta=60*60*24,  # a day
             logger=self.app.logger.getChild('fetcher')
         )
         buff = fetcher.fetch('https://eztv.it/showlist/')
@@ -78,25 +79,21 @@ class Eztv(exts.Origin):
         Finds referentes to sources in buffer.
         Returns a list with source infos
         """
-        soup = bs4.BeautifulSoup(buff)
 
-        sources = []
-        for tr in soup.select('tr'):
-            children = tr.findChildren('td')
-            if len(children) != 5:
-                continue
+        def parse_row(row):
+            children = row.findChildren('td')
+            if len(row.findChildren('td')) != 5:
+                return None
 
             try:
-                sources.append({
+                return {
                     'name': children[1].text.strip(),
-                    'uri': children[2].select('a.magnet')[0]['href'],
-                    'timestamp': utils.utcnow_timestamp()
-                })
-            except IndexError:
-                continue
+                    'uri': children[2].select('a.magnet')[0]['href']
+                }
+            except (IndexError, AttributeError):
+                return None
 
-        return sources
-
+        return map(parse_row, bs4.BeautifulSoup(buff).select('tr'))
 
 __arroyo_extensions__ = [
     ('origin', 'eztv', Eztv)

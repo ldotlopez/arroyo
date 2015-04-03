@@ -18,6 +18,8 @@ from arroyo import (
 
 class Spanishtracker(exts.Origin):
     BASE_URL = 'http://www.spanishtracker.com/torrents.php'
+    PROVIDER_NAME = 'spanishtracker'
+
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
     _MAGNET_STR = (
         r'magnet:?xt=urn:btih:{hash_string}&dn={name}&'
@@ -70,86 +72,82 @@ class Spanishtracker(exts.Origin):
             q=q)
 
     def process_buffer(self, buff):
-        """
-        Finds referentes to sources in buffer.
-        Returns a list with sources infos
-        """
-        sources = []
+        def parse_row(row):
+            fields = row.findChildren('td')
 
-        soup = bs4.BeautifulSoup(buff)
-        table = soup.select("table table table table table")
-        if not table:
-            raise exc.ProcessException('Invalid markup')
-
-        table = table[0]
-
-        for tr in table.findAll('tr')[2:]:
-            fields = tr.findAll('td')
-
-            # Build URI and get title from col 1
+            # Build name and URI
             try:
-                title = fields[1].find('a').text
+                name = fields[1].find('a').text
                 hash_string = re.findall(
                     r'([0-9a-f]{40})',
                     fields[1].find('a')['href'],
                     re.IGNORECASE)[0]
             except IndexError:
-                raise exc.ProcessException('Invalid markup')
+                return None
 
-            magnet = self._MAGNET_STR.format(
+            uri = self._MAGNET_STR.format(
                 hash_string=hash_string,
-                name=parse.quote_plus(title)
+                name=parse.quote_plus(name)
             )
 
-            # Get added date
+            # Timestamp
             timestamp = int(time.mktime(time.strptime(fields[5].text,
                                                       '%d/%m/%Y')))
 
             # Size
             try:
-                m = re.findall('([0-9\.]+) ([GMK])B', fields[6].text)[0]
+                size = re.search('([0-9\.]+) ([GMK])B', fields[6].text)
+                amount = float(size.group(1))
+                mod = self._SIZE_TABLE[size.group(2)]
+                size = int(amount*mod)
             except IndexError:
-                raise exc.ProcessException('Invalid markup')
+                size = None
 
-            if len(m) != 2:
-                raise exc.ProcessException('Invalid markup')
-
-            size = int(float(m[0]) * self._SIZE_TABLE[m[1]])
-
-            typ = None
-            if re.findall(r'(cap\.|hdtv|temporada)', title, re.IGNORECASE):
-                typ = 'episode'
-
-            elif re.findall(r'(dvd|blu(ray)?|dvd|cam)([\s\.]*(rip|screener)?)',
-                            title,
-                            re.IGNORECASE):
-                typ = 'movie'
-
-            seeds, leechs = None, None
+            # Seeds
             try:
                 seeds = int(fields[7].text)
-                leechs = int(fields[8].text)
             except ValueError:
-                pass
+                seeds = None
 
+            # Leechers
+            try:
+                leechers = int(fields[8].text)
+            except ValueError:
+                leechers = None
+
+            # Type
+            typ = None
+            if re.search(r'(cap\.|hdtv|temporada)', name, re.IGNORECASE):
+                typ = 'episode'
+
+            elif re.search(r'(dvd|blu(ray)?|dvd|cam)([\s\.]*(rip|screener)?)',
+                           name,
+                           re.IGNORECASE):
+                typ = 'movie'
+
+            # Language
             lang = 'spa'
-            if re.search(r'(espa.+?l.+?castellano)', title, re.IGNORECASE):
+            if re.search(r'(espa.+?l.+?castellano)', name, re.IGNORECASE):
                 lang = 'spa-ES'
-            elif re.search(r'\blatino\b', title, re.IGNORECASE):
+            elif re.search(r'\blatino\b', name, re.IGNORECASE):
                 lang = 'spa-MX'
 
-            # Add source
-            sources.append({
-                'uri': magnet,
-                'name': title,
+            return {
+                'uri': uri,
+                'name': name,
                 'timestamp': timestamp,
                 'size': size,
-                'language': lang,
                 'seeds': seeds,
-                'leechers': leechs,
-                'type': typ})
+                'leechers': leechers,
+                'type': typ,
+                'language': lang
+            }
 
-        return sources
+        soup = bs4.BeautifulSoup(buff)
+        rows = [x for x in soup.select('tr')
+                if len(x.findChildren('td')) == 11][1:]
+
+        return map(parse_row, rows)
 
 
 __arroyo_extensions__ = [

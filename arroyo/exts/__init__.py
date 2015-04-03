@@ -1,5 +1,7 @@
 from urllib import parse
 
+from ldotcommons import utils
+
 
 class Extension:
     def __init__(self, app):
@@ -67,13 +69,62 @@ class Origin(Extension):
         return
 
     def process(self, buff):
-        def _fix(src):
-            src['urn'] = parse.parse_qs(
-                parse.urlparse(src['uri']).query)['xt'][-1]
-            src.update(self._overrides)
-            return src
+        """
+        Get protosources from origin. Integrity of collected data is guaranteed
+        """
+        now = utils.utcnow_timestamp()
 
-        return list(map(_fix, self.process_buffer(buff)))
+        def fix_data(psrc):
+            if not isinstance(psrc, dict):
+                return None
+
+            # Apply overrides
+            psrc.update(self._overrides)
+
+            # Trim-down protosrc
+            psrc = {k: psrc.get(k, None) for k in [
+                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers'
+            ]}
+
+            # Calculate URN
+            try:
+                psrc['urn'] = parse.parse_qs(
+                    parse.urlparse(psrc['uri']).query)['xt'][-1]
+            except (IndexError, KeyError):
+                return None
+
+            # Check strings fields
+            for k in ['urn', 'name', 'uri']:
+                if not isinstance(psrc[k], str):
+                    return None
+
+            # Fix and check integer fields
+            for k in ['timestamp', 'size', 'seeds', 'leechers']:
+                if not isinstance(psrc[k], int):
+                    try:
+                        psrc[k] = int(psrc[k])
+                    except (TypeError, ValueError):
+                        psrc[k] = None
+
+            # Fix timestamp
+            psrc['timestamp'] = psrc.get('timestamp', None) or now
+            psrc['provider'] = self.PROVIDER_NAME
+
+            # All done
+            return psrc
+
+        def filter_incomplete(psrc):
+            if not isinstance(psrc, dict):
+                return False
+
+            needed = ['name', 'uri', 'urn']
+            return all((isinstance(psrc.get(x, None), str) for x in needed))
+
+        ret = self.process_buffer(buff)
+        ret = map(fix_data, ret)
+        ret = filter(filter_incomplete, ret)
+
+        return list(ret)
 
     def paginate_by_query_param(self, url, key, default=1):
         parsed = parse.urlparse(url)

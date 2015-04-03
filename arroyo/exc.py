@@ -31,7 +31,10 @@ class UrlGeneratorException(Exception):
 
 
 class ProcessException(Exception):
-    pass
+    def __init__(self, *args, **kwargs):
+        super(ProcessException, self).__init__()
+        self.args = args
+        self.kwargs = kwargs
 
 
 class UnknowSignal(Exception):
