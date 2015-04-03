@@ -30,18 +30,19 @@ class CronCommand(exts.Command):
         self._kvs = keyvaluestore.KeyValueStore(self.app.db.session)
 
         impls = self.app.get_implementations('crontask')
-        for task in impls:
+        for name in impls:
             try:
-                interval = int(utils.parse_interval(impls[task].interval))
+                interval = int(utils.parse_interval(impls[name].interval))
             except ValueError:
-                msg = 'Cron task {task} doesn\'t define a valid interval: \'{value}\''
-                msg = msg.format(task=task, value=impl.interval)
+                msg = ("Cron task {task} doesn\'t define a valid interval: "
+                       "{value}")
+                msg = msg.format(task=name, value=impls[name].interval)
                 self._logger.warning(msg)
                 continue
 
-            self._tasks[task] = {
-                'name': task,
-                'cls': impls[task],
+            self._tasks[name] = {
+                'name': name,
+                'cls': impls[name],
                 'interval': interval
             }
 
@@ -53,7 +54,7 @@ class CronCommand(exts.Command):
 
     def run_task(self, task, force=False):
         try:
-           task_info = self.get_task_info(task)
+            task_info = self.get_task_info(task)
         except KeyError:
             msg = 'Unknow task \'{task}\''
             msg = msg.format(task=task)
@@ -63,7 +64,8 @@ class CronCommand(exts.Command):
         kvs_key = 'crontasks.{task}.last-execution'.format(task=task)
         last_exec = self._kvs.get(kvs_key, default=0)
 
-        msg = 'Cron task {task}: since:{last_exec} diff:{diff} interval:{interval} force:{force}'
+        msg = ("Cron task {task}: since:{last_exec} diff:{diff} "
+               "interval:{interval} force:{force}")
         msg = msg.format(
             task=task,
             diff=self._now - last_exec,
@@ -77,7 +79,6 @@ class CronCommand(exts.Command):
             try:
                 r = self.app.get_extension('crontask', task).run()
             except Exception as e:
-                import ipdb; ipdb.set_trace()
                 msg = 'Cron task {task} fatal error: {msg}'
                 msg = msg.format(task=task, msg=repr(e))
                 self._logger.error(msg)
@@ -93,7 +94,7 @@ class CronCommand(exts.Command):
 
         for task in tasks:
             self.run_task(task, self.app.arguments.force)
- 
+
         return
 
 __arroyo_extensions__ = (
