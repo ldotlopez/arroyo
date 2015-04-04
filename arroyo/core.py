@@ -60,7 +60,7 @@ def build_argument_parser():
 
 
 def build_config_parser(arguments):
-    cp = configparser.ConfigParser()
+    cp = configparser.RawConfigParser()
     cp.add_section('main')
 
     if 'config_files' in arguments:
@@ -107,7 +107,7 @@ class Arroyo:
                  db_uri=None, downloader_name=None, extensions=[],
                  config=None, log_level=None):
         if config is None:
-            config = configparser.ConfigParser()
+            config = configparser.RawConfigParser()
 
         if not config.has_section('main'):
             config.add_section('main')
