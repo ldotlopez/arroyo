@@ -84,9 +84,7 @@ class Selector(exts.Selector):
             qs = qs.filter(models.Episode.year == year)
 
         if language:
-            qs = qs.filter(
-                functions.coalesce(
-                    models.Episode.language, 'eng-us') == language)
+            qs = qs.filter(models.Episode.language == language)
 
         if season:
             qs = qs.filter(models.Episode.season == season)

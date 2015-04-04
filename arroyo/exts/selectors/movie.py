@@ -84,9 +84,7 @@ class Selector(exts.Selector):
             qs = qs.filter(functions.coalesce(models.Movie.year, '') == year)
 
         if language:
-            qs = qs.filter(
-                functions.coalesce(
-                    models.Movie.language, 'eng-us') == language)
+            qs = qs.filter(models.Movie.language == language)
 
         if not everything:
             qs = qs.filter(models.Movie.selection == None)  # nopep8
