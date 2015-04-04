@@ -29,19 +29,13 @@ class Origin(Extension):
             self._overrides = {k: v for (k, v) in {
                 'type': origin_def.type,
                 'language': origin_def.language,
-                'provider': origin_def.backend
             }.items() if v is not None}
 
         else:
-            clsname = self.__class__.__name__
-            provider = clsname.split('.')[-1].lower()
-
             self._name = 'internal query'
             self._url = self.get_query_url(query_def)
             self._iterations = 1
-            self._overrides = {
-                'provider': provider
-            }
+            self._overrides = {}
 
     @property
     def name(self):
@@ -83,7 +77,8 @@ class Origin(Extension):
 
             # Trim-down protosrc
             psrc = {k: psrc.get(k, None) for k in [
-                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers'
+                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers',
+                'language', 'type'
             ]}
 
             # Calculate URN
