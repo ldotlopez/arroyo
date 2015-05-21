@@ -3,18 +3,36 @@ import configparser
 import importlib
 import logging
 from itertools import chain
+import re
+import sys
+import warnings
 
-from ldotcommons import utils
+from ldotcommons import store, utils
 
 from arroyo import (
     importer,
-    db,
     downloader,
     exts,
     mediainfo,
     selector,
     signaler)
 import arroyo.exc
+
+#
+# Default extensions
+#
+_extensions = {
+    'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
+    'downloaders': ('mock', 'transmission'),
+    'origins': ('eztv', 'kickass', 'spanishtracker', 'tpb'),
+    'selectors': ('source', 'episode', 'movie'),
+}
+
+_extensions = chain.from_iterable([
+    [ns+'.'+ext for ext in _extensions[ns]]
+    for ns in _extensions])
+
+_extensions = [x for x in _extensions]
 
 
 def build_argument_parser():
@@ -59,30 +77,107 @@ def build_argument_parser():
         return parser
 
 
-def build_config_parser(arguments):
+def build_basic_settings(arguments=sys.argv):
+    def _get_validator():
+        _type_validator = store.type_validator(types, relaxed=True)
+
+        def _validator(k, v):
+            if k.startswith('extensions.') and k.endswith('.enabled'):
+                if v.lower() in ('1', 'yes', 'true', 'y'):
+                    return True
+
+                if v.lower() in ('0', 'no', 'false', 'n'):
+                    return False
+
+                raise ValueError('Invalid value for {}: {}'.format(k, v))
+
+            return _type_validator(k, v)
+
+        return _validator
+
+    types = {
+        'db-uri': str,
+        'downloader': str,
+        'auto-import': bool,
+        'log-level': str,
+    }
+
+    s = store.Store({
+        'db-uri': 'sqlite:///' +
+                  utils.user_path('data', 'arroyo.db', create=True),
+        'downloader': 'mock',
+        'auto-import': False
+    }, validator=_get_validator())
+
+    argparser = build_argument_parser()
+    args, remaining = argparser.parse_known_args()
+
+    # Config files
     cp = configparser.RawConfigParser()
-    cp.add_section('main')
+    if cp.read(args.config_files):
+        delattr(args, 'config_files')
 
-    if 'config_files' in arguments:
-        cp.read(arguments.config_files)
+    # Extensions
+    exts = _extensions
+    if hasattr(args, 'extensions'):
+        exts += args.extensions
+        delattr(args, 'extensions')
 
-    for attr in ('db_uri', 'downloader'):
-        if attr in arguments:
-            v = getattr(arguments, attr, None)
-            if v:
-                cp['main'][attr.replace('_', '-')] = v
+    for ext in _extensions + exts:
+        ext = 'extensions.' + ext
+        if not cp.has_section(ext):
+            cp.add_section(ext)
+        if not cp.has_option(ext, 'enabled'):
+            cp[ext]['enabled'] = 'yes'
 
-    if 'extensions' in arguments:
-        cp['main']['extensions'] = ','.join(arguments.extensions)
+    # Log level
+    log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+    logl = cp.get('main', 'log-level', fallback='WARNING').upper()
 
-    for ext in arguments.extensions:
-        sectname = 'extension.' + ext
-        if sectname not in cp:
-            cp.add_section(sectname)
+    if logl not in log_levels:
+        msg = 'Invalid log level: {level}'
+        msg = msg.format(level=logl)
+        logl = 'WARNING'
+        warnings.warn(msg)
 
-        cp[sectname]['enabled'] = 'yes'
+    logl = log_levels.index(logl)  # Convert to int
 
-    return cp
+    logl = max(0, min(4, logl + args.verbose - args.quiet))
+    delattr(args, 'quiet')
+    delattr(args, 'verbose')
+
+    cp['main']['log-level'] = log_levels[logl]  # Convert back to str
+
+    s.load_configparser(cp, root_sections=('main',))
+    s.load_arguments(args)
+
+    return s
+
+
+# def build_config_parser(arguments):
+#     cp = configparser.RawConfigParser()
+#     cp.add_section('main')
+
+#     if 'config_files' in arguments:
+#         cp.read(arguments.config_files)
+
+#     for attr in ('db_uri', 'downloader'):
+#         if attr in arguments:
+#             v = getattr(arguments, attr, None)
+#             if v:
+#                 cp['main'][attr.replace('_', '-')] = v
+
+#     if 'extensions' in arguments:
+#         cp['main']['extensions'] = ','.join(arguments.extensions)
+
+#     for ext in arguments.extensions:
+#         sectname = 'extension.' + ext
+#         if sectname not in cp:
+#             cp.add_section(sectname)
+
+#         cp[sectname]['enabled'] = 'yes'
+
+#     return cp
 
 
 class EncodedStreamHandler(logging.StreamHandler):
@@ -103,60 +198,28 @@ class EncodedStreamHandler(logging.StreamHandler):
 
 
 class Arroyo:
-    def __init__(self,
-                 db_uri=None, downloader_name=None, extensions=[],
-                 config=None, log_level=None):
-        if config is None:
-            config = configparser.RawConfigParser()
-
-        if not config.has_section('main'):
-            config.add_section('main')
+    def __init__(self, settings=None):
+        self.settings = settings or store.Store()
 
         # Support structures for plugins
         self._extensions = set()
         self._services = {}
         self._registry = {}
 
-        self.config = config
-
-        # Build logger
+        # Build and configure logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
             "[%(levelname)s] [%(name)s] %(message)s"
         ))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
-        self.logger.setLevel('WARNING')
-
-        # Configure logger
-        valid_log_levels = [
-            'CRITICAL', 'ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG'
-        ]
-        log_level = log_level or \
-            self.config.get('main', 'log-level', fallback='WARNING')
-
-        if not isinstance(log_level, str) or \
-           log_level.upper() not in valid_log_levels:
-            msg = "Invalid log level '{log_level}'"
-            msg = msg.format(log_level=log_level)
-            self.logger.warning(msg)
-        else:
-            self.logger.setLevel(log_level.upper())
+        self.logger.setLevel(self.settings.get('log-level'))
 
         # Built-in providers
         self.signals = signaler.Signaler()
-
-        self.db = db.Db(
-            db_uri or
-            self.config.get('main', 'db-uri', fallback=None) or
-            'sqlite:///' + utils.user_path('data', 'arroyo.db', create=True))
-
+        self.db = self.settings.get('db-uri')
         self.downloader = downloader.Downloader(
-            self,
-            (downloader_name or
-             self.config.get('main', 'downloader', fallback=None) or
-             'mock'))
-
+            self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
 
@@ -164,21 +227,9 @@ class Arroyo:
         # as a "service", but it's keep anyway
         self.mediainfo = mediainfo.Mediainfo(self)
 
-        # Load extensions
-        # FIXME: Weird, I know, I will work on this some day
-        exts = chain(
-            extensions,
-            (x.strip() for x in
-             self.config.get('main', 'extensions', fallback='').split(',')
-             if x),
-            (ext for ext in
-             self.config_subdict('extension')
-             if self.config.getboolean('extension.'+ext, 'enabled',
-                                       fallback=True))
-        )
-
         # Load while removing duplicates
-        for ext in set([x for x in exts]):
+        for ext in [x for x in _extensions
+                    if self.settings.get('extensions.' + x + '.enabled')]:
             self.load_extension(ext)
 
     def config_subdict(self, ns):

@@ -56,8 +56,7 @@ class Query(dict):
 class Selector:
     def __init__(self, app):
         self.app = app
-        self._auto_import = self.app.config.getboolean(
-            'main', 'auto-import', fallback=False)
+        self._auto_import = self.app.settings.get('auto-import')
 
     def get_queries(self):
         cfg_dict = utils.configparser_to_dict(self.app.config)
