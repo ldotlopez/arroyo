@@ -55,8 +55,12 @@ class Importer:
         self._import(origin)
 
     def _import(self, origin):
+        settings = self.app.settings
+
         fetcher = fetchers.UrllibFetcher(
-            cache=True, cache_delta=60 * 20, headers={'User-Agent': _UA},
+            cache=settings.get('enable-cache'),
+            cache_delta=settings.get('cache-delta'),
+            headers={'User-Agent': self.app.settings.get('user-agent')},
             logger=self._logger.getChild('fetcher'))
 
         sources = []

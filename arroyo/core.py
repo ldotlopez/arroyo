@@ -3,7 +3,6 @@ import configparser
 import importlib
 import logging
 from itertools import chain
-import re
 import sys
 import warnings
 
@@ -11,6 +10,7 @@ from ldotcommons import store, utils
 
 from arroyo import (
     importer,
+    db,
     downloader,
     exts,
     mediainfo,
@@ -24,7 +24,7 @@ import arroyo.exc
 _extensions = {
     'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
-    'origins': ('eztv', 'kickass', 'spanishtracker', 'tpb'),
+    'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
     'selectors': ('source', 'episode', 'movie'),
 }
 
@@ -77,7 +77,7 @@ def build_argument_parser():
         return parser
 
 
-def build_basic_settings(arguments=sys.argv):
+def build_basic_settings(arguments=sys.argv[1:]):
     def _get_validator():
         _type_validator = store.type_validator(types, relaxed=True)
 
@@ -96,17 +96,26 @@ def build_basic_settings(arguments=sys.argv):
         return _validator
 
     types = {
+        'legacy': bool,
         'db-uri': str,
         'downloader': str,
         'auto-import': bool,
         'log-level': str,
+        'log-format': str,
+        'enable-cache': bool,
+        'cache-delta': int
     }
 
     s = store.Store({
         'db-uri': 'sqlite:///' +
                   utils.user_path('data', 'arroyo.db', create=True),
         'downloader': 'mock',
-        'auto-import': False
+        'auto-import': False,
+        'legacy': False,
+        'log-level': 'WARNING',
+        'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+        'enable-cache': True,
+        'cache-delta': 60 * 20
     }, validator=_get_validator())
 
     argparser = build_argument_parser()
@@ -132,12 +141,12 @@ def build_basic_settings(arguments=sys.argv):
 
     # Log level
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-    logl = cp.get('main', 'log-level', fallback='WARNING').upper()
+    logl = cp.get('main', 'log-level', fallback=s.get('log-level')).upper()
 
     if logl not in log_levels:
         msg = 'Invalid log level: {level}'
         msg = msg.format(level=logl)
-        logl = 'WARNING'
+        logl = s.get('log-level').upper()
         warnings.warn(msg)
 
     logl = log_levels.index(logl)  # Convert to int
@@ -209,15 +218,14 @@ class Arroyo:
         # Build and configure logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
-            "[%(levelname)s] [%(name)s] %(message)s"
-        ))
+            self.settings.get('log-format')))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
         self.logger.setLevel(self.settings.get('log-level'))
 
         # Built-in providers
         self.signals = signaler.Signaler()
-        self.db = self.settings.get('db-uri')
+        self.db = db.Db(self.settings.get('db-uri'))
         self.downloader = downloader.Downloader(
             self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
@@ -227,7 +235,7 @@ class Arroyo:
         # as a "service", but it's keep anyway
         self.mediainfo = mediainfo.Mediainfo(self)
 
-        # Load while removing duplicates
+        # Load extensions
         for ext in [x for x in _extensions
                     if self.settings.get('extensions.' + x + '.enabled')]:
             self.load_extension(ext)
@@ -290,9 +298,9 @@ class Arroyo:
 
         self._registry[extension_point][extension_name] = extension_class
 
-    def run_from_args(self, arguments=None):
+    def run_from_args(self, command_line_arguments=sys.argv[1:]):
+        # Build full argument parser
         argparser = build_argument_parser()
-
         subparser = argparser.add_subparsers(
             title='subcommands',
             dest='subcommand',
@@ -305,17 +313,78 @@ class Arroyo:
                 args, kwargs = argument()
                 command_parser.add_argument(*args, **kwargs)
 
-        args = argparser.parse_args(arguments)
+        # Parse arguments
+        args = argparser.parse_args(command_line_arguments)
         if not args.subcommand:
             argparser.print_help()
             return
 
-        return self.run_command(args.subcommand, args)
+        # Get extension instances and extract its argument names
+        extension = self.get_extension('command', args.subcommand)
+        ext_args = (arg() for arg in extension.arguments)
+        ext_args = [x[1].get('dest', None) for x in ext_args]
 
-    def run_command(self, command, args):
-        try:
-            self.arguments = args
-            self.get_extension('command', command).run()
+        # Build settings object for the extension
+        command_settings = store.Store({k: getattr(args, k) for k in ext_args})
+
+        # Run extension
+        self.settings.set('command', command_settings)
+    
+        if self.settings.get('legacy'):
+            setattr(self, 'arguments', FakeArgumentsHelper(self))
+        extension.run()
+    
+        if self.settings.get('legacy'):
             delattr(self, 'arguments')
-        except arroyo.exc.ArgumentError as e:
-            self.logger.error(e)
+        self.settings.delete('command')
+
+    # def run_from_args(self, arguments=None):
+    #     argparser = build_argument_parser()
+
+    #     subparser = argparser.add_subparsers(
+    #         title='subcommands',
+    #         dest='subcommand',
+    #         description='valid subcommands',
+    #         help='additional help')
+
+    #     for (name, cmd) in self.get_implementations('command').items():
+    #         command_parser = subparser.add_parser(name, help=cmd.help)
+    #         for argument in cmd.arguments:
+    #             args, kwargs = argument()
+    #             command_parser.add_argument(*args, **kwargs)
+
+    #     args = argparser.parse_args(arguments)
+    #     if not args.subcommand:
+    #         argparser.print_help()
+    #         return
+
+    #     return self.run_command(args.subcommand, args)
+
+    # def run_command(self, command, args):
+    #     try:
+    #         self.arguments = args
+    #         command_settings = build_basic_settings(args)
+    #         command_settings.load_arguments(self.arguments)
+    #         self.settings.set('command', command_settings)
+    #         self.get_extension('command', command).run()
+    #         self.settings.delete('command')
+    #         delattr(self, 'arguments')
+    #     except arroyo.exc.ArgumentError as e:
+    #         self.logger.error(e)
+
+
+class FakeArgumentsHelper(object):
+    def __init__(self, app):
+        self._app = app
+
+    def __getattr__(self, attr):
+        warnings.warn('app.arguments access is deprecated, use settings API')
+        app = super(FakeArgumentsHelper, self).__getattribute__('_app')
+
+        for k in ['command.' + attr, attr]:
+            try:
+                return app.settings.get(k)
+            except KeyError:
+                pass
+
+        raise AttributeError(attr)
