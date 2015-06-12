@@ -2,18 +2,16 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-from itertools import chain
 import re
 from urllib import parse
 
 import bs4
-from ldotcommons import utils
 
 from arroyo import exts
 
 
 class KickAss(exts.Origin):
-    BASE_URL = 'http://kickass.to/new/?page=1'
+    BASE_URL = 'http://kat.cr/new/?page=1'
     PROVIDER_NAME = 'kickass'
 
     _SIZE_TABLE = {

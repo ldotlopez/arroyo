@@ -13,33 +13,40 @@ class Service(Extension):
     pass
 
 
-class Origin(Extension):
-    def __init__(self, app, origin_def=None, query_def=None):
+class BaseOrigin(Extension):
+    def __init__(self, app, url, ):
         super(Origin, self).__init__(app)
-
-        if origin_def and query_def:
-            raise ValueError('origin_def and query_def are mutually exclusive')
 
         self._iteration = 0
 
-        if origin_def:
-            self._name = origin_def.name
-            self._url = origin_def.url or self.BASE_URL
-            self._iterations = origin_def.iterations
+
+class Origin(Extension):
+    def __init__(self, app, origin_spec=None, query_spec=None):
+        super(Origin, self).__init__(app)
+
+        if origin_spec and query_spec:
+            raise ValueError('origin_spec and query_spec are mutually exclusive')
+
+        self._iteration = 0
+
+        if origin_spec:
+            self._name = origin_spec.name
+            self._url = origin_spec.url or self.BASE_URL
+            self._iterations = origin_spec.iterations
             self._overrides = {k: v for (k, v) in {
-                'type': origin_def.type,
-                'language': origin_def.language,
+                'type': origin_spec.type,
+                'language': origin_spec.language,
             }.items() if v is not None}
 
         else:
             self._name = 'internal query'
-            self._url = self.get_query_url(query_def)
+            self._url = self.get_query_url(query_spec)
             self._iterations = 1
             self._overrides = {}
 
     @property
-    def name(self):
-        return self._name
+    def BASE_URL(self):
+        raise NotImplementedError()
 
     @property
     def iteration(self):
@@ -60,7 +67,7 @@ class Origin(Extension):
             yield next(g)
 
     def get_query_url(self, query):
-        return
+        raise NotImplementedError()
 
     def process(self, buff):
         """

@@ -1,29 +1,128 @@
-import collections
+# from glob import fnmatch
 from ldotcommons import fetchers
 
-from arroyo import (exc, models)
+from arroyo import (exc, exts, models)
+
+_NoneType = type(None)
 
 
-_UA = 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+def _origin_ns_validator(k, v):
+    parts = k.split('.')
+    if len(parts) != 3:
+        return v
 
-OriginDefinition = collections.namedtuple('OriginDefinition', (
-    'name', 'backend', 'url', 'iterations', 'type', 'language'
-))
+    k = parts[-1]
+
+    msg = "Invalid value '{}' for '{}'. Must be '{}'"
+
+    if k == 'backend':
+        if v is None or not isinstance(v, str) or v == '':
+            raise TypeError(msg.format(v, k, str))
+
+    if k in ['url', 'language', 'type']:
+        if not isinstance(v, (_NoneType, str)) or v == '':
+            raise TypeError(msg.format(v, k, str))
+
+    if k == 'iterations':
+        if v is None:
+            v = 1
+        elif not isinstance(k, int):
+            try:
+                v = int(v)
+            except ValueError:
+                v = 1
+
+    return v
+
+
+class OriginSpec:
+    def __init__(self, name, backend, url=None, iterations=1, type=None,
+                 language=None):
+        # Check strs
+        strs = [('name', name, False),
+                ('backend', backend, False),
+                ('url', url, True),
+                ('type', type, True),
+                ('language', language, True)]
+
+        for (nme, var, nullable) in strs:
+            if var is None and nullable:
+                continue
+
+            if isinstance(var, str) and var != '':
+                continue
+
+            msg = "Invalid value '{value}' for '{name}'. It must be a str"
+            msg = msg.format(name=nme, value=var)
+            raise TypeError(msg)
+
+        # Check int
+        if not isinstance(iterations, int):
+            msg = "Invalid value '{value}' for '{name}'. It must be an int"
+            msg = msg.format(name='iterations', value=iterations)
+            raise TypeError(msg)
+
+        self.backend = backend
+        self.url = url
+        self.iterations = iterations or 1
+        self.type = type
+        self.language = language
+        self.name = name
+
+    # Read-only attributes
+    def __setattr__(self, attr, value):
+        if hasattr(self, 'name'):
+            msg = "Attribute {name} is read only"
+            msg = msg.format(name=attr)
+            raise TypeError(msg)
+        else:
+            super(OriginSpec, self).__setattr__(attr, value)
+
+    def __repr__(self):
+        return "<{pkg}.{clsname}: '{name}'>".format(
+            pkg=__name__,
+            clsname=self.__class__.__name__,
+            name=getattr(self, 'name', '(null)'))
 
 
 class Importer:
     def __init__(self, app):
         self.app = app
+        self.app.settings.set_validator(
+            _origin_ns_validator,
+            ns='origin')
+
         self._logger = app.logger.getChild('importer')
         app.signals.register('source-added')
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')
         app.signals.register('sources-updated-batch')
 
+    def get_origin_specs(self):
+        specs = []
+
+        for (name, params) in self.app.settings.get_tree('origin').items():
+            try:
+                specs.append(OriginSpec(name, params.pop('backend'), **params))
+            except TypeError:
+                self.app.logger.warn('Invalid origin {}'.format(name))
+
+        return specs
+
+    def get_origin_from_spec(self, spec):
+        return self.app.get_extension('origin', spec.backend,
+                                      origin_spec=spec)
+
+    def execute(self):
+        for spec in self.get_origin_specs():
+            origin = self.get_origin_from_spec(spec)
+            r = self._import(origin)
+            pass
+
     def get_origin_defs(self):
         origin_defs = []
 
-        for (name, params) in self.app.config_subdict('origin').items():
+        for (name, params) in self.app.settings.get('origin').items():
             try:
                 backend = params['backend']
             except KeyError:
@@ -35,9 +134,9 @@ class Importer:
                 name=name,
                 backend=backend,
                 url=params.get('seed_url'),
-                iterations=int(params.get('iterations', 1)),
-                type=params.get('type'),
-                language=params.get('language')))
+                iterations=params.get('iterations', default=1),
+                type=params.get('type', default=None),
+                language=params.get('language', default=None)))
 
         return origin_defs
 
@@ -55,25 +154,17 @@ class Importer:
         self._import(origin)
 
     def _import(self, origin):
-        settings = self.app.settings
-
-        fetcher = fetchers.UrllibFetcher(
-            cache=settings.get('enable-cache'),
-            cache_delta=settings.get('cache-delta'),
-            headers={'User-Agent': self.app.settings.get('user-agent')},
-            logger=self._logger.getChild('fetcher'))
-
         sources = []
         for url in origin.get_urls():
             msg = "{name} {iteration}/{iterations}: {url}"
             self._logger.debug(msg.format(
-                name=origin.name,
+                name=origin.PROVIDER_NAME,
                 iteration=origin.iteration,
                 iterations=origin.iterations,
                 url=url))
 
             try:
-                buff = fetcher.fetch(url)
+                buff = self.app.fetcher.fetch(url)
             except fetchers.FetchError as e:
                 msg = 'Unable to retrieve {url}: {msg}'
                 msg = msg.format(url=url, msg=e)

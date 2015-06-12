@@ -6,7 +6,11 @@ from itertools import chain
 import sys
 import warnings
 
-from ldotcommons import store, utils
+from ldotcommons import (
+    fetchers,
+    store,
+    utils
+)
 
 from arroyo import (
     importer,
@@ -16,6 +20,7 @@ from arroyo import (
     mediainfo,
     selector,
     signaler)
+
 import arroyo.exc
 
 #
@@ -102,6 +107,7 @@ def build_basic_settings(arguments=sys.argv[1:]):
         'auto-import': bool,
         'log-level': str,
         'log-format': str,
+        'user-agent': str,
         'enable-cache': bool,
         'cache-delta': int
     }
@@ -114,6 +120,8 @@ def build_basic_settings(arguments=sys.argv[1:]):
         'legacy': False,
         'log-level': 'WARNING',
         'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+        'user-agent':
+            'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         'enable-cache': True,
         'cache-delta': 60 * 20
     }, validator=_get_validator())
@@ -223,6 +231,13 @@ class Arroyo:
         self.logger.addHandler(handler)
         self.logger.setLevel(self.settings.get('log-level'))
 
+        # Build and configure fetcher
+        self.fetcher = fetchers.UrllibFetcher(
+            cache=settings.get('enable-cache'),
+            cache_delta=settings.get('cache-delta'),
+            headers={'User-Agent': settings.get('user-agent')},
+            logger=self.logger.getChild('fetcher'))
+
         # Built-in providers
         self.signals = signaler.Signaler()
         self.db = db.Db(self.settings.get('db-uri'))
@@ -239,11 +254,6 @@ class Arroyo:
         for ext in [x for x in _extensions
                     if self.settings.get('extensions.' + x + '.enabled')]:
             self.load_extension(ext)
-
-    def config_subdict(self, ns):
-        cfg_dict = utils.configparser_to_dict(self.config)
-        multi_depth_cfg = utils.MultiDepthDict(cfg_dict)
-        return multi_depth_cfg.subdict(ns)
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
@@ -324,16 +334,14 @@ class Arroyo:
         ext_args = (arg() for arg in extension.arguments)
         ext_args = [x[1].get('dest', None) for x in ext_args]
 
-        # Build settings object for the extension
-        command_settings = store.Store({k: getattr(args, k) for k in ext_args})
+        for k in ext_args:
+            self.settings.set('command.' + k, getattr(args, k))
 
-        # Run extension
-        self.settings.set('command', command_settings)
-    
         if self.settings.get('legacy'):
             setattr(self, 'arguments', FakeArgumentsHelper(self))
+
         extension.run()
-    
+
         if self.settings.get('legacy'):
             delattr(self, 'arguments')
         self.settings.delete('command')
