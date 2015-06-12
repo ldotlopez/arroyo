@@ -37,17 +37,19 @@ class DownloadCommand(exts.Command):
 
         exts.argument(
             '-n', '--dry-run',
-            dest='dry_run',
+            dest='dry-run',
             action='store_true',
             help='don\'t download matching sources, just show them')
     )
 
     def run(self):
-        show = self.app.arguments.show
-        source_id_add = self.app.arguments.add
-        source_id_remove = self.app.arguments.remove
-        query = self.app.arguments.query
-        dry_run = self.app.arguments.dry_run
+        s = self.app.settings
+
+        show = s.get('command.show')
+        source_id_add = s.get('command.add')
+        source_id_remove = s.get('command.remove')
+        query = s.get('command.query')
+        dry_run = s.get('command.dry-run')
 
         add, remove, source_id = False, False, False
         if source_id_add:
