@@ -13,13 +13,6 @@ class Service(Extension):
     pass
 
 
-class BaseOrigin(Extension):
-    def __init__(self, app, url, ):
-        super(Origin, self).__init__(app)
-
-        self._iteration = 0
-
-
 class Origin(Extension):
     def __init__(self, app, origin_spec=None, query_spec=None):
         super(Origin, self).__init__(app)

@@ -10,6 +10,9 @@ class Query(dict):
             ret = {}
 
             for (param, value) in params.items():
+                for x in [' ', '_']:
+                    param = param.replace(x, '-')
+
                 if param.endswith('-like'):
                     value = ldotsa.glob_to_like(value)
 

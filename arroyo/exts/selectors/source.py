@@ -14,14 +14,17 @@ class Selector(exts.Selector):
         self._query = query
         self._logger = app.logger.getChild('source-selector')
 
-    def _filter(self, qs, key, value):
-        key = re.sub(r'[\s_]', '-', key)
+    def _split_key(self, key):
         if '-' in key:
             mod = key.split('-')[-1]
             key = '-'.join(key.split('-')[:-1])
         else:
-            key = key
             mod = None
+
+        return (key, mod)
+
+    def _filter(self, qs, key, value):
+        key, mod = self._split_key(key)
 
         if key not in ('urn', 'uri', 'name', 'size', 'provider', 'language',
                        'type'):
@@ -32,7 +35,11 @@ class Selector(exts.Selector):
             return qs
 
         attr = getattr(models.Source, key)
-        if mod == 'like':
+
+        if mod is None:
+            qs = qs.filter(attr == value)
+
+        elif mod == 'like':
             qs = qs.filter(attr.like(value))
 
         elif mod == 'regexp':
@@ -47,7 +54,9 @@ class Selector(exts.Selector):
             qs = qs.filter(attr <= value)
 
         else:
-            qs = qs.filter(attr == value)
+            msg = "Unknow modifier '{mod}' for '{key}'."
+            msg = msg.format(mod=mod, key=key)
+            self._logger.warning(msg)
 
         return qs
 
