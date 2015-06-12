@@ -55,7 +55,7 @@ class Eztv(exts.Origin):
             cache_delta=60*60*24,  # a day
             logger=self.app.logger.getChild('fetcher')
         )
-        buff = fetcher.fetch('https://eztv.it/showlist/')
+        buff = fetcher.fetch('https://eztv.ch/showlist/')
         soup = bs4.BeautifulSoup(buff)
 
         series = series.lower()
@@ -70,7 +70,7 @@ class Eztv(exts.Origin):
         g = filter(lambda x: x.text.lower() == series, g)
 
         try:
-            return 'https://eztv.it{}'.format(next(g).attrs['href'])
+            return 'https://eztv.ch{}'.format(next(g).attrs['href'])
         except (StopIteration, KeyError):
             return None
 
