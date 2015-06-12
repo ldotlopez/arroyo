@@ -332,7 +332,7 @@ class Arroyo:
         # Get extension instances and extract its argument names
         extension = self.get_extension('command', args.subcommand)
         ext_args = (arg() for arg in extension.arguments)
-        ext_args = [x[1].get('dest', None) for x in ext_args]
+        ext_args = [x[1].get('dest', x[0][0]) for x in ext_args]
 
         for k in ext_args:
             self.settings.set('command.' + k, getattr(args, k))

@@ -10,7 +10,7 @@ class Query(dict):
             ret = {}
 
             for (param, value) in params.items():
-                if param.endswith('_like'):
+                if param.endswith('-like'):
                     value = ldotsa.glob_to_like(value)
 
                     if not value.startswith('%'):

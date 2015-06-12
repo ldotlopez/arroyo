@@ -1,5 +1,6 @@
-from ldotcommons import utils
+import re
 
+from ldotcommons import utils
 
 from arroyo import (
     exts,
@@ -14,9 +15,10 @@ class Selector(exts.Selector):
         self._logger = app.logger.getChild('source-selector')
 
     def _filter(self, qs, key, value):
-        if '_' in key:
-            mod = key.split('_')[-1]
-            key = '_'.join(key.split('_')[:-1])
+        key = re.sub(r'[\s_]', '-', key)
+        if '-' in key:
+            mod = key.split('-')[-1]
+            key = '-'.join(key.split('-')[:-1])
         else:
             key = key
             mod = None
