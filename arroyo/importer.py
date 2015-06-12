@@ -1,7 +1,7 @@
 # from glob import fnmatch
 from ldotcommons import fetchers
 
-from arroyo import (exc, exts, models)
+from arroyo import (exc, models)
 
 _NoneType = type(None)
 
@@ -109,36 +109,32 @@ class Importer:
 
         return specs
 
-    def get_origin_from_spec(self, spec):
-        return self.app.get_extension('origin', spec.backend,
-                                      origin_spec=spec)
-
     def execute(self):
         for spec in self.get_origin_specs():
-            origin = self.get_origin_from_spec(spec)
-            r = self._import(origin)
-            pass
+            origin = self.app.get_extension('origin', spec.backend,
+                                            origin_spec=spec)
+            self._import(origin)
 
-    def get_origin_defs(self):
-        origin_defs = []
+    # def get_origin_defs(self):
+    #     origin_defs = []
 
-        for (name, params) in self.app.settings.get('origin').items():
-            try:
-                backend = params['backend']
-            except KeyError:
-                msg = 'Origins {name} has no backend defined'
-                self._logger.error(msg.format(name=name))
-                continue
+    #     for (name, params) in self.app.settings.get('origin').items():
+    #         try:
+    #             backend = params['backend']
+    #         except KeyError:
+    #             msg = 'Origins {name} has no backend defined'
+    #             self._logger.error(msg.format(name=name))
+    #             continue
 
-            origin_defs.append(OriginDefinition(
-                name=name,
-                backend=backend,
-                url=params.get('seed_url'),
-                iterations=params.get('iterations', default=1),
-                type=params.get('type', default=None),
-                language=params.get('language', default=None)))
+    #         origin_defs.append(OriginDefinition(
+    #             name=name,
+    #             backend=backend,
+    #             url=params.get('seed_url'),
+    #             iterations=params.get('iterations', default=1),
+    #             type=params.get('type', default=None),
+    #             language=params.get('language', default=None)))
 
-        return origin_defs
+    #     return origin_defs
 
     def get_origin(self, origin_def):
         return self.app.get_extension('origin', origin_def.backend,
