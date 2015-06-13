@@ -46,10 +46,7 @@ class DbCommand(exts.Command):
         )
 
     def run(self):
-        var_args = vars(self.app.arguments)
-        keys = ('shell reset_db reset_states archive_all '
-                'reset_source_id archive_source_id').split()
-        opts = {k: var_args.get(k) for k in keys}
+        opts = self.app.settings.get_tree('command')
 
         shell = opts.get('shell')
         reset = opts.get('reset')

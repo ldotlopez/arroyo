@@ -6,7 +6,6 @@ import re
 from urllib import parse
 
 import bs4
-from ldotcommons import fetchers, utils
 
 from arroyo import exts
 
@@ -50,12 +49,7 @@ class Eztv(exts.Origin):
         if not series:
             return
 
-        fetcher = fetchers.UrllibFetcher(
-            cache=True,
-            cache_delta=60*60*24,  # a day
-            logger=self.app.logger.getChild('fetcher')
-        )
-        buff = fetcher.fetch('https://eztv.ch/showlist/')
+        buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
         soup = bs4.BeautifulSoup(buff)
 
         series = series.lower()

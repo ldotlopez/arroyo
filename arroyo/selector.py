@@ -10,7 +10,10 @@ class Query(dict):
             ret = {}
 
             for (param, value) in params.items():
-                if param.endswith('_like'):
+                for x in [' ', '_']:
+                    param = param.replace(x, '-')
+
+                if param.endswith('-like'):
                     value = ldotsa.glob_to_like(value)
 
                     if not value.startswith('%'):
@@ -56,8 +59,7 @@ class Query(dict):
 class Selector:
     def __init__(self, app):
         self.app = app
-        self._auto_import = self.app.config.getboolean(
-            'main', 'auto-import', fallback=False)
+        self._auto_import = self.app.settings.get('auto-import')
 
     def get_queries(self):
         cfg_dict = utils.configparser_to_dict(self.app.config)

@@ -6,14 +6,9 @@ import re
 import time
 from urllib import parse
 
-
 import bs4
 
-
-from arroyo import (
-    exc,
-    exts
-)
+from arroyo import exts
 
 
 class Spanishtracker(exts.Origin):
@@ -60,8 +55,11 @@ class Spanishtracker(exts.Origin):
 
         elif selector == 'source':
             q = query.get('name') or \
-                query.get('name_like').replace('%', ' ').replace('*', ' ').strip() or \
+                query.get('name-like', '').replace('%', ' ').replace('*', ' ').strip() or \
                 ''
+
+        if not q:
+            return
 
         url = ('{base}?category={category}&search={q}'
                '&active=1&order=data&by=DESC')
