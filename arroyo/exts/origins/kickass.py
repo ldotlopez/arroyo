@@ -9,9 +9,11 @@ import bs4
 
 from arroyo import exts
 
+_BASE_DOMAIN = 'kat.cr'
+
 
 class KickAss(exts.Origin):
-    BASE_URL = 'http://kat.cr/new/?page=1'
+    BASE_URL = 'http://{}/new/?page=1'.format(_BASE_DOMAIN)
     PROVIDER_NAME = 'kickass'
 
     _SIZE_TABLE = {
@@ -46,19 +48,17 @@ class KickAss(exts.Origin):
         else:
             catstr = ''
             q = query.get('name') or \
-                query.get('name_like', '').replace('%', ' ').replace('*', ' ')
+                query.get('name-like', '').replace('%', ' ').replace('*', ' ')
             q = q.strip()
 
         if not q:
             return
 
-        d = {
-            'base': KickAss.BASE_URL,
-            'q': parse.quote(q),
-            'catstr': catstr,
-        }
-        return ('http://kickass.to/usearch/{q}{catstr}/?'
-                'field=time_add&sorder=desc').format(**d)
+        return ('http://{domain}/usearch/{q}{catstr}/?'
+                'field=time_add&sorder=desc').format(
+                    domain=_BASE_DOMAIN,
+                    q=parse.quote(q),
+                    catstr=catstr)
 
     def process_buffer(self, buff):
         """

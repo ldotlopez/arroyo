@@ -142,7 +142,7 @@ class Importer:
 
     def import_query(self, query_def):
         for (name, impl) in self.app.get_implementations('origin').items():
-            origin = impl(self.app, query_def=query_def)
+            origin = impl(self.app, query_spec=query_def)
             self._import(origin)
 
     def import_origin(self, origin_def):

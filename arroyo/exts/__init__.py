@@ -60,7 +60,7 @@ class Origin(Extension):
             yield next(g)
 
     def get_query_url(self, query):
-        raise NotImplementedError()
+        return
 
     def process(self, buff):
         """
@@ -140,7 +140,7 @@ class Origin(Extension):
     def __repr__(self):
         return "<%s (%s)>" % (
             self.__class__.__name__,
-            self._url)
+            getattr(self, '_url', '(None)'))
 
 
 class Command(Extension):

@@ -36,6 +36,12 @@ class QueryCommand(exts.Command):
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
+            '--auto-import',
+            dest='auto-import',
+            action='store_true',
+            help=('Enable dynamic search')),
+
+        exts.argument(
             '-f', '--filter',
             dest='filters',
             required=False,
@@ -56,6 +62,8 @@ class QueryCommand(exts.Command):
         all_states = s.get('command.all-states')
         filters = s.get('command.filters')
         keywords = s.get('command.keywords')
+
+        s.set('auto-import', s.get('command.auto-import'))
 
         if all([filters, keywords]):
             raise exc.ArgumentError('Filters and keywords are mutually '
