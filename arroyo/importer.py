@@ -136,17 +136,17 @@ class Importer:
 
     #     return origin_defs
 
-    def get_origin(self, origin_def):
-        return self.app.get_extension('origin', origin_def.backend,
-                                      origin_def=origin_def)
+    def get_origin(self, origin_spec):
+        return self.app.get_extension('origin', origin_spec.backend,
+                                      origin_spec=origin_spec)
 
-    def import_query(self, query_def):
+    def import_query(self, query_spec):
         for (name, impl) in self.app.get_implementations('origin').items():
-            origin = impl(self.app, query_spec=query_def)
+            origin = impl(self.app, query_spec=query_spec)
             self._import(origin)
 
-    def import_origin(self, origin_def):
-        origin = self.get_origin(origin_def)
+    def import_origin(self, origin_spec):
+        origin = self.get_origin(origin_spec)
         self._import(origin)
 
     def _import(self, origin):

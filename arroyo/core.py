@@ -214,7 +214,7 @@ class ArroyoStore(store.Store):
 
 class Arroyo:
     def __init__(self, settings=None):
-        self.settings = settings or store.Store()
+        self.settings = settings or build_basic_settings([])
 
         # Support structures for plugins
         self._extensions = set()
