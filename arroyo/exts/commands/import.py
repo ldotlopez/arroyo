@@ -34,13 +34,16 @@ class ImportCommand(exts.Command):
             help='force language of found sources')
     )
 
-    def run(self):
-        if self.app.settings.get('command.backend', None):
+    def run(self, args):
+        if args.backend:
             if self.app.settings.has_namespace('origin'):
                 self.app.settings.delete('origin')
 
-            for (k, v) in self.app.settings.get_tree('command').items():
-                self.app.settings.set('origin.command-line.' + k, v)
+            keys = 'backend url iterations type language'.split(' ')
+            for k in keys:
+                self.app.settings.set(
+                    'origin.command-line.' + k,
+                    getattr(args, k))
 
         self.app.importer.execute()
 

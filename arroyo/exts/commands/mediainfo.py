@@ -22,9 +22,9 @@ class MediainfoCommand(exts.Command):
         ),
     )
 
-    def run(self):
-        item = self.app.settings.get('command.item')
-        all_ = self.app.settings.get('command.all')
+    def run(self, args):
+        item = args.item
+        all_ = args.all
 
         if not any([item, all_]):
             msg = 'One of item or all options must be used'

@@ -30,14 +30,14 @@ class QueryCommand(exts.Command):
     arguments = (
         exts.argument(
             '-a', '--all',
-            dest='all-states',
+            dest='all_states',
             action='store_true',
             help=('include all results '
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
             '--auto-import',
-            dest='auto-import',
+            dest='auto_import',
             action='store_true',
             help=('Enable dynamic search')),
 
@@ -56,14 +56,12 @@ class QueryCommand(exts.Command):
             help='keywords')
     )
 
-    def run(self):
-        s = self.app.settings
+    def run(self, args):
+        all_states = args.all_states
+        filters = args.filters
+        keywords = args.keywords
 
-        all_states = s.get('command.all-states')
-        filters = s.get('command.filters')
-        keywords = s.get('command.keywords')
-
-        s.set('auto-import', s.get('command.auto-import'))
+        self.app.settings.set('auto-import', args.auto_import)
 
         if all([filters, keywords]):
             raise exc.ArgumentError('Filters and keywords are mutually '
@@ -74,7 +72,7 @@ class QueryCommand(exts.Command):
 
             query_name = ' '.join(keywords)
             query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
-            s.set(
+            self.app.settings.set(
                 'query.' + query_name + '.name-like',
                 '*' + '*'.join(keywords) + '*')
 
@@ -82,7 +80,7 @@ class QueryCommand(exts.Command):
             self.app.settings.delete('query')
 
             for (k, v) in filters.items():
-                s.set('query.command-line.' + k, v)
+                self.app.settings.set('query.command-line.' + k, v)
 
         queries = self.app.settings.get_tree('query')
 
