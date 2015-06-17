@@ -2,12 +2,10 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-import random
+import hashlib
 import re
 from urllib import parse
 
-
-from ldotcommons import utils
 from ldotcommons.sqlalchemy import Base
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
@@ -65,6 +63,30 @@ class Source(Base):
     movie = relationship("Movie",
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
+
+    @staticmethod
+    def from_data(name, sha1=None, **kwargs):
+        if not sha1:
+            sha1 = hashlib.sha1(name.encode('utf-8')).hexdigest()
+
+        if 'timestamp' not in kwargs:
+            kwargs['timestamp'] = 0
+
+        if 'provider' not in kwargs:
+            kwargs['provider'] = 'mock'
+
+        ret = Source()
+        ret.name = name
+        ret.urn = 'urn:btih:' + sha1
+        ret.uri = 'magnet:?xt={urn}&dn={dn}'.format(
+            urn=ret.urn,
+            dn=parse.quote_plus(name))
+
+        for (attr, value) in kwargs.items():
+            if hasattr(ret, attr):
+                setattr(ret, attr, value)
+
+        return ret
 
     @hybrid_property
     def superitem(self):
@@ -313,42 +335,42 @@ def _check_type(typ):
     return typ in (None, 'movie', 'episode')
 
 
-def source_data_builder(**opts):
-    trackers = [
-        'udp://foo.yellow.com:80',
-        'udp://bar.red.com:80',
-        'udp://one.blue.it:6969',
-        'udp://two.green.de:80',
-        'udp://three.red.com:1337']
+# def source_data_builder(**opts):
+#     trackers = [
+#         'udp://foo.yellow.com:80',
+#         'udp://bar.red.com:80',
+#         'udp://one.blue.it:6969',
+#         'udp://two.green.de:80',
+#         'udp://three.red.com:1337']
 
-    idstr = 'urn:btih:' + ''.join([
-        random.choice('0123456789abcdef') for x in range(40)
-    ])
-    ntrackers = random.randint(1, len(trackers))
-    randtrackers = random.sample(trackers, ntrackers)
+#     idstr = 'urn:btih:' + ''.join([
+#         random.choice('0123456789abcdef') for x in range(40)
+#     ])
+#     ntrackers = random.randint(1, len(trackers))
+#     randtrackers = random.sample(trackers, ntrackers)
 
-    name = opts['name']
-    query = {
-        'dn': [name],
-        'tr': randtrackers,
-    }
-    source = {
-        'id': idstr,
-        'name': name,
-        'uri': 'magnet:?xt={}&{}'.format(
-            idstr, parse.urlencode(query, doseq=True)
-        ),
-        'timestamp': utils.utcnow_timestamp(),
-        'provider': 'test-provider'
-    }
-    extra = {x: opts.get(x, None) for x in [
-        'type', 'language', 'seeds', 'leechers', 'size', 'provider'
-    ]}
-    extra = {k: v for (k, v) in extra.items() if v is not None}
-    source.update(extra)
+#     name = opts['name']
+#     query = {
+#         'dn': [name],
+#         'tr': randtrackers,
+#     }
+#     source = {
+#         'id': idstr,
+#         'name': name,
+#         'uri': 'magnet:?xt={}&{}'.format(
+#             idstr, parse.urlencode(query, doseq=True)
+#         ),
+#         'timestamp': utils.utcnow_timestamp(),
+#         'provider': 'test-provider'
+#     }
+#     extra = {x: opts.get(x, None) for x in [
+#         'type', 'language', 'seeds', 'leechers', 'size', 'provider'
+#     ]}
+#     extra = {k: v for (k, v) in extra.items() if v is not None}
+#     source.update(extra)
 
-    return source
+#     return source
 
 
-def source_fixture_loader(fixture):
-    return Source(**source_data_builder(**fixture))
+# def source_fixture_loader(fixture):
+#     return Source(**source_data_builder(**fixture))
