@@ -147,10 +147,12 @@ class Importer:
 
     def import_origin(self, origin_spec):
         origin = self.get_origin(origin_spec)
-        self._import(origin)
+        return self._import(origin)
 
     def _import(self, origin):
         sources = []
+        errors = {}
+
         for url in origin.get_urls():
             msg = "{name} {iteration}/{iterations}: {url}"
             self._logger.debug(msg.format(
@@ -158,6 +160,7 @@ class Importer:
                 iteration=origin.iteration,
                 iterations=origin.iterations,
                 url=url))
+            errors[url] = None
 
             try:
                 buff = self.app.fetcher.fetch(url)
@@ -165,6 +168,7 @@ class Importer:
                 msg = 'Unable to retrieve {url}: {msg}'
                 msg = msg.format(url=url, msg=e)
                 self._logger.warning(msg)
+                errors[url] = e
                 continue
 
             try:
@@ -173,6 +177,7 @@ class Importer:
                 msg = "Unable to process '{url}': {error}"
                 msg = msg.format(url=url, error=e)
                 self._logger.error(msg)
+                errors[url] = e
                 continue
 
             if not srcs:
@@ -190,6 +195,7 @@ class Importer:
         ret = {
             'added-sources': [],
             'updated-sources': [],
+            'errors': errors
         }
 
         for src in sources:
