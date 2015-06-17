@@ -36,8 +36,9 @@ _defaults = {
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
     'user-agent':
         'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
-    'enable-cache': True,
-    'cache-delta': 60 * 20
+    'fetcher': 'urllib',
+    'fetcher.urllib.cache': True,
+    'fetcher.urllib.cache-delta': 60 * 20
 }
 
 _defaults_types = {
@@ -47,8 +48,9 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'enable-cache': bool,
-    'cache-delta': int
+    'fetcher': str,
+    'fetcher.urllib.cache': bool,
+    'fetcher.urllib.cache-delta': int
 }
 
 #
@@ -230,11 +232,22 @@ class Arroyo:
         self.logger.setLevel(self.settings.get('log-level'))
 
         # Build and configure fetcher
-        self.fetcher = fetchers.UrllibFetcher(
-            cache=settings.get('enable-cache'),
-            cache_delta=settings.get('cache-delta'),
-            headers={'User-Agent': settings.get('user-agent')},
-            logger=self.logger.getChild('fetcher'))
+        fetcher = self.settings.get('fetcher')
+        try:
+            fetcher_opts = self.settings.get_tree('fetcher.' + fetcher)
+            fetcher_opts = {k.replace('-', '_'): v
+                            for (k, v) in fetcher_opts.items()}
+
+        except KeyError:
+            fetcher_opts = {}
+
+        # FIX: Logger feature is missing
+        self.fetcher = fetchers.Fetcher(fetcher, **fetcher_opts)
+        # self.fetcher = fetchers.UrllibFetcher(
+        #     cache=self.settings.get('enable-cache'),
+        #     cache_delta=self.settings.get('cache-delta'),
+        #     headers={'User-Agent': self.settings.get('user-agent')},
+        #     logger=self.logger.getChild('fetcher'))
 
         # Built-in providers
         self.signals = signaler.Signaler()
