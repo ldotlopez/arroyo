@@ -35,7 +35,9 @@ class Selector(exts.Selector):
 
     @staticmethod
     def proper_sort(x):
-        return re.search(r'\b(PROPER|REPACK)\b', x.name) is None
+        return re.search(
+            r'\b(PROPER|REPACK|FIX)\b',
+            x.name) is None
 
     @staticmethod
     def quality_filter(x, quality):
