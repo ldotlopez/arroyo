@@ -7,12 +7,30 @@ from urllib import parse
 from sqlalchemy.orm import exc as orm_exc
 import transmissionrpc
 
+from ldotcommons import store
+
 from arroyo import (
     downloader,
     exc,
     exts,
     models
 )
+
+
+_SETTINGS_NS = 'extension.downloaders.transmission'
+
+
+def settings_validator(key, value):
+    k = key[len(_SETTINGS_NS)+1:]
+
+    if k in ['address', 'user', 'password']:
+        return store.cast_value(value, str)
+
+    if k == 'port':
+        return store.cast_value(value, int)
+
+    else:
+        raise Exception('Invalid key: {}'.format(key))
 
 
 class TransmissionDownloader(exts.Downloader):
@@ -27,19 +45,20 @@ class TransmissionDownloader(exts.Downloader):
     def __init__(self, app):
         super(TransmissionDownloader, self).__init__(app)
 
-        if self._CONFIG_SECTION_NAME not in self.app.config:
-            self.app.config.add_section(self._CONFIG_SECTION_NAME)
-        self.config_sect = app.config[self._CONFIG_SECTION_NAME]
+        s = app.settings
+        # import ipdb;ipdb.set_trace()
+        s.set_validator(settings_validator, ns=_SETTINGS_NS, )
+
         self._logger = self.app.logger.getChild('transmission')
 
         error = None
 
         try:
             self._api = transmissionrpc.Client(
-                address=self.config_sect.get('address', fallback='localhost'),
-                port=self.config_sect.getint('port', fallback=9091),
-                user=self.config_sect.get('user', fallback=None),
-                password=self.config_sect.get('password', fallback=None)
+                address=s.get('address', 'localhost'),
+                port=s.get('port', 9091),
+                user=s.get('user', None),
+                password=s.get('password', None)
             )
             self._shield = {
                 'urn:btih:' + x.hashString: x

@@ -45,19 +45,14 @@ class DbCommand(exts.Command):
             help='archive a source')
         )
 
-    def run(self):
-        var_args = vars(self.app.arguments)
-        keys = ('shell reset_db reset_states archive_all '
-                'reset_source_id archive_source_id').split()
-        opts = {k: var_args.get(k) for k in keys}
-
-        shell = opts.get('shell')
-        reset = opts.get('reset')
-        reset_states = opts.get('reset_states')
-        archive_all = opts.get('archive_all')
-        reset_source_id = opts.get('reset_source_id')
-        archive_source_id = opts.get('archive_source_id')
-        reset = opts.get('reset')
+    def run(self, args):
+        shell = args.shell
+        reset = args.reset
+        reset_states = args.reset_states
+        archive_all = args.archive_all
+        reset_source_id = args.reset_source_id
+        archive_source_id = args.archive_source_id
+        reset = args.reset
 
         test = [1 for x in (reset, shell, reset_states, archive_all,
                             reset_source_id, archive_source_id) if x]

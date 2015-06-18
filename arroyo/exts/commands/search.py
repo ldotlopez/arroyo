@@ -1,5 +1,5 @@
 import itertools
-
+import re
 
 from ldotcommons import utils
 
@@ -36,9 +36,16 @@ class QueryCommand(exts.Command):
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
+            '--auto-import',
+            dest='auto_import',
+            action='store_true',
+            help=('Enable dynamic search')),
+
+        exts.argument(
             '-f', '--filter',
             dest='filters',
             required=False,
+            default={},
             type=str,
             action=utils.DictAction,
             help='filters to apply in key_mod=value form'),
@@ -49,41 +56,46 @@ class QueryCommand(exts.Command):
             help='keywords')
     )
 
-    def run(self):
-        filters = self.app.arguments.filters
-        keywords = self.app.arguments.keywords
+    def run(self, args):
+        all_states = args.all_states
+        filters = args.filters
+        keywords = args.keywords
+
+        self.app.settings.set('auto-import', args.auto_import)
 
         if all([filters, keywords]):
             raise exc.ArgumentError('Filters and keywords are mutually '
                                     'exclusive')
 
-        queries = {}
-
         if keywords:
-            queries = {
-                ' '.join(keywords): selector.Query(
-                    name_like='*' + '*'.join(keywords) + '*'
-                )
-            }
+            self.app.settings.delete('query')
+
+            query_name = ' '.join(keywords)
+            query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
+            self.app.settings.set(
+                'query.' + query_name + '.name-like',
+                '*' + '*'.join(keywords) + '*')
 
         elif filters:
-            queries = {
-                'command line': selector.Query(**filters)
-            }
+            self.app.settings.delete('query')
 
-        else:
-            queries = self.app.selector.get_queries()
+            for (k, v) in filters.items():
+                self.app.settings.set('query.command-line.' + k, v)
+
+        queries = self.app.settings.get_tree('query')
 
         if not queries:
-            raise exc.ArgumentError(
-                'One filter or one keyword or one [query.label] is required')
+            msg = 'One filter or one keyword or one [query.label] is required'
+            raise exc.ArgumentError(msg)
 
         # FIXME: Missing sync
         # sync()
+
         for (label, query) in queries.items():
+            query = selector.Query(**query)
             res = list(self.app.selector.select(
                 query,
-                everything=self.app.arguments.all_states
+                everything=all_states
             ))
 
             msg = "== Search '{label}: {n_results} result(s)'"

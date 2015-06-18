@@ -35,7 +35,9 @@ class Selector(exts.Selector):
 
     @staticmethod
     def proper_sort(x):
-        return re.search(r'\b(PROPER|REPACK)\b', x.name) is None
+        return re.search(
+            r'\b(PROPER|REPACK|FIX)\b',
+            x.name) is None
 
     @staticmethod
     def quality_filter(x, quality):
@@ -84,9 +86,7 @@ class Selector(exts.Selector):
             qs = qs.filter(models.Episode.year == year)
 
         if language:
-            qs = qs.filter(
-                functions.coalesce(
-                    models.Episode.language, 'eng-us') == language)
+            qs = qs.filter(models.Episode.language == language)
 
         if season:
             qs = qs.filter(models.Episode.season == season)

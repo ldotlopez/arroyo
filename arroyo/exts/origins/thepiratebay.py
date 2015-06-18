@@ -2,6 +2,7 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
+import random
 import re
 import time
 
@@ -13,7 +14,10 @@ from arroyo import exts
 
 
 class Tpb(exts.Origin):
-    BASE_URL = 'http://thepiratebay.com/recent/0/'
+    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(
+        tld=random.sample([
+            'am', 'gd', 'bg', 'la', 'am', 'gs'
+        ], 1)[0])
 
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 

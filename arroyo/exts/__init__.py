@@ -14,38 +14,32 @@ class Service(Extension):
 
 
 class Origin(Extension):
-    def __init__(self, app, origin_def=None, query_def=None):
+    def __init__(self, app, origin_spec=None, query_spec=None):
         super(Origin, self).__init__(app)
 
-        if origin_def and query_def:
-            raise ValueError('origin_def and query_def are mutually exclusive')
+        if origin_spec and query_spec:
+            raise ValueError('origin_spec and query_spec are mutually exclusive')
 
         self._iteration = 0
 
-        if origin_def:
-            self._name = origin_def.name
-            self._url = origin_def.url or self.BASE_URL
-            self._iterations = origin_def.iterations
+        if origin_spec:
+            self._name = origin_spec.name
+            self._url = origin_spec.url or self.BASE_URL
+            self._iterations = origin_spec.iterations
             self._overrides = {k: v for (k, v) in {
-                'type': origin_def.type,
-                'language': origin_def.language,
-                'provider': origin_def.backend
+                'type': origin_spec.type,
+                'language': origin_spec.language,
             }.items() if v is not None}
 
         else:
-            clsname = self.__class__.__name__
-            provider = clsname.split('.')[-1].lower()
-
             self._name = 'internal query'
-            self._url = self.get_query_url(query_def)
+            self._url = self.get_query_url(query_spec)
             self._iterations = 1
-            self._overrides = {
-                'provider': provider
-            }
+            self._overrides = {}
 
     @property
-    def name(self):
-        return self._name
+    def BASE_URL(self):
+        raise NotImplementedError()
 
     @property
     def iteration(self):
@@ -83,7 +77,8 @@ class Origin(Extension):
 
             # Trim-down protosrc
             psrc = {k: psrc.get(k, None) for k in [
-                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers'
+                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers',
+                'language', 'type'
             ]}
 
             # Calculate URN
@@ -145,7 +140,7 @@ class Origin(Extension):
     def __repr__(self):
         return "<%s (%s)>" % (
             self.__class__.__name__,
-            self._url)
+            getattr(self, '_url', '(None)'))
 
 
 class Command(Extension):
