@@ -141,6 +141,55 @@ class EpisodeSelectorTest(SelectorTest):
             selector.Query(selector='episode', series='game of thrones', quality='hdtv'),
             hdtv)
 
+    def test_everything(self):
+        x = [
+            src('Game Of Thrones S01E01 720p', type='episode'),
+            src('Game Of Thrones S01E01 HDTV', type='episode'),
+            src('Game Of Thrones S01E02 720p', type='episode'),
+            src('Game Of Thrones S01E02 HDTV', type='episode'),
+            src('Game Of Thrones S02E01 720p', type='episode'),
+            src('Game Of Thrones S02E01 HDTV', type='episode'),
+        ]
+        self.init_db(x)
+
+        q = selector.Query(selector='episode', series='game of thrones', season=1)
+        res = list(self.app.selector.select(q))
+        self.assertTrue(
+            (x[0] in res or x[1] in res) and (x[2] in res or x[3] in res)
+        )
+
+        q = selector.Query(selector='episode', series='game of thrones', season=1)
+        res = list(self.app.selector.select(q, everything=True))
+        self.assertTrue(set(res), set(x[0:3]))
+
+    def test_selection(self):
+        x = [
+            src('Game Of Thrones S01E01 720p', type='episode'),
+            src('Game Of Thrones S01E02 720p', type='episode'),
+        ]
+        self.init_db(x)
+        x[0].episode.selection = models.EpisodeSelection()
+        x[0].episode.selection.source = x[0]
+        self.app.db.session.commit()
+
+        q = selector.Query(selector='episode', series='game of thrones')
+        res = list(self.app.selector.select(q, everything=True))
+        self.assertTrue(set(res), set(x))
+
+        q = selector.Query(selector='episode', series='game of thrones')
+        res = list(self.app.selector.select(q))
+        self.assertTrue(set(res), set(x[1]))
+
+    def test_proper(self):
+        x = [
+            src('Game Of Thrones S01E01 720p', type='episode'),
+            src('Game Of Thrones S01E01 REPACK 720p', type='episode'),
+        ]
+        self.init_db(x)
+
+        q = selector.Query(selector='episode', series='game of thrones')
+        res = list(self.app.selector.select(q))
+        self.assertEqual(set(res[0]), set(x[1]))
 
 if __name__ == '__main__':
     unittest.main()
