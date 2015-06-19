@@ -39,8 +39,16 @@ class Origin(Extension):
             self._overrides = {}
 
     @property
+    def PROVIDER_NAME(self):
+        raise NotImplementedError()
+
+    @property
     def BASE_URL(self):
         raise NotImplementedError()
+
+    @property
+    def provider(self):
+        return self.PROVIDER_NAME
 
     @property
     def iteration(self):
@@ -67,7 +75,11 @@ class Origin(Extension):
         """
         Get protosources from origin. Integrity of collected data is guaranteed
         """
-        now = utils.utcnow_timestamp()
+
+        # => IMPORTANT!!!
+        # Note that all fields from models.Source are sanitized except created
+        # and last_seen. It's because they are relative to the database and we
+        # can't guess their values yet.
 
         def fix_data(psrc):
             if not isinstance(psrc, dict):
@@ -78,7 +90,7 @@ class Origin(Extension):
 
             # Trim-down protosrc
             psrc = {k: psrc.get(k, None) for k in [
-                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers',
+                'name', 'uri', 'size', 'seeds', 'leechers',
                 'language', 'type'
             ]}
 
@@ -95,15 +107,13 @@ class Origin(Extension):
                     return None
 
             # Fix and check integer fields
-            for k in ['timestamp', 'size', 'seeds', 'leechers']:
+            for k in ['size', 'seeds', 'leechers']:
                 if not isinstance(psrc[k], int):
                     try:
                         psrc[k] = int(psrc[k])
                     except (TypeError, ValueError):
                         psrc[k] = None
 
-            # Fix timestamp
-            psrc['timestamp'] = psrc.get('timestamp', None) or now
             psrc['provider'] = self.PROVIDER_NAME
 
             # All done

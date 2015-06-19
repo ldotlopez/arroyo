@@ -6,7 +6,7 @@ import hashlib
 import re
 from urllib import parse
 
-from ldotcommons.sqlalchemy import Base
+from ldotcommons.sqlalchemy import Base, utils
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
@@ -39,7 +39,8 @@ class Source(Base):
     urn = Column(String, unique=True)
     name = Column(String, nullable=False)
     uri = Column(String, nullable=False, unique=True)
-    timestamp = Column(Integer, nullable=False)
+    created = Column(Integer, nullable=False)
+    last_seen = Column(Integer, nullable=False)
     size = Column(Integer, nullable=True)
     provider = Column(String, nullable=False)
 
@@ -69,8 +70,9 @@ class Source(Base):
         if not sha1:
             sha1 = hashlib.sha1(name.encode('utf-8')).hexdigest()
 
-        if 'timestamp' not in kwargs:
-            kwargs['timestamp'] = 0
+        now = utils.now_timestamp()
+        kwargs['created'] = kwargs.get('created', now)
+        kwargs['last_seen'] = kwargs.get('last_seen', now)
 
         if 'provider' not in kwargs:
             kwargs['provider'] = 'mock'
@@ -94,6 +96,17 @@ class Source(Base):
             self.episode or
             self.movie
         )
+
+    @hybrid_property
+    def age(self):
+        return utils.now_timestamp() - self.created
+
+    @hybrid_property
+    def share_ratio(self):
+        if self.seeds is None or self.leechers is None:
+            return 0
+
+        return self.seeds / self.leechers
 
     #
     # Type property
@@ -134,8 +147,8 @@ class Source(Base):
 
     def __iter__(self):
         keys = (
-            'id name uri type language timestamp seeds leechers size provider '
-            'state state_name').split(' ')
+            'id name uri type language created last_seen seeds leechers size '
+            'provider state state_name').split(' ')
         keys += [k for k in vars(self) if k[0] != '_']
 
         for k in set(keys):
@@ -333,44 +346,3 @@ def _check_language(lang):
 
 def _check_type(typ):
     return typ in (None, 'movie', 'episode')
-
-
-# def source_data_builder(**opts):
-#     trackers = [
-#         'udp://foo.yellow.com:80',
-#         'udp://bar.red.com:80',
-#         'udp://one.blue.it:6969',
-#         'udp://two.green.de:80',
-#         'udp://three.red.com:1337']
-
-#     idstr = 'urn:btih:' + ''.join([
-#         random.choice('0123456789abcdef') for x in range(40)
-#     ])
-#     ntrackers = random.randint(1, len(trackers))
-#     randtrackers = random.sample(trackers, ntrackers)
-
-#     name = opts['name']
-#     query = {
-#         'dn': [name],
-#         'tr': randtrackers,
-#     }
-#     source = {
-#         'id': idstr,
-#         'name': name,
-#         'uri': 'magnet:?xt={}&{}'.format(
-#             idstr, parse.urlencode(query, doseq=True)
-#         ),
-#         'timestamp': utils.utcnow_timestamp(),
-#         'provider': 'test-provider'
-#     }
-#     extra = {x: opts.get(x, None) for x in [
-#         'type', 'language', 'seeds', 'leechers', 'size', 'provider'
-#     ]}
-#     extra = {k: v for (k, v) in extra.items() if v is not None}
-#     source.update(extra)
-
-#     return source
-
-
-# def source_fixture_loader(fixture):
-#     return Source(**source_data_builder(**fixture))
