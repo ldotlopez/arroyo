@@ -18,7 +18,8 @@ class Origin(Extension):
         super(Origin, self).__init__(app)
 
         if origin_spec and query_spec:
-            raise ValueError('origin_spec and query_spec are mutually exclusive')
+            msg = 'origin_spec and query_spec are mutually exclusive'
+            raise TypeError(msg)
 
         self._iteration = 0
 
