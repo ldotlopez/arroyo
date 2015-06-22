@@ -42,12 +42,12 @@ class DownloadCommand(exts.Command):
             help='don\'t download matching sources, just show them')
     )
 
-    def run(self):
-        show = self.app.arguments.show
-        source_id_add = self.app.arguments.add
-        source_id_remove = self.app.arguments.remove
-        query = self.app.arguments.query
-        dry_run = self.app.arguments.dry_run
+    def run(self, args):
+        show = args.show
+        source_id_add = args.add
+        source_id_remove = args.remove
+        query = args.query
+        dry_run = args.dry_run
 
         add, remove, source_id = False, False, False
         if source_id_add:

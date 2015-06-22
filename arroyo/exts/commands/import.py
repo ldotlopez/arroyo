@@ -1,8 +1,4 @@
-from arroyo import (
-    importer,
-    exc,
-    exts
-)
+from arroyo import exts
 
 
 class ImportCommand(exts.Command):
@@ -38,49 +34,18 @@ class ImportCommand(exts.Command):
             help='force language of found sources')
     )
 
-    def run(self):
-        backend = self.app.arguments.backend
-        seed_url = self.app.arguments.url
-        iterations = self.app.arguments.iterations
-        typ = self.app.arguments.type
-        language = self.app.arguments.language
+    def run(self, args):
+        if args.backend:
+            if self.app.settings.has_namespace('origin'):
+                self.app.settings.delete('origin')
 
-        if backend and isinstance(backend, str):
-            if not isinstance(seed_url, (str, type(None))):
-                raise exc.ArgumentError(
-                    'seed_url must be an string or None')
+            keys = 'backend url iterations type language'.split(' ')
+            for k in keys:
+                self.app.settings.set(
+                    'origin.command-line.' + k,
+                    getattr(args, k))
 
-            if not isinstance(iterations, int) or iterations < 1:
-                raise exc.ArgumentError(
-                    'iterations must be an integer greater than 1')
-
-            if not isinstance(typ, (str, type(None))):
-                raise exc.ArgumentError(
-                    'type must be an string or None')
-
-            if not isinstance(language, (str, type(None))):
-                raise exc.ArgumentError(
-                    'languge must be an string or None')
-
-            origin_defs = [importer.OriginDefinition(
-                name='Command line',
-                backend=backend,
-                url=seed_url,
-                iterations=int(iterations),
-                type=typ,
-                language=language)]
-
-        else:
-            origin_defs = self.app.importer.get_origin_defs()
-
-        for origin_def in origin_defs:
-            try:
-                self.app.importer.import_origin(origin_def)
-            except exc.NoImplementationError as e:
-                msg = "Invalid origin {name}: {msg}"
-                msg = msg.format(name=origin_def.name, msg=str(e))
-                print(msg)
-
+        self.app.importer.execute()
 
 __arroyo_extensions__ = [
     ('command', 'import', ImportCommand)

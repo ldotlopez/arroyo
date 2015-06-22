@@ -3,8 +3,14 @@ import configparser
 import importlib
 import logging
 from itertools import chain
+import sys
+import warnings
 
-from ldotcommons import utils
+from ldotcommons import (
+    fetchers,
+    store,
+    utils
+)
 
 from arroyo import (
     importer,
@@ -14,7 +20,56 @@ from arroyo import (
     mediainfo,
     selector,
     signaler)
+
 import arroyo.exc
+
+#
+# Default values for config
+#
+_defaults = {
+    'db-uri': 'sqlite:///' +
+              utils.user_path('data', 'arroyo.db', create=True),
+    'downloader': 'mock',
+    'auto-import': False,
+    'legacy': False,
+    'log-level': 'WARNING',
+    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+    'user-agent':
+        'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+    'fetcher': 'urllib',
+    'fetcher.urllib.cache': True,
+    'fetcher.urllib.cache-delta': 60 * 20
+}
+
+_defaults_types = {
+    'db-uri': str,
+    'downloader': str,
+    'auto-import': bool,
+    'log-level': str,
+    'log-format': str,
+    'user-agent': str,
+    'fetcher': str,
+    'fetcher.urllib.cache': bool,
+    'fetcher.urllib.cache-delta': int
+}
+
+#
+# Default extensions
+#
+_extensions = {
+    'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
+    'downloaders': ('mock', 'transmission'),
+    'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
+    'selectors': ('source', 'episode', 'movie'),
+}
+
+_extensions = chain.from_iterable([
+    [ns+'.'+ext for ext in _extensions[ns]]
+    for ns in _extensions])
+
+_extensions = [x for x in _extensions]
+_defaults.update({'extensions.{}.enabled'.format(x): True
+                  for x in _extensions})
 
 
 def build_argument_parser():
@@ -38,9 +93,9 @@ def build_argument_parser():
 
         parser.add_argument(
             '--config-file',
-            dest='config_files',
+            dest='config-files',
             action='append',
-            default=[utils.user_path('config', 'arroyo.ini')])
+            default=[])
 
         parser.add_argument(
             '--extension',
@@ -50,7 +105,7 @@ def build_argument_parser():
 
         parser.add_argument(
             '--db-uri',
-            dest='db_uri')
+            dest='db-uri')
 
         parser.add_argument(
             '--downloader',
@@ -59,30 +114,63 @@ def build_argument_parser():
         return parser
 
 
-def build_config_parser(arguments):
+def build_basic_settings(arguments=sys.argv[1:]):
+    global _defaults, _extensions
+
+    # The first task is parse arguments
+    argparser = build_argument_parser()
+    args, remaining = argparser.parse_known_args()
+
+    # Now we have to load default and extra config files.
+    # Once they are loaded they are useless in 'args'.
     cp = configparser.RawConfigParser()
-    cp.add_section('main')
+    if cp.read(getattr(args, 'config-files',
+                       utils.user_path('config', 'arroyo.ini'))):
+        delattr(args, 'config-files')
 
-    if 'config_files' in arguments:
-        cp.read(arguments.config_files)
+    # With every parameter loaded we build the settings store
+    store = ArroyoStore()
+    store.load_configparser(cp, root_sections=('main',))
 
-    for attr in ('db_uri', 'downloader'):
-        if attr in arguments:
-            v = getattr(arguments, attr, None)
-            if v:
-                cp['main'][attr.replace('_', '-')] = v
+    # Arguments must be loaded with care.
 
-    if 'extensions' in arguments:
-        cp['main']['extensions'] = ','.join(arguments.extensions)
+    # a) Extensions must be merged
+    for ext in args.extensions:
+        store.set('extensions.{}.enabled'.format(ext), True)
+    try:
+        delattr(args, 'extensions')
+    except AttributeError:
+        pass
 
-    for ext in arguments.extensions:
-        sectname = 'extension.' + ext
-        if sectname not in cp:
-            cp.add_section(sectname)
+    # b) log level modifers must me handled and removed from args
+    log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+    log_level = store.get('log-level', 'WARNING')
+    try:
+        log_level = log_levels.index(log_level)
+    except ValueError:
+        warnings.warn("Invalid log level: {}, using 'WARNING'".format(
+            log_level))
+        log_level = 2
 
-        cp[sectname]['enabled'] = 'yes'
+    log_level = max(0, min(4, log_level - args.quiet + args.verbose))
+    delattr(args, 'quiet')
+    delattr(args, 'verbose')
+    store.set('log-level', log_levels[log_level])
 
-    return cp
+    # Clean up args before merging with store
+    delattr(args, 'help')
+    for attr in ['downloader', 'db-uri']:
+        if getattr(args, attr, None) is None:
+            delattr(args, attr)
+
+    store.load_arguments(args)
+
+    # Finally insert defaults
+    for key in _defaults:
+        if key not in store:
+            store.set(key, _defaults[key])
+
+    return store
 
 
 class EncodedStreamHandler(logging.StreamHandler):
@@ -102,61 +190,70 @@ class EncodedStreamHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class Arroyo:
-    def __init__(self,
-                 db_uri=None, downloader_name=None, extensions=[],
-                 config=None, log_level=None):
-        if config is None:
-            config = configparser.RawConfigParser()
+class ArroyoStore(store.Store):
+    def __init__(self, *args, **kwargs):
+        def _get_validator():
+            _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+            _type_validator = store.type_validator(_defaults_types,
+                                                   relaxed=True)
 
-        if not config.has_section('main'):
-            config.add_section('main')
+            def _validator(key, value):
+                if key == 'log-level' and value not in _log_lvls:
+                    raise ValueError(value)
+
+                if key.startswith('extensions.') and key.endswith('.enabled'):
+                    return store.cast_value(value, bool)
+
+                return _type_validator(key, value)
+
+            return _validator
+
+        if 'validator' not in kwargs:
+            kwargs['validator'] = _get_validator()
+
+        super().__init__(*args, **kwargs)
+
+
+class Arroyo:
+    def __init__(self, settings=None):
+        self.settings = settings or build_basic_settings([])
 
         # Support structures for plugins
         self._extensions = set()
         self._services = {}
         self._registry = {}
 
-        self.config = config
-
-        # Build logger
+        # Build and configure logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
-            "[%(levelname)s] [%(name)s] %(message)s"
-        ))
+            self.settings.get('log-format')))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
-        self.logger.setLevel('WARNING')
+        self.logger.setLevel(self.settings.get('log-level'))
 
-        # Configure logger
-        valid_log_levels = [
-            'CRITICAL', 'ERROR', 'WARN', 'WARNING', 'INFO', 'DEBUG'
-        ]
-        log_level = log_level or \
-            self.config.get('main', 'log-level', fallback='WARNING')
+        # Build and configure fetcher
+        fetcher = self.settings.get('fetcher')
+        try:
+            fetcher_opts = self.settings.get_tree('fetcher.' + fetcher)
+            fetcher_opts = {k.replace('-', '_'): v
+                            for (k, v) in fetcher_opts.items()}
 
-        if not isinstance(log_level, str) or \
-           log_level.upper() not in valid_log_levels:
-            msg = "Invalid log level '{log_level}'"
-            msg = msg.format(log_level=log_level)
-            self.logger.warning(msg)
-        else:
-            self.logger.setLevel(log_level.upper())
+        except KeyError:
+            fetcher_opts = {}
+
+        # FIX: Logger feature is missing
+        self.fetcher = fetchers.Fetcher(fetcher, **fetcher_opts)
+        # self.fetcher = fetchers.UrllibFetcher(
+        #     cache=self.settings.get('enable-cache'),
+        #     cache_delta=self.settings.get('cache-delta'),
+        #     headers={'User-Agent': self.settings.get('user-agent')},
+        #     logger=self.logger.getChild('fetcher'))
 
         # Built-in providers
         self.signals = signaler.Signaler()
-
-        self.db = db.Db(
-            db_uri or
-            self.config.get('main', 'db-uri', fallback=None) or
-            'sqlite:///' + utils.user_path('data', 'arroyo.db', create=True))
-
+        self.db = db.Db(self.settings.get('db-uri'))
         self.downloader = downloader.Downloader(
-            self,
-            (downloader_name or
-             self.config.get('main', 'downloader', fallback=None) or
-             'mock'))
-
+            self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
 
@@ -165,26 +262,9 @@ class Arroyo:
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load extensions
-        # FIXME: Weird, I know, I will work on this some day
-        exts = chain(
-            extensions,
-            (x.strip() for x in
-             self.config.get('main', 'extensions', fallback='').split(',')
-             if x),
-            (ext for ext in
-             self.config_subdict('extension')
-             if self.config.getboolean('extension.' + ext, 'enabled',
-                                       fallback=True))
-        )
-
-        # Load while removing duplicates
-        for ext in set([x for x in exts]):
+        for ext in [x for x in _extensions
+                    if self.settings.get('extensions.' + x + '.enabled')]:
             self.load_extension(ext)
-
-    def config_subdict(self, ns):
-        cfg_dict = utils.configparser_to_dict(self.config)
-        multi_depth_cfg = utils.MultiDepthDict(cfg_dict)
-        return multi_depth_cfg.subdict(ns)
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
@@ -239,9 +319,9 @@ class Arroyo:
 
         self._registry[extension_point][extension_name] = extension_class
 
-    def run_from_args(self, arguments=None):
+    def run_from_args(self, command_line_arguments=sys.argv[1:]):
+        # Build full argument parser
         argparser = build_argument_parser()
-
         subparser = argparser.add_subparsers(
             title='subcommands',
             dest='subcommand',
@@ -254,17 +334,12 @@ class Arroyo:
                 args, kwargs = argument()
                 command_parser.add_argument(*args, **kwargs)
 
-        args = argparser.parse_args(arguments)
+        # Parse arguments
+        args = argparser.parse_args(command_line_arguments)
         if not args.subcommand:
             argparser.print_help()
             return
 
-        return self.run_command(args.subcommand, args)
-
-    def run_command(self, command, args):
-        try:
-            self.arguments = args
-            self.get_extension('command', command).run()
-            delattr(self, 'arguments')
-        except arroyo.exc.ArgumentError as e:
-            self.logger.error(e)
+        # Get extension instances and extract its argument names
+        extension = self.get_extension('command', args.subcommand)
+        extension.run(args)
