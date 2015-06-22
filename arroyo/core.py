@@ -173,7 +173,7 @@ class Arroyo:
              if x),
             (ext for ext in
              self.config_subdict('extension')
-             if self.config.getboolean('extension.'+ext, 'enabled',
+             if self.config.getboolean('extension.' + ext, 'enabled',
                                        fallback=True))
         )
 
