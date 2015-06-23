@@ -82,6 +82,8 @@ class Importer:
         app.signals.register('sources-added-batch')
         app.signals.register('sources-updated-batch')
 
+        app.register('crontask', 'importer', ImporterCronTask)
+
     def get_origin_specs(self):
         defs = self.app.settings.get_tree('origin', {})
         if not defs:
@@ -217,3 +219,16 @@ class Importer:
         self.app.db.session.commit()
 
         return ret
+
+
+class ImporterCronTask(exts.CronTask):
+    NAME = 'importer'
+    INTERVAL = '3H'
+
+    def run(self):
+        for spec in self.get_origin_specs():
+            origin = self.app.get_extension('origin', spec.get('backend'),
+                                            origin_spec=spec)
+            self._import(origin)
+
+        super().run()
