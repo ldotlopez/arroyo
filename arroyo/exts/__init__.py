@@ -153,6 +153,21 @@ class Selector(Extension):
 
 
 class CronTask(Extension):
+    def __init__(self, app):
+        if not hasattr(self, 'INTERVAL'):
+            msg = "{class_name} doesn't have an INTERVAL attribute"
+            msg = msg.format(class_name=self.__class__.__name__)
+            raise TypeError(msg)
+
+        try:
+            self.INTERVAL = utils.parse_time(self.INTERVAL)
+        except ValueError as e:
+            msg = "Invalid interval value '{interval}', check docs"
+            msg = msg.format(interval=self.INTERVAL)
+            raise TypeError(msg) from e
+
+        super().__init__(app)
+
     def run(self):
         raise NotImplementedError()
 
