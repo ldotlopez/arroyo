@@ -1,6 +1,6 @@
 from ldotcommons import fetchers, utils
 
-from arroyo import (exc, models)
+from arroyo import (exts, exc, models)
 
 
 def _origin_ns_validator(k, v):
@@ -83,9 +83,15 @@ class Importer:
         app.signals.register('sources-updated-batch')
 
     def get_origin_specs(self):
+        defs = self.app.settings.get_tree('origin', {})
+        if not defs:
+            msg = "No origins defined"
+            self.app.logger.warn(msg)
+            return []
+
         specs = []
 
-        for (name, params) in self.app.settings.get_tree('origin').items():
+        for (name, params) in defs.items():
             try:
                 specs.append(OriginSpec(name, params.pop('backend'), **params))
             except TypeError:
