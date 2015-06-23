@@ -12,6 +12,7 @@ from arroyo.exts import CronTask
 
 
 class TestZeroTask(CronTask):
+    NAME = 'zero'
     INTERVAL = 0
 
     def __init__(self, app):
@@ -20,9 +21,11 @@ class TestZeroTask(CronTask):
     def run(self):
         i = getattr(self.app, 'zero', -1)
         setattr(self.app, 'zero', i + 1)
+        super().run()
 
 
 class TestMinuteTask(CronTask):
+    NAME = 'minute'
     INTERVAL = 60
 
     def __init__(self, app):
@@ -32,6 +35,7 @@ class TestMinuteTask(CronTask):
     def run(self):
         i = getattr(self.app, 'minute', -1)
         setattr(self.app, 'minute', i + 1)
+        super().run()
 
 
 class MissingIntervalTask(CronTask):
@@ -76,6 +80,17 @@ class CronTest(unittest.TestCase):
         self.app.cron.run_task('minute')
         self.assertEqual(getattr(self.app, 'zero', None), 1)
         self.assertEqual(getattr(self.app, 'minute', None), 0)
+
+    def test_force_run(self):
+        self.app.register('crontask', 'minute', TestMinuteTask)
+
+        self.assertFalse(hasattr(self.app, 'minute'))
+
+        self.app.cron.run_task('minute')
+        self.assertEqual(getattr(self.app, 'minute', None), 0)
+
+        self.app.cron.run_task('minute', force=True)
+        self.assertEqual(getattr(self.app, 'minute', None), 1)
 
 if __name__ == '__main__':
     unittest.main()

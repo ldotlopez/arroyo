@@ -273,6 +273,9 @@ class Arroyo:
                     if self.settings.get('extensions.' + x + '.enabled')]:
             self.load_extension(ext)
 
+        # Run cron tasks
+        self.cron.run_all_tasks()
+
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
