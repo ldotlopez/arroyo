@@ -7,9 +7,13 @@ import re
 from urllib import parse
 
 from ldotcommons.sqlalchemy import Base
+from ldotcommons.keyvaluestore import keyvaluemodel
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
+
+
+Variable = keyvaluemodel('Variable', Base)
 
 
 class Source(Base):

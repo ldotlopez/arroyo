@@ -8,6 +8,7 @@ import warnings
 
 from ldotcommons import (
     fetchers,
+    keyvaluestore,
     store,
     utils
 )
@@ -18,6 +19,7 @@ from arroyo import (
     downloader,
     exts,
     mediainfo,
+    models,
     selector,
     signaler)
 
@@ -252,6 +254,8 @@ class Arroyo:
         # Built-in providers
         self.signals = signaler.Signaler()
         self.db = db.Db(self.settings.get('db-uri'))
+        self.variables = keyvaluestore.KeyValueManager(models.Variable,
+                                                       session=self.db.session)
         self.downloader = downloader.Downloader(
             self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
