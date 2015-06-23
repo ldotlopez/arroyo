@@ -1,5 +1,5 @@
 from sqlalchemy import orm
-from ldotcommons import (sqlalchemy as ldotsa, utils)
+from ldotcommons import sqlalchemy as ldotsa
 
 import arroyo.exc
 from arroyo import models
@@ -57,7 +57,13 @@ class Db:
         print("[!!] Database connection in 'sess' {}".format(self._sess))
         print("[!!] If you make any changes remember to call sess.commit()")
         sess = self._sess  # nopep8
-        utils.get_debugger().set_trace()
+        try:
+            import ipdb
+        except ImportError:
+            import pdb
+            ipdb = pdb
+
+        ipdb.set_trace()
 
     def search(self, all_states=False, **kwargs):
         query = ldotsa.query_from_params(self._sess, models.Source, **kwargs)

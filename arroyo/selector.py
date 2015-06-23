@@ -1,59 +1,32 @@
 from ldotcommons import (sqlalchemy as ldotsa, utils)
 
 
-# Probabily there is a better solution for this inmutable dict
-class Query(dict):
-    _ready = False
+class QuerySpec(utils.InmutableDict):
+    def __init__(self, **kwargs):
+        def _normalize_key(key):
+            for x in [' ', '_']:
+                key = key.replace(x, '-')
+            return key
 
-    def __init__(self, **params):
-        def _glob_to_sa_like(params):
-            ret = {}
+        tmp = {}
+        for (k, v) in kwargs.items():
+            k = _normalize_key(k)
+            if k.endswith('-like'):
+                v = ldotsa.glob_to_like(v, wide=True)
+            tmp[k] = v
 
-            for (param, value) in params.items():
-                for x in [' ', '_']:
-                    param = param.replace(x, '-')
+        kwargs = tmp
 
-                if param.endswith('-like'):
-                    value = ldotsa.glob_to_like(value)
+        if 'selector' not in kwargs:
+            kwargs['selector'] = 'source'
 
-                    if not value.startswith('%'):
-                        value = '%' + value
+        if 'language' in kwargs:
+            kwargs['language'] = kwargs['language'].lower()
 
-                    if not value.endswith('%'):
-                        value = value + '%'
+        if 'type' in kwargs:
+            kwargs['type'] = kwargs['type'].lower()
 
-                ret[param] = value
-
-            return ret
-
-        params = _glob_to_sa_like(params)
-
-        if 'selector' not in params:
-            params['selector'] = 'source'
-
-        if 'language' in params:
-            params['language'] = params['language'].lower()
-
-        if 'type' in params:
-            params['type'] = params['type'].lower()
-
-        super(Query, self).__init__(**params)
-        self._ready = True
-
-    def pop(self, k, **kwargs):
-        return self.__delitem__(k)
-
-    def __setitem__(self, k, v):
-        if self._ready:
-            raise ValueError('Query objects are inmutable')
-        else:
-            super(dict, self).__setitem__(k, v)
-
-    def __delitem__(self, k):
-        raise ValueError('Query objects are inmutable')
-
-    def __repr__(self):
-        return '<Query {}>'.format(super(Query, self).__repr__())
+        super().__init__(**kwargs)
 
 
 class Selector:
@@ -64,21 +37,21 @@ class Selector:
     def get_queries(self):
         cfg_dict = utils.configparser_to_dict(self.app.config)
         queries = utils.MultiDepthDict(cfg_dict).subdict('query')
-        return {k: Query(**v) for (k, v) in queries.items()}
+        return {k: QuerySpec(**v) for (k, v) in queries.items()}
 
     def get_selector(self, query):
-        if not isinstance(query, Query):
-            raise ValueError('query is not a Query object')
+        if not isinstance(query, QuerySpec):
+            raise ValueError('query is not a QuerySpec object')
 
-        tmp = dict(query)
-        selector_type = tmp.pop('selector')
+        selector_type = query.get('selector')
+        query = query.exclude('selector')
 
         return self.app.get_extension(
             'selector', selector_type,
-            query=tmp)
+            query=query)
 
     def select(self, query, everything=False):
-        if not isinstance(query, Query):
+        if not isinstance(query, QuerySpec):
             raise ValueError('query must be a Query instance')
 
         if self._auto_import:

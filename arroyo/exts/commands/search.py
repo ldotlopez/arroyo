@@ -92,7 +92,7 @@ class QueryCommand(exts.Command):
         # sync()
 
         for (label, query) in queries.items():
-            query = selector.Query(**query)
+            query = selector.QuerySpec(**query)
             res = list(self.app.selector.select(
                 query,
                 everything=all_states

@@ -18,17 +18,18 @@ class Origin(Extension):
         super(Origin, self).__init__(app)
 
         if origin_spec and query_spec:
-            raise ValueError('origin_spec and query_spec are mutually exclusive')
+            msg = 'origin_spec and query_spec are mutually exclusive'
+            raise ValueError(msg)
 
         self._iteration = 0
 
         if origin_spec:
-            self._name = origin_spec.name
-            self._url = origin_spec.url or self.BASE_URL
-            self._iterations = origin_spec.iterations
+            self._name = origin_spec['name']
+            self._url = origin_spec['url'] or self.BASE_URL
+            self._iterations = origin_spec['iterations']
             self._overrides = {k: v for (k, v) in {
-                'type': origin_spec.type,
-                'language': origin_spec.language,
+                'type': origin_spec['type'],
+                'language': origin_spec['language'],
             }.items() if v is not None}
 
         else:
@@ -36,10 +37,6 @@ class Origin(Extension):
             self._url = self.get_query_url(query_spec)
             self._iterations = 1
             self._overrides = {}
-
-    @property
-    def BASE_URL(self):
-        raise NotImplementedError()
 
     @property
     def iteration(self):
@@ -66,7 +63,7 @@ class Origin(Extension):
         """
         Get protosources from origin. Integrity of collected data is guaranteed
         """
-        now = utils.utcnow_timestamp()
+        now = utils.now_timestamp()
 
         def fix_data(psrc):
             if not isinstance(psrc, dict):

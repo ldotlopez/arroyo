@@ -1,9 +1,6 @@
-# from glob import fnmatch
-from ldotcommons import fetchers
+from ldotcommons import fetchers, utils
 
 from arroyo import (exc, models)
-
-_NoneType = type(None)
 
 
 def _origin_ns_validator(k, v):
@@ -20,7 +17,7 @@ def _origin_ns_validator(k, v):
             raise TypeError(msg.format(v, k, str))
 
     if k in ['url', 'language', 'type']:
-        if not isinstance(v, (_NoneType, str)) or v == '':
+        if not isinstance(v, (utils.NoneType, str)) or v == '':
             raise TypeError(msg.format(v, k, str))
 
     if k == 'iterations':
@@ -35,7 +32,7 @@ def _origin_ns_validator(k, v):
     return v
 
 
-class OriginSpec:
+class OriginSpec(utils.InmutableDict):
     def __init__(self, name, backend, url=None, iterations=1, type=None,
                  language=None):
         # Check strs
@@ -62,27 +59,14 @@ class OriginSpec:
             msg = msg.format(name='iterations', value=iterations)
             raise TypeError(msg)
 
-        self.backend = backend
-        self.url = url
-        self.iterations = iterations or 1
-        self.type = type
-        self.language = language
-        self.name = name
-
-    # Read-only attributes
-    def __setattr__(self, attr, value):
-        if hasattr(self, 'name'):
-            msg = "Attribute {name} is read only"
-            msg = msg.format(name=attr)
-            raise TypeError(msg)
-        else:
-            super(OriginSpec, self).__setattr__(attr, value)
+        super().__init__(name=name, backend=backend, url=url,
+                         iterations=iterations, type=type, language=language)
 
     def __repr__(self):
         return "<{pkg}.{clsname}: '{name}'>".format(
             pkg=__name__,
             clsname=self.__class__.__name__,
-            name=getattr(self, 'name', '(null)'))
+            name=self.get('name', '(null)'))
 
 
 class Importer:
@@ -111,7 +95,7 @@ class Importer:
 
     def execute(self):
         for spec in self.get_origin_specs():
-            origin = self.app.get_extension('origin', spec.backend,
+            origin = self.app.get_extension('origin', spec.get('backend'),
                                             origin_spec=spec)
             self._import(origin)
 
@@ -198,6 +182,8 @@ class Importer:
             'errors': errors
         }
 
+        now = utils.now_timestamp()
+
         for src in sources:
             obj, created = self.app.db.get_or_create(models.Source,
                                                      urn=src['urn'])
@@ -205,7 +191,11 @@ class Importer:
                 setattr(obj, key, src[key])
 
             if created:
+                obj.created = now
+                obj.last_seen = now
                 self.app.db.session.add(obj)
+            else:
+                obj.last_seen = now
 
             signal_name = 'source-added' if created else 'source-updated'
             self.app.signals.send(signal_name, source=obj)
