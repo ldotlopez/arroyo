@@ -182,6 +182,8 @@ class Importer:
             'errors': errors
         }
 
+        now = utils.now_timestamp()
+
         for src in sources:
             obj, created = self.app.db.get_or_create(models.Source,
                                                      urn=src['urn'])
@@ -189,7 +191,11 @@ class Importer:
                 setattr(obj, key, src[key])
 
             if created:
+                obj.created = now
+                obj.last_seen = now
                 self.app.db.session.add(obj)
+            else:
+                obj.last_seen = now
 
             signal_name = 'source-added' if created else 'source-updated'
             self.app.signals.send(signal_name, source=obj)
