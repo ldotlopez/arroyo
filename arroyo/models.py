@@ -6,10 +6,14 @@ import hashlib
 import re
 from urllib import parse
 
-from ldotcommons.sqlalchemy import Base, utils
+from ldotcommons.sqlalchemy import Base
+from ldotcommons import keyvaluestore, utils
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
+
+
+Variable = keyvaluestore.keyvaluemodel('Variable', Base)
 
 
 class Source(Base):
