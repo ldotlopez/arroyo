@@ -15,6 +15,7 @@ from ldotcommons import (
 
 from arroyo import (
     importer,
+    cron,
     db,
     downloader,
     exts,
@@ -252,10 +253,12 @@ class Arroyo:
         #     logger=self.logger.getChild('fetcher'))
 
         # Built-in providers
-        self.signals = signaler.Signaler()
         self.db = db.Db(self.settings.get('db-uri'))
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
                                                        session=self.db.session)
+        self.signals = signaler.Signaler()
+        self.cron = cron.CronManager(self)
+
         self.downloader = downloader.Downloader(
             self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
