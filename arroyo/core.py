@@ -275,13 +275,11 @@ class Arroyo:
                 self._registry.get(extension_point, {}).items()}
 
     def get_extension(self, extension_point, name, **params):
-        try:
-            impl_cls = self._registry.get(extension_point, {})[name]
-            return impl_cls(self, **params)
-        except KeyError:
-            pass
+        impls = self._registry.get(extension_point, {})
+        if name not in impls:
+            raise arroyo.exc.NoImplementationError(extension_point, name)
 
-        raise arroyo.exc.NoImplementationError(extension_point, name)
+        return impls[name](self, **params)
 
     def load_extension(self, *names):
         for name in names:
