@@ -17,11 +17,14 @@ from arroyo import (
 )
 
 
-_SETTINGS_NS = 'downloader.transmission'
+_SETTINGS_NS = 'extensions.downloaders.transmission'
 
 
 def settings_validator(key, value):
     k = key[len(_SETTINGS_NS)+1:]
+
+    if k in 'enabled':
+        return store.cast_value(value, bool)
 
     if k in ['address', 'user', 'password']:
         return store.cast_value(value, str)
