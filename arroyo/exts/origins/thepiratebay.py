@@ -14,71 +14,81 @@ from arroyo import exts
 
 
 class Tpb(exts.Origin):
+    PROVIDER_NAME = 'tpb'
     BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(
         tld=random.sample([
-            'am', 'gd', 'bg', 'la', 'am', 'gs'
+            'am', 'gs', 'mn', 'la', 'vg'
         ], 1)[0])
-
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
-    def url_generator(self, url=None):
-        if url is None:
-            url = self.BASE_URL
+    def paginate(self, url):
+        yield url
 
-        # And '/' at the end
-        if not url.endswith('/'):
-            url += '/'
+    # def url_generator(self, url=None):
+    #     if url is None:
+    #         url = self.BASE_URL
 
-        # Get page
-        try:
-            page = int(re.findall(r'/(\d+)/', url)[0])
-        except IndexError:
-            page = 0
-            url += '0/'
+    #     # And '/' at the end
+    #     if not url.endswith('/'):
+    #         url += '/'
 
-        pre, post = re.split(r'/\d+/', url, maxsplit=1)
+    #     # Get page
+    #     try:
+    #         page = int(re.findall(r'/(\d+)/', url)[0])
+    #     except IndexError:
+    #         page = 0
+    #         url += '0/'
 
-        while True:
-            yield pre + '/' + str(page) + '/' + post
-            page += 1
+    #     pre, post = re.split(r'/\d+/', url, maxsplit=1)
+
+    #     while True:
+    #         yield pre + '/' + str(page) + '/' + post
+    #         page += 1
 
     def process_buffer(self, buff):
-        soup = bs4.BeautifulSoup(buff)
-        trs = soup.select('table > tr')[:-1]
-
-        sources = []
-        for tr in trs:
-            details = tr.select('font.detDesc')[0].text
+        def parse_row(row):
+            details = row.select('font.detDesc')[0].text
 
             (amount, suffix) = re.findall(r'([0-9\.]+)\s([GMK])iB',
                                           details,
                                           re.IGNORECASE)[0]
             size = int(float(amount) * self._SIZE_TABLE[suffix])
 
-            sources.append({
-                'name': tr.findAll('a')[2].text,
-                'uri': tr.findAll('a')[3]['href'],
+            return {
+                'name': row.findAll('a')[2].text,
+                'uri': row.findAll('a')[3]['href'],
                 'size': size,
                 'timestamp': utcnow_timestamp(),
-                'seeds': int(tr.findAll('td')[-2].text),
-                'leechers': int(tr.findAll('td')[-1].text)
-            })
+                'seeds': int(row.findAll('td')[-2].text),
+                'leechers': int(row.findAll('td')[-1].text)
+            }
 
-        return sources
+        soup = bs4.BeautifulSoup(buff)
+        rows = soup.select('table tr')[1:-1]
+
+        return map(parse_row, rows)
 
 
 class TpbRss(exts.Origin):
-    BASE_URL = 'http://rss.thepiratebay.se/100'
 
-    def url_generator(self, url=None):
-        """Generates URLs for the current website,
-        TPB doesn't support pagination on feeds
-        """
-        if url is None:
-            url = self.BASE_URL
+    PROVIDER_NAME = 'tpbrss'
+    BASE_URL = 'http://thepiratebay.{tld}/rss/'.format(
+        tld=random.sample([
+            'am', 'gs', 'mn', 'la', 'vg'
+        ], 1)[0])
 
+    def paginate(self, url):
         yield url
-        raise StopIteration()
+
+    # def url_generator(self, url=None):
+    #     """Generates URLs for the current website,
+    #     TPB doesn't support pagination on feeds
+    #     """
+    #     if url is None:
+    #         url = self.BASE_URL
+
+    #     yield url
+    #     raise StopIteration()
 
     def process_buffer(self, buff):
         def _build_source(entry):
@@ -89,7 +99,7 @@ class TpbRss(exts.Origin):
                 'size': int(entry['contentlength'])
             }
 
-        return list(map(_build_source, feedparser.parse(buff)['entries']))
+        return map(_build_source, feedparser.parse(buff)['entries'])
 
 __arroyo_extensions__ = [
     ('origin', 'tpb', Tpb),
