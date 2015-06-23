@@ -8,29 +8,19 @@ import arroyo.exc
 
 
 class Downloader:
-    def __init__(self, app, downloader_name, **downloader_params):
+    def __init__(self, app):
         app.signals.register('source-state-change')
 
         self._app = app
         self._logger = app.logger.getChild('downloader')
-        self.set_backend(downloader_name, **downloader_params)
 
     def get_queries(self):
         return {name: selector.Query(**params) for (name, params) in
                 self._app.config_subdict('query').items()}
 
-    def set_backend(self, name, **params):
-        self._backend = [None, name, params]
-
     def _get_backend(self):
-        if not self._backend[0]:
-            self._backend[0] = self._app.get_extension(
-                'downloader',
-                self._backend[1],
-                **self._backend[2]
-            )
-
-        return self._backend[0]
+        name = self._app.settings.get('downloader')
+        return self._app.get_extension('downloader', name)
 
     def add(self, *sources):
         backend = self._get_backend()

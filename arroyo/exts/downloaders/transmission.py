@@ -17,7 +17,7 @@ from arroyo import (
 )
 
 
-_SETTINGS_NS = 'extension.downloaders.transmission'
+_SETTINGS_NS = 'downloader.transmission'
 
 
 def settings_validator(key, value):
@@ -34,7 +34,6 @@ def settings_validator(key, value):
 
 
 class TransmissionDownloader(exts.Downloader):
-    _CONFIG_SECTION_NAME = 'extension.downloaders.transmission'
     _STATE_MAP = {
         'download pending': models.Source.State.QUEUED,
         'downloading': models.Source.State.DOWNLOADING,
@@ -45,15 +44,14 @@ class TransmissionDownloader(exts.Downloader):
     def __init__(self, app):
         super(TransmissionDownloader, self).__init__(app)
 
-        s = app.settings
-        # import ipdb;ipdb.set_trace()
-        s.set_validator(settings_validator, ns=_SETTINGS_NS, )
+        app.settings.set_validator(settings_validator, ns=_SETTINGS_NS, )
 
         self._logger = self.app.logger.getChild('transmission')
 
         error = None
 
         try:
+            s = app.settings.get_tree(_SETTINGS_NS, {})
             self._api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),

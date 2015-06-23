@@ -259,10 +259,9 @@ class Arroyo:
         self.signals = signaler.Signaler()
         self.cron = cron.CronManager(self)
 
-        self.downloader = downloader.Downloader(
-            self, self.settings.get('downloader'))
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
+        self.downloader = downloader.Downloader(self)
 
         # Mediainfo instance is not never used directly, it can be considered
         # as a "service", but it's keep anyway
