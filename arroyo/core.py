@@ -97,7 +97,7 @@ def build_argument_parser():
             action='count')
 
         parser.add_argument(
-            '--config-file',
+            '-c', '--config-file',
             dest='config-files',
             action='append',
             default=[])
@@ -115,6 +115,16 @@ def build_argument_parser():
         parser.add_argument(
             '--downloader',
             dest='downloader')
+
+        parser.add_argument(
+            '--auto-import',
+            action='store_true',
+            dest='auto-import')
+
+        parser.add_argument(
+            '--auto-cron',
+            action='store_true',
+            dest='auto-cron')
 
         return parser
 
