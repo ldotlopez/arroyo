@@ -3,7 +3,7 @@ import binascii
 import re
 from urllib import parse
 
-from arroyo import models, selector
+from arroyo import models
 import arroyo.exc
 
 
@@ -16,25 +16,24 @@ class Downloads:
         app.signals.register('source-state-change')
 
         self._app = app
-        self._logger = app.logger.getChild('downloads-manager')
+        self._logger = app.logger.getChild('downloads')
+        self._backend = None
 
-    def get_queries(self):
-        return {name: selector.Query(**params) for (name, params) in
-                self._app.config_subdict('query').items()}
+    @property
+    def backend(self):
+        if self._backend is None:
+            name = self._app.settings.get('downloader')
+            self._backend = self._app.get_extension('downloader', name)
 
-    def _get_backend(self):
-        name = self._app.settings.get('downloader')
-        return self._app.get_extension('downloader', name)
+        return self._backend
 
     def add(self, *sources):
         if not sources:
             msg = "Missing parameter sources"
             raise TypeError(msg)
 
-        backend = self._get_backend()
-
         for src in sources:
-            backend.add(src)
+            self.backend.add(src)
             src.state = models.Source.State.INITIALIZING
 
         self._app.db.session.commit()
@@ -46,19 +45,17 @@ class Downloads:
             msg = "Missing parameter sources"
             raise TypeError(msg)
 
-        backend = self._get_backend()
-
         translations = {}
-        for dler_obj in backend.list():
+        for dler_obj in self.backend.list():
             try:
-                db_obj = backend.translate_item(dler_obj)
+                db_obj = self.backend.translate_item(dler_obj)
                 translations[db_obj] = dler_obj
             except arroyo.exc.NoMatchingItem:
                 pass
 
         for src in sources:
             try:
-                backend.remove(translations[src])
+                self.backend.remove(translations[src])
                 src.state = models.Source.State.NONE
                 self._app.db.session.commit()
 
@@ -67,24 +64,22 @@ class Downloads:
                     "No matching object in backend for '{}'".format(src))
 
     def list(self):
-        backend = self._get_backend()
-
         ret = []
 
-        for dler_obj in backend.list():
+        for dler_obj in self.backend.list():
             # Filter out objects from downloader unknow for the db
             try:
-                db_obj = backend.translate_item(dler_obj)
+                db_obj = self.backend.translate_item(dler_obj)
             except arroyo.exc.NoMatchingItem as e:
                 msg = "No matching db object for {item}"
-                self._logger.warn(msg.format(item=e))
+                self._logger.warning(msg.format(item=e))
                 continue
 
             # Warn about unknow states
             try:
-                dler_state = backend.get_state(dler_obj)
+                dler_state = self.backend.get_state(dler_obj)
             except arroyo.exc.NoMatchingState as e:
-                self._logger.warn(
+                self._logger.warning(
                     "No matching state '{}' for {}".format(e.state, db_obj))
                 continue
 
