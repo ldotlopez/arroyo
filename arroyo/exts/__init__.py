@@ -4,6 +4,9 @@ from ldotcommons import utils
 
 
 class Extension:
+    """Basic extension point.
+    Its reponsability is to create a link in ext.Extension with core.Arroyo
+    """
     def __init__(self, app):
         super(Extension, self).__init__()
         self.app = app
@@ -14,6 +17,33 @@ class Service(Extension):
 
 
 class Origin(Extension):
+    """Extension point for implemented Origin extension.
+
+    Origin extensions are responsible to parse websites or fetch information
+    from other services.
+
+    They must override or implement:
+
+    - class attribute BASE_URL: Default URL (or URI) of website. This URL will
+        be used if no other is specified
+    - class attribute PROVIDER_NAME: Unique (among other ext.Origin
+        implementations) identifier
+    - method process_buffer: Given a utf8 buffer this function should return a
+        list of dicts with found information. Those dicts can containing the
+        same fields present in models.Source, only name and uri are mandatory
+
+    They can override:
+
+    - method paginate: Given a URL returns a generator object which yields that
+        URL and subsequent URLs
+    - method get_query_url: Given a selector.QuerySpec object returns the URL
+        containing that search result for the website that ext.Origin
+        implements
+
+    This class also contains some helper methods for child classes, check docs
+    or code for more information
+    """
+
     def __init__(self, app, origin_spec=None, query_spec=None):
         super(Origin, self).__init__(app)
 
