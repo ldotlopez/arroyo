@@ -33,6 +33,7 @@ _defaults = {
     'db-uri': 'sqlite:///' +
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
+    'auto-cron': False,
     'auto-import': False,
     'legacy': False,
     'log-level': 'WARNING',
@@ -47,6 +48,7 @@ _defaults = {
 _defaults_types = {
     'db-uri': str,
     'downloader': str,
+    'auto-cron': bool,
     'auto-import': bool,
     'log-level': str,
     'log-format': str,
@@ -273,7 +275,8 @@ class Arroyo:
             self.load_extension(ext)
 
         # Run cron tasks
-        self.cron.run_all_tasks()
+        if self.settings.get('auto-cron'):
+            self.cron.run_all_tasks()
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
