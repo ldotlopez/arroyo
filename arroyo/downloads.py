@@ -106,8 +106,8 @@ class Downloads:
 
 
 def calculate_urns(urn):
-    """
-    Returns all equivalent urns in different encodings
+    """Returns all equivalent urns in different encodings
+
     Returns (sha1 urn, base32 urn)
     """
 
@@ -124,7 +124,9 @@ def calculate_urns(urn):
         urn_base32 = id_
 
     else:
-        raise Exception("Unknow enconding for '{}'".format(urn))
+        msg = "Unknow enconding for '{urn}'"
+        msg = msg.format(urn=urn)
+        raise ValueError(msg)
 
     return (
         ':'.join([prefix, algo, urn_sha1]),
@@ -133,26 +135,29 @@ def calculate_urns(urn):
 
 
 def is_sha1_urn(urn):
+    """Check if urn matches sha1 urn: scheme"""
     return re.match('^urn:(.+?):[A-F0-9]{40}$', urn, re.IGNORECASE) is not None
 
 
 def is_base32_urn(urn):
+    """Check if urn matches base32 urn: scheme"""
     return re.match('^urn:(.+?):[A-Z2-7]{32}$', urn, re.IGNORECASE) is not None
 
 
 def parse_magnet(magnet_url):
+    """Parse magnet link"""
     p = parse.urlparse(magnet_url)
     if p.scheme != 'magnet':
-        raise Exception("Invalid magnet link: '{}'".format(magnet_url))
+        msg = "Invalid magnet link: '{magnet}'"
+        msg = msg.format(magnet=magnet_url)
+        raise ValueError(msg)
 
     qs = parse.parse_qs(p.query)
     return qs
 
 
 def rewrite_uri(uri):
-    """
-    Rewrites URI (magnet) using sha1sum ID
-    """
+    """Rewrites URI (magnet) using sha1sum ID"""
     def _rewrite_pair(x):
         (k, v) = x
         if k == 'xt':
