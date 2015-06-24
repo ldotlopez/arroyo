@@ -27,6 +27,10 @@ class Downloads:
         return self._app.get_extension('downloader', name)
 
     def add(self, *sources):
+        if not sources:
+            msg = "Missing parameter sources"
+            raise TypeError(msg)
+
         backend = self._get_backend()
 
         for src in sources:
@@ -38,6 +42,10 @@ class Downloads:
             self._app.signals.send('source-state-change', source=src)
 
     def remove(self, *sources):
+        if not sources:
+            msg = "Missing parameter sources"
+            raise TypeError(msg)
+
         backend = self._get_backend()
 
         translations = {}

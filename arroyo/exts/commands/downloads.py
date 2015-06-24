@@ -66,10 +66,22 @@ class DownloadCommand(exts.Command):
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
+            if not src:
+                msg = "Source with id {id} not found"
+                msg = msg.format(id=source_id)
+                self.app.logger.error(msg)
+                return
+
             self.app.downloads.add(src)
 
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
+            if not src:
+                msg = "Source with id {id} not found"
+                msg = msg.format(id=source_id)
+                self.app.logger.error(msg)
+                return
+
             self.app.downloads.remove(src)
 
         else:
