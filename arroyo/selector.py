@@ -55,7 +55,7 @@ class Selector:
             raise ValueError('query must be a Query instance')
 
         if self._auto_import:
-            self.app.importer.import_query(query)
+            self.app.importer.import_query_spec(query)
 
         selector = self.get_selector(query)
         for src in selector.select(everything):

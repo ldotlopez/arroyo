@@ -146,9 +146,15 @@ class Importer:
         Returned origins are configured with one iteration.
         """
 
-        ret = []
+        impls = self.app.get_implementations('origin').items()
+        if not impls:
+            msg = ("There are no origin implementations available or none of "
+                   "them is enabled, check your configuration")
+            self.app.logger.warning(msg)
+            return []
 
-        for (name, impl) in self.app.get_implementations('origin').items():
+        ret = []
+        for (name, impl) in impls.items():
             origin = impl(self.app, query_spec=query_spec)
             ret.append(origin)
 
