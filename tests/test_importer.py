@@ -29,6 +29,10 @@ class ImporterTest(unittest.TestCase):
 
         return self.settings
 
+    def test_import_get_origins(self):
+        app = core.Arroyo(self.settings)
+        app.importer.get_origins()
+
     def test_import_origin(self):
         self.set_mock_fetcher()
         app = core.Arroyo(self.settings)
@@ -37,13 +41,13 @@ class ImporterTest(unittest.TestCase):
                           url='http://eztv.ch/page_0')
 
         # Check successful import
-        ret = app.importer.import_origin(spec)
+        ret = app.importer.import_origin_spec(spec)
 
         self.assertEqual(len(ret['added-sources']), 41)
         self.assertEqual(len(ret['updated-sources']), 0)
 
         # Check updating sources
-        ret = app.importer.import_origin(spec)
+        ret = app.importer.import_origin_spec(spec)
 
         self.assertEqual(len(ret['added-sources']), 0)
         self.assertEqual(len(ret['updated-sources']), 41)
@@ -51,7 +55,7 @@ class ImporterTest(unittest.TestCase):
         # Check for invalid URLs
         spec = OriginSpec(name='test', backend='eztv',
                           url='http://nowhere.com/invalid')
-        ret = app.importer.import_origin(spec)
+        ret = app.importer.import_origin_spec(spec)
         e = ret['errors']['http://nowhere.com/invalid']
 
         self.assertEqual(len(ret['added-sources']), 0)

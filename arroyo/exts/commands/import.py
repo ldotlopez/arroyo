@@ -35,17 +35,20 @@ class ImportCommand(exts.Command):
     )
 
     def run(self, args):
+
         if args.backend:
+            # Delete previous origins
             if self.app.settings.has_namespace('origin'):
                 self.app.settings.delete('origin')
 
+            # Rebuild origin
             keys = 'backend url iterations type language'.split(' ')
             for k in keys:
                 self.app.settings.set(
                     'origin.command-line.' + k,
                     getattr(args, k))
 
-        self.app.importer.execute()
+        self.app.importer.run()
 
 __arroyo_extensions__ = [
     ('command', 'import', ImportCommand)
