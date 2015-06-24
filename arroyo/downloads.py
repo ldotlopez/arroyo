@@ -34,7 +34,7 @@ class Downloads:
         backend = self._get_backend()
 
         for src in sources:
-            backend.do_add(src)
+            backend.add(src)
             src.state = models.Source.State.INITIALIZING
 
         self._app.db.session.commit()
@@ -49,7 +49,7 @@ class Downloads:
         backend = self._get_backend()
 
         translations = {}
-        for dler_obj in backend.do_list():
+        for dler_obj in backend.list():
             try:
                 db_obj = backend.translate_item(dler_obj)
                 translations[db_obj] = dler_obj
@@ -58,7 +58,7 @@ class Downloads:
 
         for src in sources:
             try:
-                backend.do_remove(translations[src])
+                backend.remove(translations[src])
                 src.state = models.Source.State.NONE
                 self._app.db.session.commit()
 
@@ -71,7 +71,7 @@ class Downloads:
 
         ret = []
 
-        for dler_obj in backend.do_list():
+        for dler_obj in backend.list():
             # Filter out objects from downloader unknow for the db
             try:
                 db_obj = backend.translate_item(dler_obj)

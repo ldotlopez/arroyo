@@ -175,7 +175,20 @@ class Command(Extension):
 
 
 class Downloader(Extension):
-    pass
+    def add(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def remove(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def list(self, **kwargs):
+        raise NotImplementedError()
+
+    def get_state(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def translate_item(self, backend_obj):
+        raise NotImplementedError()
 
 
 class Selector(Extension):

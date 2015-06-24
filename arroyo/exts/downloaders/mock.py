@@ -11,18 +11,18 @@ class MockDownloader(exts.Downloader):
     def __init__(self, app):
         super().__init__(app)
 
-    def do_add(self, source, **kwargs):
+    def add(self, source, **kwargs):
         self.app.variables.set(
             self.get_source_key(source),
             models.Source.State.INITIALIZING)
 
         source.state = models.Source.State.INITIALIZING
 
-    def do_remove(self, source):
+    def remove(self, source):
         self.app.variables.reset(
             self.get_source_key(source))
 
-    def do_list(self):
+    def list(self):
         idx = len(self._VARIABLES_NS) + 1
         ret = []
         for var in self.app.variables.children(self._VARIABLES_NS):
