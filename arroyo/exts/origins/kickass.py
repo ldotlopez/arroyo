@@ -9,10 +9,9 @@ import bs4
 
 from arroyo import exts
 
-_BASE_DOMAIN = 'kat.cr'
-
 
 class KickAss(exts.Origin):
+    _BASE_DOMAIN = 'kat.cr'
     BASE_URL = 'http://{}/new/?page=1'.format(_BASE_DOMAIN)
     PROVIDER_NAME = 'kickass'
 
@@ -56,7 +55,7 @@ class KickAss(exts.Origin):
 
         return ('http://{domain}/usearch/{q}{catstr}/?'
                 'field=time_add&sorder=desc').format(
-                    domain=_BASE_DOMAIN,
+                    domain=self._BASE_DOMAIN,
                     q=parse.quote(q),
                     catstr=catstr)
 
