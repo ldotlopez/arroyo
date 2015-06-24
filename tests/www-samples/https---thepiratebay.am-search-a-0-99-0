@@ -1,0 +1,696 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>The Pirate Bay - The galaxy's most resilient bittorrent site</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <meta name="google-site-verification" content="bERYeomIC5eBWlPLupPPYPYGA9GvAUKzFHh3WIw24Xs" />
+    <link rel="search" type="application/opensearchdescription+xml" href="/opensearch.xml" title="Search The Pirate Bay" />
+    <link rel="stylesheet" type="text/css" href="https://piratebay.org/css/pirate6.css"/>
+    <link rel="dns-prefetch" href="//adbrau.com/">
+    <link rel="dns-prefetch" href="//cdn.adbrau.com/">
+    <link rel="dns-prefetch" href="//cdn3.adbrau.com/">
+    <link rel="dns-prefetch" href="//syndication.exoclick.com/">
+    <link rel="dns-prefetch" href="//main.exoclick.com/">
+    <link rel="dns-prefetch" href="//static-ssl.exoclick.com/">
+    <link rel="dns-prefetch" href="//ads.exoclick.com/">
+    <link rel="canonical" href="//thepiratebay.am/search/a/0/99/0" />
+    <style type="text/css">
+        .searchBox{
+            margin: 6px;
+            width: 300px;
+            vertical-align: middle;
+            padding: 2px;
+            background-image:url('https://piratebay.org/img/icon-https.gif');
+            background-repeat:no-repeat;
+            background-position: right;
+        }
+        .detLink {
+            font-size: 1.2em;
+            font-weight: 400;
+        }
+        .detDesc {
+            color: #4e5456;
+        }
+        .detDesc a:hover {
+            color: #000099;
+            text-decoration: underline;
+        }
+        .sortby {
+            text-align: left;
+            float: left;
+        }
+        .detName {
+            padding-top: 3px;
+            padding-bottom: 2px;
+        }
+        .viewswitch {
+            font-style: normal;
+            float: right;
+            text-align: right;
+            font-weight: normal;
+        }
+    </style>
+    <script src="https://piratebay.org/js/jquery.min.js" type="text/javascript"></script>
+    <script src="https://piratebay.org/js/tpb.js" type="text/javascript"></script>
+    <meta name="description" content="Search for and download any torrent from the pirate bay using search query a. Direct download via magnet link."/>
+    <meta name="keywords" content="a direct download torrent magnet tpb piratebay search"/>
+
+    <script language="javascript" type="text/javascript">if (top.location != self.location) {top.location.replace(self.location);}</script>
+</head>
+
+<body>
+    <div id="header">
+
+        <form method="get" id="q" action="/s/">
+            <a href="/" class="img"><img src="https://piratebay.org/img/tpblogo_sm_ny.gif" id="TPBlogo" alt="The Pirate Bay" /></a>
+            <b><a href="/" title="Buscar Torrents">Buscar Torrents</a></b>&nbsp;&nbsp;|&nbsp;
+ <a href="/browse" title="Explorar Torrents">Explorar Torrents</a>&nbsp;&nbsp;|&nbsp;
+ <a href="/recent" title="Recent Torrent">Torrents Recientes</a>&nbsp;&nbsp;|&nbsp;
+ <a href="/tv/" title="Shows de TV">Shows de TV</a>&nbsp;&nbsp;|&nbsp;
+ <a href="/music" title="Musica">Musica</a>&nbsp;&nbsp;|&nbsp;
+ <a href="/top" title="Top 100">Top 100</a>
+            <br /><input type="search" class="inputbox" title="Búsqueda Pirata" name="q" placeholder="Search here..." value="a" /><input value="Búsqueda Pirata" type="submit" class="submitbutton" /><br />            <label for="audio" title="Todo"><input id="audio" name="audio" onclick="javascript:rmAll();" type="checkbox"/>Todo</label>
+            <label for="video" title="Video"><input id="video" name="video" onclick="javascript:rmAll();" type="checkbox"/>Video</label>
+            <label for="apps" title="Aplicaciones"><input id="apps" name="apps" onclick="javascript:rmAll();" type="checkbox"/>Aplicaciones</label>
+            <label for="games" title="Juegos"><input id="games" name="games" onclick="javascript:rmAll();" type="checkbox"/>Juegos</label>
+            <label for="porn" title="Porno"><input id="porn" name="porn" onclick="javascript:rmAll();" type="checkbox"/>Porno</label>
+            <label for="other" title="Otros"><input id="other" name="other" onclick="javascript:rmAll();" type="checkbox"/>Otros</label>
+
+            <select id="category" name="category" onchange="javascript:setAll();">
+                <option value="0">All</option>
+                <optgroup label="Todo">
+                    <option value="101">Musica</option>
+                    <option value="102">Audio Libros</option>
+                    <option value="103">Clips de sonido</option>
+                    <option value="104">FLAC</option>
+                    <option value="199">Otros</option>
+                </optgroup>
+                <optgroup label="Video">
+                    <option value="201">Películas</option>
+                    <option value="202">Películas DVDR</option>
+                    <option value="203">Videos Musicales</option>
+                    <option value="204">Clips de películas</option>
+                    <option value="205">Shows de TV</option>
+                    <option value="206">Handheld</option>
+                    <option value="207">HD - Movies</option>
+                    <option value="208">HD - TV shows</option>
+                    <option value="209">3D</option>
+                    <option value="299">Otros</option>
+                </optgroup>
+                <optgroup label="Aplicaciones">
+                    <option value="301">Windows</option>
+                    <option value="302">Mac</option>
+                    <option value="303">UNIX</option>
+                    <option value="304">Handheld</option>
+                    <option value="305">IOS (iPad/iPhone)</option>
+                    <option value="306">Android</option>
+                    <option value="399">Otro SO</option>
+                </optgroup>
+                <optgroup label="Juegos">
+                    <option value="401">PC</option>
+                    <option value="402">Mac</option>
+                    <option value="403">PSx</option>
+                    <option value="404">XBOX360</option>
+                    <option value="405">Wii</option>
+                    <option value="406">Handheld</option>
+                    <option value="407">IOS (iPad/iPhone)</option>
+                    <option value="408">Android</option>
+                    <option value="499">Otros</option>
+                </optgroup>
+                <optgroup label="Porno">
+                    <option value="501">Películas</option>
+                    <option value="502">Películas DVDR</option>
+                    <option value="503">Fotos</option>
+                    <option value="504">Juegos</option>
+                    <option value="505">HD - Movies</option>
+                    <option value="506">Clips de películas</option>
+                    <option value="599">Otros</option>
+                </optgroup>
+                <optgroup label="Otros">
+                    <option value="601">E-books</option>
+                    <option value="602">Comics</option>
+                    <option value="603">Fotos</option>
+                    <option value="604">Tapas</option>
+                    <option value="605">Physibles</option>
+                    <option value="699">Otros</option>
+                </optgroup>
+            </select>
+
+            <input type="hidden" name="page" value="0" />
+            <input type="hidden" name="orderby" value="99" />
+        </form>
+    </div><!-- // div:header -->
+
+    <h2><span>Resultados de la busqueda: a</span>&nbsp;Mostrando hits desde 0 a 30 (aprox. 25703460 encontrado)</h2>
+
+<div id="SearchResults"><div id="content">
+			<div id="sky-right">
+				 <iframe src="https://piratebay.org/ads/exo_na/sky2.html" width="160" height="600" frameborder="0" scrolling="no"></iframe>
+			</div>
+	
+		 <iframe src="https://piratebay.org/ads/exo_na/center.html" id="sky-center" width="728" height="90" frameborder="0" scrolling="no"></iframe>
+	<div id="main-content">
+<table id="searchResult">
+	<thead id="tableHead">
+		<tr class="header">
+			<th><a href="/search/a/0/13/0" title="Order by Tipo">Tipo</a></th>
+			<th><div class="sortby"><a href="/search/a/0/1/0" title="Order by Nombre">Nombre</a> (Order by: <a href="/search/a/0/3/0" title="Order by Subido">Subido</a>, <a href="/search/a/0/5/0" title="Order by Tamaño">Tamaño</a>, <span style="white-space: nowrap;"><a href="/search/a/0/11/0" title="Order by ULed por">ULed por</a></span>, <a href="/search/a/0/8/0" title="Order by Seeders">SE</a>, <a href="/search/a/0/9/0" title="Order by Leechers">LE</a>)</div><div class="viewswitch"> View: <a href="/switchview.php?view=s">Single</a> / Double&nbsp;</div></th>
+			<th><abbr title="Seeders"><a href="/search/a/0/8/0" title="Order by Seeders">SE</a></abbr></th>
+			<th><abbr title="Leechers"><a href="/search/a/0/9/0" title="Order by Leechers">LE</a></abbr></th>
+		</tr>
+	</thead>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12017707/Game.of.Thrones.S05E10.HDTV.x264-KILLERS[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E10.HDTV.x264-KILLERS[ettv]">Game.of.Thrones.S05E10.HDTV.x264-KILLERS[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000000&dn=Game.of.Thrones.S05E10.HDTV.x264-KILLERS%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 32 comentarios." title="This torrent has 32 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-15&nbsp;04:07, Tamaño 419.47&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">35793</td>
+		<td align="right">1163</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12013449/Jurassic.World.2015.HD-TS.XVID.AC3.HQ.Hive-CM8" class="detLink" title="Detalles para Jurassic.World.2015.HD-TS.XVID.AC3.HQ.Hive-CM8">Jurassic.World.2015.HD-TS.XVID.AC3.HQ.Hive-CM8</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000001&dn=Jurassic.World.2015.HD-TS.XVID.AC3.HQ.Hive-CM8&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 29 comentarios." title="This torrent has 29 comentarios." /><a href="/user/xxxlavalxxx"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-14&nbsp;06:46, Tamaño 1.69&nbsp;GiB, ULed por <a class="detDesc" href="/user/xxxlavalxxx/" title="Explorar xxxlavalxxx">xxxlavalxxx</a></font>
+		</td>
+		<td align="right">19220</td>
+		<td align="right">8759</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11978971/Game.of.Thrones.S05E08.HDTV.x264-KILLERS[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E08.HDTV.x264-KILLERS[ettv]">Game.of.Thrones.S05E08.HDTV.x264-KILLERS[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000002&dn=Game.of.Thrones.S05E08.HDTV.x264-KILLERS%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 10 comentarios." title="This torrent has 10 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-01&nbsp;04:17, Tamaño 448.39&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">18400</td>
+		<td align="right">685</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12048303/True.Detective.S02E01.HDTV.x264-KILLERS[ettv]" class="detLink" title="Detalles para True.Detective.S02E01.HDTV.x264-KILLERS[ettv]">True.Detective.S02E01.HDTV.x264-KILLERS[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000003&dn=True.Detective.S02E01.HDTV.x264-KILLERS%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 3 comentarios." title="This torrent has 3 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-22&nbsp;04:48, Tamaño 393.14&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">18148</td>
+		<td align="right">1748</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11999711/Game.of.Thrones.S05E09.PROPER.HDTV.x264-KILLERS[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E09.PROPER.HDTV.x264-KILLERS[ettv]">Game.of.Thrones.S05E09.PROPER.HDTV.x264-KILLERS[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000004&dn=Game.of.Thrones.S05E09.PROPER.HDTV.x264-KILLERS%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 15 comentarios." title="This torrent has 15 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-08&nbsp;05:37, Tamaño 471.51&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">17501</td>
+		<td align="right">793</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11959777/Game.of.Thrones.S05E07.HDTV.x264-ASAP[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E07.HDTV.x264-ASAP[ettv]">Game.of.Thrones.S05E07.HDTV.x264-ASAP[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000005&dn=Game.of.Thrones.S05E07.HDTV.x264-ASAP%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 7 comentarios." title="This torrent has 7 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-25&nbsp;03:59, Tamaño 350.62&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">14761</td>
+		<td align="right">416</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12035195/Cinderella_(2015)_1080p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Cinderella (2015) 1080p BrRip x264 - YIFY">Cinderella (2015) 1080p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000006&dn=Cinderella+%282015%29+1080p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 5 comentarios." title="This torrent has 5 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-19&nbsp;01:14, Tamaño 1.64&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">14617</td>
+		<td align="right">4875</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12007760/Get_Hard_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Get Hard (2015) 720p BrRip x264 - YIFY">Get Hard (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000007&dn=Get+Hard+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 5 comentarios." title="This torrent has 5 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-10&nbsp;23:02, Tamaño 812.24&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">14465</td>
+		<td align="right">2019</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11947904/Kingsman__The_Secret_Service_(2014)_1080p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Kingsman: The Secret Service (2014) 1080p BrRip x264 - YIFY">Kingsman: The Secret Service (2014) 1080p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000008&dn=Kingsman%3A+The+Secret+Service+%282014%29+1080p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 8 comentarios." title="This torrent has 8 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-20&nbsp;09:46, Tamaño 1.95&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">13264</td>
+		<td align="right">2081</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12051044/Mad.Max.Fury.Road.2015.HDRip.XViD-ETRG" class="detLink" title="Detalles para Mad.Max.Fury.Road.2015.HDRip.XViD-ETRG">Mad.Max.Fury.Road.2015.HDRip.XViD-ETRG</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000009&dn=Mad.Max.Fury.Road.2015.HDRip.XViD-ETRG&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 13 comentarios." title="This torrent has 13 comentarios." /><a href="/user/ExtraTorrentRG"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-22&nbsp;17:07, Tamaño 706.25&nbsp;MiB, ULed por <a class="detDesc" href="/user/ExtraTorrentRG/" title="Explorar ExtraTorrentRG">ExtraTorrentRG</a></font>
+		</td>
+		<td align="right">12837</td>
+		<td align="right">9179</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11898821/Fast_and_Furious_7_2015_1080p_HDRip_x264_AC3-JYK" class="detLink" title="Detalles para Fast and Furious 7 2015 1080p HDRip x264 AC3-JYK">Fast and Furious 7 2015 1080p HDRip x264 AC3-JYK</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000a&dn=Fast+and+Furious+7+2015+1080p+HDRip+x264+AC3-JYK&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 37 comentarios." title="This torrent has 37 comentarios." /><a href="/user/condors369"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-10&nbsp;08:54, Tamaño 3.62&nbsp;GiB, ULed por <a class="detDesc" href="/user/condors369/" title="Explorar condors369">condors369</a></font>
+		</td>
+		<td align="right">12835</td>
+		<td align="right">4890</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11901098/Game.of.Thrones.S05E05.HDTV.x264-ASAP[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E05.HDTV.x264-ASAP[ettv]">Game.of.Thrones.S05E05.HDTV.x264-ASAP[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000b&dn=Game.of.Thrones.S05E05.HDTV.x264-ASAP%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 20 comentarios." title="This torrent has 20 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-11&nbsp;03:59, Tamaño 299.32&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">10929</td>
+		<td align="right">320</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11983594/Run_All_Night_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Run All Night (2015) 720p BrRip x264 - YIFY">Run All Night (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000c&dn=Run+All+Night+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 4 comentarios." title="This torrent has 4 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-03&nbsp;01:52, Tamaño 814.52&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">10739</td>
+		<td align="right">1823</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12038277/Camp_X_Ray___THE_GUARD__French_BDRip_AVItech-DeGun" class="detLink" title="Detalles para Camp X Ray { THE GUARD }French BDRip AVItech-DeGun">Camp X Ray { THE GUARD }French BDRip AVItech-DeGun</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000d&dn=Camp+X+Ray+%7B+THE+GUARD+%7DFrench+BDRip+AVItech-DeGun&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 1 comentarios." title="This torrent has 1 comentarios." /><a href="/user/DeGun"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-19&nbsp;14:39, Tamaño 1.37&nbsp;GiB, ULed por <a class="detDesc" href="/user/DeGun/" title="Explorar DeGun">DeGun</a></font>
+		</td>
+		<td align="right">10622</td>
+		<td align="right">2130</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12052029/Mad_Max_Fury_Road_2015_1080p_WEB-DL_x264_AC3-JYK" class="detLink" title="Detalles para Mad Max Fury Road 2015 1080p WEB-DL x264 AC3-JYK">Mad Max Fury Road 2015 1080p WEB-DL x264 AC3-JYK</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000e&dn=Mad+Max+Fury+Road+2015+1080p+WEB-DL+x264+AC3-JYK&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 5 comentarios." title="This torrent has 5 comentarios." /><a href="/user/condors369"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido Ayer&nbsp;00:14, Tamaño 3.14&nbsp;GiB, ULed por <a class="detDesc" href="/user/condors369/" title="Explorar condors369">condors369</a></font>
+		</td>
+		<td align="right">10082</td>
+		<td align="right">5477</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11937671/Game.of.Thrones.S05E06.HDTV.x264-ASAP[ettv]" class="detLink" title="Detalles para Game.of.Thrones.S05E06.HDTV.x264-ASAP[ettv]">Game.of.Thrones.S05E06.HDTV.x264-ASAP[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000000f&dn=Game.of.Thrones.S05E06.HDTV.x264-ASAP%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 12 comentarios." title="This torrent has 12 comentarios." /><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-18&nbsp;03:57, Tamaño 338.18&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">9303</td>
+		<td align="right">2218</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12040369/Woman_in_Gold_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Woman in Gold (2015) 720p BrRip x264 - YIFY">Woman in Gold (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000010&dn=Woman+in+Gold+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 9 comentarios." title="This torrent has 9 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-20&nbsp;03:45, Tamaño 810.78&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">9174</td>
+		<td align="right">2068</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/205" title="Mas de esta categoría">Shows de TV</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12055533/Pretty.Little.Liars.S06E04.HDTV.x264-LOL[ettv]" class="detLink" title="Detalles para Pretty.Little.Liars.S06E04.HDTV.x264-LOL[ettv]">Pretty.Little.Liars.S06E04.HDTV.x264-LOL[ettv]</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000011&dn=Pretty.Little.Liars.S06E04.HDTV.x264-LOL%5Bettv%5D&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><a href="/user/ettv"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a><img src="https://piratebay.org/img/11x11p.png" />
+			<font class="detDesc">Subido Hoy&nbsp;02:59, Tamaño 202.6&nbsp;MiB, ULed por <a class="detDesc" href="/user/ettv/" title="Explorar ettv">ettv</a></font>
+		</td>
+		<td align="right">8907</td>
+		<td align="right">2000</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12047646/Poltergeist.2015.SCREENER.1080p.x264-POLTERGEIST" class="detLink" title="Detalles para Poltergeist.2015.SCREENER.1080p.x264-POLTERGEIST">Poltergeist.2015.SCREENER.1080p.x264-POLTERGEIST</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000012&dn=Poltergeist.2015.SCREENER.1080p.x264-POLTERGEIST&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 6 comentarios." title="This torrent has 6 comentarios." /><a href="/user/vickey1992"><img src="https://piratebay.org/img/trusted.png" alt="Trusted" title="Trusted" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-22&nbsp;00:14, Tamaño 4.78&nbsp;GiB, ULed por <a class="detDesc" href="/user/vickey1992/" title="Explorar vickey1992">vickey1992</a></font>
+		</td>
+		<td align="right">8417</td>
+		<td align="right">8411</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12036761/The_Gunman_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para The Gunman (2015) 720p BrRip x264 - YIFY">The Gunman (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000013&dn=The+Gunman+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a><img src="https://piratebay.org/img/11x11p.png" />
+			<font class="detDesc">Subido 06-19&nbsp;06:44, Tamaño 817.43&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">8383</td>
+		<td align="right">2528</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12044744/Inside_Out_2015_HD_TS_XVID_AC3_HQ_Hive_CM8" class="detLink" title="Detalles para Inside Out 2015 HD TS XVID AC3 HQ Hive CM8">Inside Out 2015 HD TS XVID AC3 HQ Hive CM8</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000014&dn=Inside+Out+2015+HD+TS+XVID+AC3+HQ+Hive+CM8&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 4 comentarios." title="This torrent has 4 comentarios." /><a href="/user/hotpena"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-21&nbsp;07:01, Tamaño 1.26&nbsp;GiB, ULed por <a class="detDesc" href="/user/hotpena/" title="Explorar hotpena">hotpena</a></font>
+		</td>
+		<td align="right">7977</td>
+		<td align="right">5103</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11955521/San_Andreas_Quake_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para San Andreas Quake (2015) 720p BrRip x264 - YIFY">San Andreas Quake (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000015&dn=San+Andreas+Quake+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 15 comentarios." title="This torrent has 15 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-23&nbsp;14:33, Tamaño 699.49&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">7841</td>
+		<td align="right">1400</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11756509/Interstellar_(2014)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Interstellar (2014) 720p BrRip x264 - YIFY">Interstellar (2014) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000016&dn=Interstellar+%282014%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 28 comentarios." title="This torrent has 28 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 03-15&nbsp;05:50, Tamaño 1.02&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">7142</td>
+		<td align="right">819</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11877580/American_Sniper_(2014)_1080p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para American Sniper (2014) 1080p BrRip x264 - YIFY">American Sniper (2014) 1080p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000017&dn=American+Sniper+%282014%29+1080p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 15 comentarios." title="This torrent has 15 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-02&nbsp;16:53, Tamaño 1.96&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6961</td>
+		<td align="right">1443</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/201" title="Mas de esta categoría">Películas</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11972207/Pitch.Perfect.2.2015.HC.HDRip.XviD.AC3-EVO" class="detLink" title="Detalles para Pitch.Perfect.2.2015.HC.HDRip.XviD.AC3-EVO">Pitch.Perfect.2.2015.HC.HDRip.XviD.AC3-EVO</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000018&dn=Pitch.Perfect.2.2015.HC.HDRip.XviD.AC3-EVO&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 8 comentarios." title="This torrent has 8 comentarios." /><a href="/user/xxxlavalxxx"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-29&nbsp;06:02, Tamaño 1.4&nbsp;GiB, ULed por <a class="detDesc" href="/user/xxxlavalxxx/" title="Explorar xxxlavalxxx">xxxlavalxxx</a></font>
+		</td>
+		<td align="right">6908</td>
+		<td align="right">2040</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12034852/Cinderella_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Cinderella (2015) 720p BrRip x264 - YIFY">Cinderella (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:0000000000000000000000000000000000000019&dn=Cinderella+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a><img src="https://piratebay.org/img/11x11p.png" />
+			<font class="detDesc">Subido 06-18&nbsp;23:54, Tamaño 808.55&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6796</td>
+		<td align="right">3368</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11971785/Chappie_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Chappie (2015) 720p BrRip x264 - YIFY">Chappie (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000001a&dn=Chappie+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 3 comentarios." title="This torrent has 3 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-29&nbsp;00:18, Tamaño 867.43&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6704</td>
+		<td align="right">1268</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/11972068/Unfinished_Business_(2015)_720p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Unfinished Business (2015) 720p BrRip x264 - YIFY">Unfinished Business (2015) 720p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000001b&dn=Unfinished+Business+%282015%29+720p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 9 comentarios." title="This torrent has 9 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 05-29&nbsp;02:03, Tamaño 705.05&nbsp;MiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6699</td>
+		<td align="right">574</td>
+	</tr>
+	<tr>
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12007817/Get_Hard_(2015)_1080p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Get Hard (2015) 1080p BrRip x264 - YIFY">Get Hard (2015) 1080p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000001c&dn=Get+Hard+%282015%29+1080p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><img src="https://piratebay.org/img/icon_comment.gif" alt="This torrent has 4 comentarios." title="This torrent has 4 comentarios." /><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a>
+			<font class="detDesc">Subido 06-11&nbsp;01:40, Tamaño 1.64&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6673</td>
+		<td align="right">2426</td>
+	</tr>
+	<tr class="alt">
+		<td class="vertTh">
+			<center>
+				<a href="/browse/200" title="Mas de esta categoría">Video</a><br />
+				(<a href="/browse/207" title="Mas de esta categoría">HD - Movies</a>)
+			</center>
+		</td>
+		<td>
+<div class="detName">			<a href="/torrent/12054528/Paper_Planes_(2014)_1080p_BrRip_x264_-_YIFY" class="detLink" title="Detalles para Paper Planes (2014) 1080p BrRip x264 - YIFY">Paper Planes (2014) 1080p BrRip x264 - YIFY</a>
+</div>
+<a href="magnet:?xt=urn:btih:000000000000000000000000000000000000001d&dn=Paper+Planes+%282014%29+1080p+BrRip+x264+-+YIFY&tr=udp%3A%2F%2Ftracker.openbittorrent.com%3A80&tr=udp%3A%2F%2Fopen.demonii.com%3A1337&tr=udp%3A%2F%2Ftracker.coppersurfer.tk%3A6969&tr=udp%3A%2F%2Fexodus.desync.com%3A6969" title="Download this torrent using magnet"><img src="https://piratebay.org/img/icon-magnet.gif" alt="Magnet link" /></a><a href="/user/YIFY"><img src="https://piratebay.org/img/vip.gif" alt="VIP" title="VIP" style="width:11px;" border='0' /></a><img src="https://piratebay.org/img/11x11p.png" />
+			<font class="detDesc">Subido Ayer&nbsp;18:38, Tamaño 1.44&nbsp;GiB, ULed por <a class="detDesc" href="/user/YIFY/" title="Explorar YIFY">YIFY</a></font>
+		</td>
+		<td align="right">6619</td>
+		<td align="right">6506</td>
+	</tr>
+
+</table>
+</div>
+<div align="center">1&nbsp;<a href="/search/a/1/7//">2</a>&nbsp;<a href="/search/a/2/7//">3</a>&nbsp;<a href="/search/a/3/7//">4</a>&nbsp;<a href="/search/a/4/7//">5</a>&nbsp;<a href="/search/a/5/7//">6</a>&nbsp;<a href="/search/a/6/7//">7</a>&nbsp;<a href="/search/a/7/7//">8</a>&nbsp;<a href="/search/a/8/7//">9</a>&nbsp;<a href="/search/a/9/7//">10</a>&nbsp;<a href="/search/a/10/7//">11</a>&nbsp;<a href="/search/a/11/7//">12</a>&nbsp;<a href="/search/a/12/7//">13</a>&nbsp;<a href="/search/a/13/7//">14</a>&nbsp;<a href="/search/a/14/7//">15</a>&nbsp;<a href="/search/a/15/7//">16</a>&nbsp;<a href="/search/a/16/7//">17</a>&nbsp;<a href="/search/a/17/7//">18</a>&nbsp;<a href="/search/a/18/7//">19</a>&nbsp;<a href="/search/a/19/7//">20</a>&nbsp;<a href="/search/a/20/7//">21</a>&nbsp;<a href="/search/a/21/7//">22</a>&nbsp;<a href="/search/a/22/7//">23</a>&nbsp;<a href="/search/a/23/7//">24</a>&nbsp;<a href="/search/a/24/7//">25</a>&nbsp;<a href="/search/a/25/7//">26</a>&nbsp;<a href="/search/a/26/7//">27</a>&nbsp;<a href="/search/a/27/7//">28</a>&nbsp;<a href="/search/a/28/7//">29</a>&nbsp;<a href="/search/a/29/7//">30</a>&nbsp;<a href="/search/a/30/7//">31</a>&nbsp;<a href="/search/a/31/7//">32</a>&nbsp;<a href="/search/a/32/7//">33</a>&nbsp;<a href="/search/a/33/7//">34</a>&nbsp;<a href="/search/a/34/7//">35</a>&nbsp;<a href="/search/a/35/7//">36</a>&nbsp;<a href="/search/a/36/7//">37</a>&nbsp;<a href="/search/a/37/7//">38</a>&nbsp;<a href="/search/a/38/7//">39</a>&nbsp;<a href="/search/a/39/7//">40</a>&nbsp;<a href="/search/a/40/7//">41</a>&nbsp;<a href="/search/a/41/7//">42</a>&nbsp;<a href="/search/a/42/7//">43</a>&nbsp;<a href="/search/a/43/7//">44</a>&nbsp;<a href="/search/a/44/7//">45</a>&nbsp;<a href="/search/a/45/7//">46</a>&nbsp;<a href="/search/a/46/7//">47</a>&nbsp;<a href="/search/a/47/7//">48</a>&nbsp;<a href="/search/a/48/7//">49</a>&nbsp;<a href="/search/a/49/7//">50</a>&nbsp;<a href="/search/a/1/7//"><img src="https://piratebay.org/img/next.gif" border="0" alt="Siguiente"/></a>&nbsp;
+</div>
+			<div class="ads" id="sky-banner">
+				 <iframe src="https://piratebay.org/ads/exo_na/sky1.html" width="120" height="600" frameborder="0" scrolling="no"></iframe>
+			</div>
+			<iframe src="//cdn.adbrau.com/c/" width="1" height="1" frameborder="0" scrolling="no"></iframe>
+			<script type="text/javascript" src="https://piratebay.org/ads/ad-scroll.js"></script>
+	</div></div></div><!-- //div:content -->
+
+	<div id="foot" style="text-align:center;margin-top:1em;">
+
+			 <iframe src="https://piratebay.org/ads/exo_na/bottom.html" width="728" height="90" frameborder="0" scrolling="no"></iframe>
+				<p>
+			<a href="/login" title="Iniciar sesión">Iniciar sesión</a> | 
+			<a href="/register" title="Registrar">Registrar</a> | 
+			<a href="/language" title="Elegir Idioma">Language / Elegir Idioma</a> |
+			<a href="/about" title="Acerca de...">Acerca de...</a> |
+			<a href="/blog" title="Blog">Blog</a>
+			<br />
+			<!--<a href="/contact" title="Contactanos">Contactanos</a> |-->
+			<a href="/policy" title="Usage policy">Usage policy</a> |
+			<!--<a href="/downloads" title="Downloads">Downloads</a> |-->
+			<a href="http://www.promobay.org/" title="Promo" target="_NEW">Promo</a> |
+			<a href="/doodles" title="Doodles">Doodles</a> |
+			<a href="/tags" title="Tag Cloud">Tag Cloud</a> |
+			<a href="http://pirates-forum.org/" title="Forum" target="_blank">Forum</a> |
+			<a href="http://piratebrowser.com/" title="PirateBrowser" target="_blank"><strong>PirateBrowser</strong></a>
+			<br />
+		</p>
+
+<br /><a href="http://bitcoin.org" target="_NEW">BitCoin</a>: <b><a href="bitcoin:129TQVAroeehD9fZpzK51NdZGQT4TqifbG">129TQVAroeehD9fZpzK51NdZGQT4TqifbG</a></b><br /><br />
+
+		<div id="fbanners">
+			<a href="/rss" class="rss" title="RSS"><img src="https://piratebay.org/img/rss_small.gif" alt="RSS" /></a>
+		</div><!-- // div:fbanners -->
+	</div><!-- // div:foot -->
+<script>
+var npu510b84a42580e____PPU=function(conf){var M={settings:{sessionHash:false,sessionTimeout:24*3600,ppuQnty:1,ppuTimeout:10,elementId:null,elementClass:null,clickAnywhere:true,width:500,height:500,url:"about:blank"},enough:false,chromeBlankWindow:false,ppuCookieSession:"__PPU_SESSION",ppuCookieSessionLife:60*60*24*30,ppuCookieCheck:"__PPU_CHECK",sessionTools:{objToString:function(obj){return"X"+obj.hash.toString()+","+obj.expire.toString()+","+obj.qnty.toString()+","+obj.ppuExpire.toString()+"X"},removePieceByHash:function(content,hash){return content.replace(new RegExp("X"+hash+",[0-9]{1,},[0-9]{1,},[0-9]{1,}X","gi"),"")},addPiece:function(content,obj){var cookieLengthLimit=4000;var contentAdd=this.objToString(obj);while(content.length>=(cookieLengthLimit-contentAdd.length)){content=content.replace(new RegExp("X[0-9a-z]{1,},[0-9]{1,},[0-9]{1,},[0-9]{1,}X$","gi"),"")}return contentAdd+content},updateByHash:function(content,hash,obj){content=content.replace(new RegExp("X"+hash+",[0-9]{1,},[0-9]{1,},[0-9]{1,}X","gi"),this.objToString(obj));return content},getSessionDataByHash:function(content,hash){if(!content){return null}var matches=content.match(new RegExp("X"+hash+",[0-9]{1,},[0-9]{1,},[0-9]{1,}X","gi"));if(matches&&matches.length>0){var parts=matches[0].replace(new RegExp("X","g"),"").split(",");return{hash:parts[0],expire:parseInt(parts[1]),qnty:parseInt(parts[2]),ppuExpire:parseInt(parts[3])}}return null}},getSessionCookieName:function(){if(!this.__sessionCookieName){var first=this.settings.sessionHash.substring(0,1);var distribution=[{s:"0-3",i:"0123"},{s:"4-7",i:"4567"},{s:"8-b",i:"89ab"},{s:"c-f",i:"cdef"}];for(var i=0;i<distribution.length;i++){if(distribution[i].i.indexOf(first.toLowerCase())!=-1){this.__sessionCookieName=this.ppuCookieSession+"_"+distribution[i].s;return this.__sessionCookieName}}return}return this.__sessionCookieName},DOMreadyEvent:function(fn){var win=window;var done=false,top=true,doc=win.document,root=doc.documentElement,add=doc.addEventListener?"addEventListener":"attachEvent",rem=doc.addEventListener?"removeEventListener":"detachEvent",pre=doc.addEventListener?"":"on",init=function(e){if(e.type=="readystatechange"&&doc.readyState!="complete"){return}(e.type=="load"?win:doc)[rem](pre+e.type,init,false);if(!done&&(done=true)){fn.call(win,e.type||e)}},poll=function(){try{root.doScroll("left")}catch(e){setTimeout(poll,50);return}init("poll")};if(doc.readyState=="complete"){fn.call(win,"lazy")}else{if(doc.createEventObject&&root.doScroll){try{top=!win.frameElement}catch(e){}if(top){poll()}}doc[add](pre+"DOMContentLoaded",init,false);doc[add](pre+"readystatechange",init,false);win[add](pre+"load",init,false)}},extend:function(a,b){for(var key in b){if(b.hasOwnProperty(key)){a[key]=b[key]}}return a},getTimestamp:function(){return parseInt((new Date()).getTime()/1000)},init:function(){this.extend(this.settings,conf);if(!this.settings.sessionHash||!this.settings.sessionHash.match(new RegExp("^[0-9a-f]+$","gi"))){return}if(!this.createCookie(this.ppuCookieCheck,1,100,true)){return}var t=this,elements=[],_el;if(this.settings.elementId!=null){_el=window.document.getElementById(this.settings.elementId);if(_el!=null){elements.push(_el)}}if(this.settings.elementClass!=null){_el=this.getElementsByClassName(this.settings.elementClass);if(_el&&_el.length>0){for(var i=0;i<_el.length;i++){elements.push(_el[i])}}}if(elements.length==0){elements.push(window.document)}for(var i=0;i<elements.length;i++){var element=elements[i];if(window.chrome){this.addEvent(element,"mousedown",function(e){if(!t.settings.clickAnywhere){var obj=t.getAnchorElement(e);if(obj==null){return}}t.ppu()});this.addEvent(element,"mouseup",function(e){if(e.srcElement.getAttribute("target")=="_blank"){return}if(t.chromeBlankWindow){var x=window.open("about:blank");x.close();t.chromeBlankWindow=false}})}else{this.addEvent(window.document,"click",function(e){if(!t.settings.elementId){if(!t.settings.clickAnywhere){var obj=t.getAnchorElement(e);if(obj==null){return}}}t.ppu()})}}},allowPpu:function(){if(this.enough){return false}var timestamp=this.getTimestamp(),t=this,cookieName=this.getSessionCookieName(),sessionRaw=this.readCookie(cookieName),cleanSessionPiece={hash:t.settings.sessionHash,expire:timestamp+t.settings.sessionTimeout,qnty:0,ppuExpire:0};var data=this.sessionTools.getSessionDataByHash(sessionRaw,this.settings.sessionHash);if(data==null){sessionRaw=this.sessionTools.addPiece(sessionRaw,cleanSessionPiece);this.createCookie(cookieName,sessionRaw,this.ppuCookieSessionLife);return true}else{if(data.expire<timestamp){sessionRaw=this.sessionTools.removePieceByHash(sessionRaw,data.hash);sessionRaw=this.sessionTools.addPiece(sessionRaw,cleanSessionPiece);this.createCookie(cookieName,sessionRaw,this.ppuCookieSessionLife);return true}else{var expire=timestamp+this.settings.ppuTimeout;if(data.qnty<this.settings.ppuQnty&&(data.ppuExpire==0||data.ppuExpire<timestamp)){return true}return false}}},ppu:function(){if(!this.allowPpu()){return}var date=new Date();var sessionRaw=this.readCookie(this.getSessionCookieName()),data=this.sessionTools.getSessionDataByHash(sessionRaw,this.settings.sessionHash);data.qnty++;data.ppuExpire=this.getTimestamp()+this.settings.ppuTimeout;this.renderPpu();sessionRaw=this.sessionTools.updateByHash(sessionRaw,this.settings.sessionHash,data);this.createCookie(this.getSessionCookieName(),sessionRaw,this.ppuCookieSessionLife);if(data.qnty>=this.settings.ppuQnty){this.enough=true}this.chromeBlankWindow=true},renderPpu:function(){var url="about:blank",popID="ad_"+Math.floor(89999999*Math.random()+10000000),pxLeft=0,pxTop=0,pxLeft=(this.getWindowLeft()+(this.getWindowWidth()/2)-(this.settings.width/2)),pxTop=(this.getWindowTop()+(this.getWindowHeight()/2)-(this.settings.height/2));this.__ppu=window.open(url,popID,"toolbar=0,scrollbars=1,location=1,statusbar=1,menubar=0,resizable=1,top="+pxTop+",left="+pxLeft+",width="+this.settings.width+",height="+this.settings.height);this.__ppu.blur();if(navigator.userAgent.toLowerCase().indexOf("applewebkit")>-1){window.blur();window.focus()}this.__ppu.init=function(e){with(e){this.params=e.params;this.main=function(){if(typeof window.mozPaintCount!="undefined"){var x=this.window.open("about:blank");x.close()}var url=this.params.url;try{opener.window.focus()}catch(err){}window.location=url};this.main()}};this.__ppu.params={url:this.settings.url};this.__ppu.init(this.__ppu)},getWindowHeight:function(){var myHeight=0;if(typeof(window.innerHeight)=="number"){myHeight=window.innerHeight}else{if(document.documentElement&&document.documentElement.clientHeight){myHeight=document.documentElement.clientHeight}else{if(document.body&&document.body.clientHeight){myHeight=document.body.clientHeight}}}return myHeight},getWindowWidth:function(){var myWidth=0;if(typeof(window.innerWidth)=="number"){myWidth=window.innerWidth}else{if(document.documentElement&&document.documentElement.clientWidth){myWidth=document.documentElement.clientWidth}else{if(this._Top.document.body&&this._Top.document.body.clientWidth){myWidth=document.body.clientWidth}}}return myWidth},getWindowTop:function(){return(window.screenTop!=undefined)?window.screenTop:window.screenY},getWindowLeft:function(){return(window.screenLeft!=undefined)?window.screenLeft:window.screenX},createCookie:function(name,value,seconds,checkCookieAfterCreating){var expires;if(seconds){var date=new Date();date.setTime(date.getTime()+(seconds*1000));expires="; expires="+date.toGMTString()}else{expires=""}window.document.cookie=name+"="+value+expires+"; path=/";if(checkCookieAfterCreating){if(this.readCookie(name)==value){return true}return false}else{return false}},readCookie:function(name){if(document.cookie.length>0){cStart=document.cookie.indexOf(name+"=");if(cStart!=-1){cStart=cStart+name.length+1;cEnd=document.cookie.indexOf(";",cStart);if(cEnd==-1){cEnd=document.cookie.length}return document.cookie.substring(cStart,cEnd)}}return""},getAnchorElement:function(e){if(!e){e=window.event}var srcElement=e.srcElement?e.srcElement:e.target;do{if(srcElement.tagName.toLowerCase()=="a"){return srcElement}if(srcElement.parentNode){srcElement=srcElement.parentNode}}while(srcElement.parentNode);return null},getElementsByClassName:function(className,tag,elm){if(document.getElementsByClassName){this.getElementsByClassName=function(className,tag,elm){elm=elm||document;var elements=elm.getElementsByClassName(className),nodeName=(tag)?new RegExp("\b"+tag+"\b","i"):null,returnElements=[],current;for(var i=0,il=elements.length;i<il;i+=1){current=elements[i];if(!nodeName||nodeName.test(current.nodeName)){returnElements.push(current)}}return returnElements}}else{if(document.evaluate){this.getElementsByClassName=function(className,tag,elm){tag=tag||"*";elm=elm||document;var classes=className.split(" "),classesToCheck="",xhtmlNamespace="http://www.w3.org/1999/xhtml",namespaceResolver=(document.documentElement.namespaceURI===xhtmlNamespace)?xhtmlNamespace:null,returnElements=[],elements,node;for(var j=0,jl=classes.length;j<jl;j+=1){classesToCheck+="[contains(concat(' ', @class, ' '), ' "+classes[j]+" ')]"}try{elements=document.evaluate(".//"+tag+classesToCheck,elm,namespaceResolver,0,null)}catch(e){elements=document.evaluate(".//"+tag+classesToCheck,elm,null,0,null)}while((node=elements.iterateNext())){returnElements.push(node)}return returnElements}}else{this.getElementsByClassName=function(className,tag,elm){tag=tag||"*";elm=elm||document;var classes=className.split(" "),classesToCheck=[],elements=(tag==="*"&&elm.all)?elm.all:elm.getElementsByTagName(tag),current,returnElements=[],match;for(var k=0,kl=classes.length;k<kl;k+=1){classesToCheck.push(new RegExp("(^|\s)"+classes[k]+"(\s|$)"))}for(var l=0,ll=elements.length;l<ll;l+=1){current=elements[l];match=false;for(var m=0,ml=classesToCheck.length;m<ml;m+=1){match=classesToCheck[m].test(current.className);if(!match){break}}if(match){returnElements.push(current)}}return returnElements}}}return this.getElementsByClassName(className,tag,elm)},addEvent:function(target,eventName,handlerName){if(target.addEventListener){target.addEventListener(eventName,eval(handlerName),false)}else{if(target.attachEvent){target.attachEvent("on"+eventName,eval(handlerName))}else{var originalHandler=target["on"+eventName];if(originalHandler){target["on"+eventName]=eval(handlerName)}else{target["on"+eventName]=eval(handlerName)}}}},removeCookie:function(name){this.createCookie(name,"",-1)}};M.DOMreadyEvent(function(){M.init()})};
+npu510b84a42580e____PPU({
+    sessionHash     : '1413',
+    sessionTimeout  : 3600,
+    ppuQnty         : 2,
+    ppuTimeout      : 60,
+    clickAnywhere   : true,
+    elementClass    : '',
+    elementId       : '',
+    width           : 1001,
+    height          : 1001,
+    url             : 'http://rtbpop.com/afu.php?zoneid=1413'
+});
+</script></body>
+</html>
