@@ -226,7 +226,7 @@ class ImporterCronTask(exts.CronTask):
     INTERVAL = '3H'
 
     def run(self):
-        for spec in self.get_origin_specs():
+        for spec in self.app.importer.get_origin_specs():
             origin = self.app.get_extension('origin', spec.get('backend'),
                                             origin_spec=spec)
             self._import(origin)
