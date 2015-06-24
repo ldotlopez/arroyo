@@ -59,7 +59,7 @@ class TransmissionDownloader(exts.Downloader):
             )
             self._shield = {
                 'urn:btih:' + x.hashString: x
-                for x in self._api.list().values()}
+                for x in self._api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
             msg = "Unable to connect to transmission daemon: {message}"
