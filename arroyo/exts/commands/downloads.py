@@ -61,20 +61,20 @@ class DownloadCommand(exts.Command):
             raise exc.ArgumentError(msg)
 
         if show:
-            for src in self.app.downloader.list():
+            for src in self.app.downloads.list():
                 print(src.pretty_repr)
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
-            self.app.downloader.add(src)
+            self.app.downloads.add(src)
 
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
-            self.app.downloader.remove(src)
+            self.app.downloads.remove(src)
 
         else:
             if not query:
-                queries = self.app.downloader.get_queries()
+                queries = self.app.downloads.get_queries()
             else:
                 queries = {'Command line': selector.Query(**query)}
 
@@ -83,7 +83,7 @@ class DownloadCommand(exts.Command):
                 srcs = self.app.selector.select(query, everything=False)
                 for src in srcs:
                     if not dry_run:
-                        self.app.downloader.add(src)
+                        self.app.downloads.add(src)
                     print(src.pretty_repr)
 
 

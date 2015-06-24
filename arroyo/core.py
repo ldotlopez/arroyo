@@ -17,7 +17,7 @@ from arroyo import (
     importer,
     cron,
     db,
-    downloader,
+    downloads,
     exts,
     mediainfo,
     models,
@@ -273,7 +273,7 @@ class Arroyo:
 
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
-        self.downloader = downloader.Downloader(self)
+        self.downloads = downloads.Downloads(self)
 
         # Mediainfo instance is not never used directly, it can be considered
         # as a "service", but it's keep anyway

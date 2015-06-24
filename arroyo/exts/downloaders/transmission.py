@@ -10,7 +10,7 @@ import transmissionrpc
 from ldotcommons import store
 
 from arroyo import (
-    downloader,
+    downloads,
     exc,
     exts,
     models
@@ -76,7 +76,7 @@ class TransmissionDownloader(exts.Downloader):
         return self._api.get_torrents()
 
     def do_add(self, source, **kwargs):
-        sha1_urn = downloader.calculate_urns(source.urn)[0]
+        sha1_urn = downloads.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
             self._logger.warning('Avoid duplicate')
@@ -116,7 +116,7 @@ class TransmissionDownloader(exts.Downloader):
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloader.calculate_urns(urn)
+        urns = downloads.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None

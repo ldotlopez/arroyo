@@ -7,12 +7,16 @@ from arroyo import models, selector
 import arroyo.exc
 
 
-class Downloader:
+class Downloads:
+    """Downloads API.
+
+    Handles operations between core.Arroyo and the different downloaders.
+    """
     def __init__(self, app):
         app.signals.register('source-state-change')
 
         self._app = app
-        self._logger = app.logger.getChild('downloader')
+        self._logger = app.logger.getChild('downloads-manager')
 
     def get_queries(self):
         return {name: selector.Query(**params) for (name, params) in
