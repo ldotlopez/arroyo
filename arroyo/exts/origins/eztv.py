@@ -20,7 +20,11 @@ class Eztv(exts.Origin):
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
         # https://eztv.ch/ -> 0
-        # https://eztv.ch/shows/546/black-mirror/ -> 3
+        if not pathcomponents:
+            yield from self.paginate(url + '/page_0')
+            return
+
+        # https://eztv.ch/shows/546/black-mirror/
         if len(pathcomponents) != 1:
             yield url
             return

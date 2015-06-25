@@ -62,7 +62,7 @@ _defaults_types = {
 # Default extensions
 #
 _extensions = {
-    'commands': ('import', 'db', 'downloads', 'mediainfo', 'search'),
+    'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
     'selectors': ('source', 'episode', 'movie'),
@@ -286,7 +286,7 @@ class Arroyo:
 
         # Run cron tasks
         if self.settings.get('auto-cron'):
-            self.cron.run_all_tasks()
+            self.cron.run_all()
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in

@@ -8,7 +8,7 @@ import time
 
 import bs4
 import feedparser
-from ldotcommons.utils import utcnow_timestamp
+from ldotcommons import utils
 
 from arroyo import exts
 
@@ -22,28 +22,21 @@ class Tpb(exts.Origin):
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
     def paginate(self, url):
-        yield url
+        if not url.endswith('/'):
+            url += '/'
 
-    # def url_generator(self, url=None):
-    #     if url is None:
-    #         url = self.BASE_URL
+        # Get page
+        try:
+            page = int(re.findall(r'/(\d+)/', url)[0])
+        except IndexError:
+            page = 0
+            url += '0/'
 
-    #     # And '/' at the end
-    #     if not url.endswith('/'):
-    #         url += '/'
+        pre, post = re.split(r'/\d+/', url, maxsplit=1)
 
-    #     # Get page
-    #     try:
-    #         page = int(re.findall(r'/(\d+)/', url)[0])
-    #     except IndexError:
-    #         page = 0
-    #         url += '0/'
-
-    #     pre, post = re.split(r'/\d+/', url, maxsplit=1)
-
-    #     while True:
-    #         yield pre + '/' + str(page) + '/' + post
-    #         page += 1
+        while True:
+            yield pre + '/' + str(page) + '/' + post
+            page += 1
 
     def process_buffer(self, buff):
         def parse_row(row):
@@ -58,14 +51,18 @@ class Tpb(exts.Origin):
                 'name': row.findAll('a')[2].text,
                 'uri': row.findAll('a')[3]['href'],
                 'size': size,
-                'timestamp': utcnow_timestamp(),
+                'timestamp': utils.now_timestamp(),
                 'seeds': int(row.findAll('td')[-2].text),
                 'leechers': int(row.findAll('td')[-1].text)
             }
 
-        soup = bs4.BeautifulSoup(buff)
-        rows = soup.select('table tr')[1:-1]
+        def filter_row(row):
+            return any((link.attrs.get('href', '').startswith('magnet')
+                        for link in row.select('a')))
 
+        soup = bs4.BeautifulSoup(buff)
+        rows = soup.select('tr')
+        rows = filter(filter_row, rows)
         return map(parse_row, rows)
 
 

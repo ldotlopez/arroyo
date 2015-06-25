@@ -58,11 +58,11 @@ class SourceSelectorTest(SelectorTest):
         self.init_db(expected + other)
 
         self.assertQuery(
-            selector.Query(name_like='interstellar'),
+            selector.QuerySpec(name_like='interstellar'),
             expected)
 
         self.assertQuery(
-            selector.Query(name_like='none'),
+            selector.QuerySpec(name_like='none'),
             [])
 
     def test_source_language(self):
@@ -78,15 +78,15 @@ class SourceSelectorTest(SelectorTest):
         self.init_db(eng + esp + undef)
 
         self.assertQuery(
-            selector.Query(name_like='game of thrones'),
+            selector.QuerySpec(name_like='game of thrones'),
             eng + esp + undef
         )
         self.assertQuery(
-            selector.Query(name_like='game of thrones', language='eng-us'),
+            selector.QuerySpec(name_like='game of thrones', language='eng-us'),
             eng
         )
         self.assertQuery(
-            selector.Query(name_like='game of thrones', language='esp-es'),
+            selector.QuerySpec(name_like='game of thrones', language='esp-es'),
             esp
         )
 
@@ -107,12 +107,12 @@ class EpisodeSelectorTest(SelectorTest):
         self.init_db(expected + other)
 
         self.assertQuery(
-            selector.Query(selector='episode', series='game of thrones'),
+            selector.QuerySpec(selector='episode', series='game of thrones'),
             expected)
 
         # expected[0].state = models.Source.State.DONE
         # self.assertQuery(
-        #     selector.Query(selector='episode', series='game of thrones'),
+        #     selector.QuerySpec(selector='episode', series='game of thrones'),
         #     [])
 
     def test_quality(self):
@@ -126,19 +126,19 @@ class EpisodeSelectorTest(SelectorTest):
         self.init_db(hdready + hdtv)
 
         self.assertQuery(
-            selector.Query(selector='episode', series='game of thrones'),
+            selector.QuerySpec(selector='episode', series='game of thrones'),
             hdtv + hdready)
 
         self.assertQuery(
-            selector.Query(selector='episode', series='game of thrones', quality='1080p'),
+            selector.QuerySpec(selector='episode', series='game of thrones', quality='1080p'),
             [])
 
         self.assertQuery(
-            selector.Query(selector='episode', series='game of thrones', quality='720p'),
+            selector.QuerySpec(selector='episode', series='game of thrones', quality='720p'),
             hdready)
 
         self.assertQuery(
-            selector.Query(selector='episode', series='game of thrones', quality='hdtv'),
+            selector.QuerySpec(selector='episode', series='game of thrones', quality='hdtv'),
             hdtv)
 
     def test_everything(self):
@@ -152,13 +152,13 @@ class EpisodeSelectorTest(SelectorTest):
         ]
         self.init_db(x)
 
-        q = selector.Query(selector='episode', series='game of thrones', season=1)
+        q = selector.QuerySpec(selector='episode', series='game of thrones', season=1)
         res = list(self.app.selector.select(q))
         self.assertTrue(
             (x[0] in res or x[1] in res) and (x[2] in res or x[3] in res)
         )
 
-        q = selector.Query(selector='episode', series='game of thrones', season=1)
+        q = selector.QuerySpec(selector='episode', series='game of thrones', season=1)
         res = list(self.app.selector.select(q, everything=True))
         self.assertTrue(set(res), set(x[0:3]))
 
@@ -172,11 +172,11 @@ class EpisodeSelectorTest(SelectorTest):
         x[0].episode.selection.source = x[0]
         self.app.db.session.commit()
 
-        q = selector.Query(selector='episode', series='game of thrones')
+        q = selector.QuerySpec(selector='episode', series='game of thrones')
         res = list(self.app.selector.select(q, everything=True))
         self.assertTrue(set(res), set(x))
 
-        q = selector.Query(selector='episode', series='game of thrones')
+        q = selector.QuerySpec(selector='episode', series='game of thrones')
         res = list(self.app.selector.select(q))
         self.assertTrue(set(res), set(x[1]))
 
@@ -187,7 +187,7 @@ class EpisodeSelectorTest(SelectorTest):
         ]
         self.init_db(x)
 
-        q = selector.Query(selector='episode', series='game of thrones')
+        q = selector.QuerySpec(selector='episode', series='game of thrones')
         res = list(self.app.selector.select(q))
         self.assertEqual(set(res[0]), set(x[1]))
 
