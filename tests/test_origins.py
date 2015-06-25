@@ -89,5 +89,12 @@ class TpbTest(BaseTest, unittest.TestCase):
         self._test_process(
             'tpb', 'https://thepiratebay.am/search/a/0/99/0', 30)
 
+    def test_get_urls(self):
+        self._test_get_urls(
+            'tpb',
+            'https://thepiratebay.am/recent',
+            ['https://thepiratebay.am/recent'])
+
+
 if __name__ == '__main__':
     unittest.main()
