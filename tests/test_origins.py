@@ -29,6 +29,56 @@ class BaseTest:
         srcs = origin.process(buff)
         self.assertEqual(len(srcs), n_sources_expected)
 
+    def _test_get_urls(self, backend, seed_url, urls):
+        spec = importer.OriginSpec(
+            name='test', backend=backend, url=seed_url, iterations=len(urls))
+        origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+        generated = []
+
+        g = origin.get_urls()
+        for idx in range(len(urls)):
+            try:
+                generated.append(next(g))
+            except StopIteration:
+                break
+
+        self.assertEqual(urls, generated)
+
+
+class EztvTest(BaseTest, unittest.TestCase):
+    def test_process_recent_page(self):
+        self._test_process(
+            'eztv', 'http://eztv.ch/page_0', 41)
+
+    def test_get_urls(self):
+        self._test_get_urls(
+            'eztv',
+            'http://eztv.ch/page_0',
+            ['http://eztv.ch/page_0',
+             'http://eztv.ch/page_1'])
+
+    def test_get_urls_from_none(self):
+        self._test_get_urls(
+            'eztv',
+            None,
+            ['https://eztv.ch/page_0',
+             'https://eztv.ch/page_1'])
+
+    def test_get_urls_from_n(self):
+        self._test_get_urls(
+            'eztv',
+            'http://eztv.ch/page_3',
+            ['http://eztv.ch/page_3',
+             'http://eztv.ch/page_4'])
+
+    def test_get_urls_without_page(self):
+        self._test_get_urls(
+            'eztv',
+            'http://eztv.ch/',
+            ['http://eztv.ch/page_0',
+             'http://eztv.ch/page_1'])
+
 
 class TpbTest(BaseTest, unittest.TestCase):
     def test_process_recent_page(self):

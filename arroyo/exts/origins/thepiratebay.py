@@ -22,29 +22,21 @@ class Tpb(exts.Origin):
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
     def paginate(self, url):
-        self.app.logger.info("tpb origin doesn't support pagination")
-        yield url
+        if not url.endswith('/'):
+            url += '/'
 
-    # def url_generator(self, url=None):
-    #     if url is None:
-    #         url = self.BASE_URL
+        # Get page
+        try:
+            page = int(re.findall(r'/(\d+)/', url)[0])
+        except IndexError:
+            page = 0
+            url += '0/'
 
-    #     # And '/' at the end
-    #     if not url.endswith('/'):
-    #         url += '/'
+        pre, post = re.split(r'/\d+/', url, maxsplit=1)
 
-    #     # Get page
-    #     try:
-    #         page = int(re.findall(r'/(\d+)/', url)[0])
-    #     except IndexError:
-    #         page = 0
-    #         url += '0/'
-
-    #     pre, post = re.split(r'/\d+/', url, maxsplit=1)
-
-    #     while True:
-    #         yield pre + '/' + str(page) + '/' + post
-    #         page += 1
+        while True:
+            yield pre + '/' + str(page) + '/' + post
+            page += 1
 
     def process_buffer(self, buff):
         def parse_row(row):
