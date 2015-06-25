@@ -74,6 +74,16 @@ class BaseTest:
             set(self.app.downloads.list()),
             set([src2]))
 
+    def test_fail_remove(self):
+        src1 = src('foo')
+        src2 = src('bar')
+        self.init_db([src1, src2])
+
+        self.app.downloads.add(src1)
+
+        self.wait()
+        self.app.downloads.remove(src2)
+
     def test_duplicates(self):
         src1 = src('foo')
         self.init_db([src1])
@@ -111,7 +121,7 @@ class BaseTest:
         self.app.downloads.add(src2)
 
         self.wait()
-        dler_item = self.app.downloads.translation_table[src2]
+        dler_item = self.app.downloads.get_translations()[src2]
         self.app.downloads.backend.remove(dler_item)
 
         self.wait()
@@ -128,7 +138,7 @@ class BaseTest:
         self.app.downloads.add(src2)
 
         self.wait()
-        dler_item = self.app.downloads.translation_table[src2]
+        dler_item = self.app.downloads.get_translations()[src2]
         self.app.downloads.backend.remove(dler_item)
 
         self.wait()
