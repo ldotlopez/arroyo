@@ -3,6 +3,7 @@ import binascii
 import re
 from urllib import parse
 
+import arroyo.exc
 from arroyo import (
     exts,
     models
@@ -75,7 +76,7 @@ class Downloads:
             # with nothing in common with us!
             if not source:
                 msg = "Unrelated item found: '{item}'"
-                msg = msg.format(item=dler_item)
+                msg = msg.format(item=dler_item.name)
                 self.logger.warning(msg)
 
             assert source not in table

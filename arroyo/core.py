@@ -13,6 +13,7 @@ from ldotcommons import (
     utils
 )
 
+import arroyo.exc
 from arroyo import (
     importer,
     cron,
@@ -24,7 +25,6 @@ from arroyo import (
     selector,
     signaler)
 
-import arroyo.exc
 
 #
 # Default values for config
@@ -362,4 +362,7 @@ class Arroyo:
 
         # Get extension instances and extract its argument names
         extension = self.get_extension('command', args.subcommand)
-        extension.run(args)
+        try:
+            extension.run(args)
+        except arroyo.exc.BackendError as e:
+            self.logger.critical(e)

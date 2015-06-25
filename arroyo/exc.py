@@ -7,8 +7,16 @@ class NoMatchingItem(Exception):
 
 
 class BackendError(Exception):
-    pass
+    def __init__(self, message, original=None):
+        self.message = message
+        self.original = original
+        super().__init__(message)
 
+    def __unicode__(self):
+        return self.message
+
+    def __str__(self):
+        return self.__unicode__()
 
 class SourceNotFound(Exception):
     pass

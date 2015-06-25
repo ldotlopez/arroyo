@@ -1,7 +1,6 @@
 from ldotcommons import utils
 
 from arroyo import (
-    exc,
     exts,
     models,
     selector

@@ -62,7 +62,7 @@ class TransmissionDownloader(exts.Downloader):
                 for x in self._api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
-            msg = "Unable to connect to transmission daemon: {message}"
+            msg = "Unable to connect to transmission daemon: '{message}'"
             msg = msg.format(message=e.original.message)
             raise arroyo.exc.BackendError(msg)
 
