@@ -244,7 +244,9 @@ class Arroyo:
             self.settings.get('log-format')))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
-        self.logger.setLevel(self.settings.get('log-level'))
+
+        lvlname = self.settings.get('log-level')
+        self.logger.setLevel(getattr(logging, lvlname))
 
         # Build and configure fetcher
         fetcher = self.settings.get('fetcher')
