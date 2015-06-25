@@ -63,31 +63,43 @@ class Downloads:
                 self._logger.warning(
                     "No matching object in backend for '{}'".format(src))
 
+    @property
+    def translation_table(self):
+        table = {}
+        for dler_item in self.backend.list():
+            source = self.backend.translate_item(dler_item)
+
+            table[source] = dler_item
+            table[dler_item] = source
+
+        return table
+
     def list(self):
         ret = []
 
-        for dler_obj in self.backend.list():
+        for dler_item in self.backend.list():
+
             # Filter out objects from downloader unknow for the db
-            try:
-                db_obj = self.backend.translate_item(dler_obj)
-            except arroyo.exc.NoMatchingItem as e:
+            source = self.backend.translate_item(dler_item)
+            if not source:
                 msg = "No matching db object for {item}"
-                self._logger.warning(msg.format(item=e))
+                msg = msg.format(item=dler_item)
+                self._logger.warning(msg)
                 continue
 
             # Warn about unknow states
-            try:
-                dler_state = self.backend.get_state(dler_obj)
-            except arroyo.exc.NoMatchingState as e:
-                self._logger.warning(
-                    "No matching state '{}' for {}".format(e.state, db_obj))
+            backend_state = self.backend.get_state(dler_item)
+            if backend_state is None:
+                msg = "Unknow state for {item}"
+                msg = msg.format(item=dler_item)
+                self._logger.warning(msg)
                 continue
 
-            ret.append(db_obj)
-            db_state = db_obj.state
-            if db_state != dler_state:
-                db_obj.state = dler_state
-                self._app.signals.send('source-state-change', source=db_obj)
+            ret.append(source)
+
+            if source.state != backend_state:
+                source.state = backend_state
+                self._app.signals.send('source-state-change', source=source)
 
         # Get for previous downloads manually removed
         for src in self._app.db.get_active():
