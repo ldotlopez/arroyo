@@ -3,7 +3,10 @@ import binascii
 import re
 from urllib import parse
 
-from arroyo import models
+from arroyo import (
+    exts,
+    models
+)
 
 
 class Downloads:
@@ -13,6 +16,7 @@ class Downloads:
     """
     def __init__(self, app):
         app.signals.register('source-state-change')
+        app.register('crontask', 'downloads', DownloadsCronTask)
 
         self.app = app
         self.logger = app.logger.getChild('downloads')
@@ -151,6 +155,15 @@ def calculate_urns(urn):
         ':'.join([prefix, algo, urn_sha1]),
         ':'.join([prefix, algo, urn_base32])
     )
+
+
+class DownloadsCronTask(exts.CronTask):
+    NAME = 'downloads'
+    INTERVAL = '5M'
+
+    def run(self):
+        self.app.downloads.sync()
+        super().run()
 
 
 def is_sha1_urn(urn):
