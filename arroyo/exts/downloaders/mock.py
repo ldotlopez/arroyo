@@ -3,7 +3,6 @@
 # vim: set fileencoding=utf-8 :
 
 from arroyo import (
-    downloads,
     exts,
     models
 )
@@ -31,20 +30,8 @@ class MockDownloader(exts.Downloader):
         return [var[idx:] for var in
                 self.app.variables.children(self._VARIABLES_NS)]
 
-        # idx = len(self._VARIABLES_NS) + 1
-        # ret = []
-        # for var in self.app.variables.children(self._VARIABLES_NS):
-        #     urn = var[idx:]
-        #     src = self.app.db.get(models.Source, urn=urn)
-        #     ret.append(src)
-
-        # return ret
-
     def translate_item(self, urn):
-        try:
-            return self.app.db.get(models.Source, urn=urn)
-        except orm.exc.NoResultFound:
-            return None
+        return self.app.db.get(models.Source, urn=urn)
 
     def get_state(self, urn):
         try:

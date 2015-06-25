@@ -126,12 +126,13 @@ class TransmissionDownloader(exts.Downloader):
                 msg = "Multiple results found for urn '{urn}'"
                 msg = msg.format(urn=u)
                 self._logger.error(msg)
+                return None
 
             except orm.exc.NoResultFound:
                 pass
 
         if not ret:
-            raise arroyo.exc.NoMatchingItem(tr_obj.name)
+            return None
 
         # Attach some fields to item
         for k in ('progress', ):

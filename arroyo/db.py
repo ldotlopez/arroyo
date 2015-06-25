@@ -1,4 +1,3 @@
-from sqlalchemy import orm
 from ldotcommons import sqlalchemy as ldotsa
 
 import arroyo.exc
@@ -26,19 +25,22 @@ class Db:
 
     def get(self, model, **kwargs):
         query = self.session.query(model).filter_by(**kwargs)
+        count = query.count()
 
-        # FIXME: Handle multiple rows found?
-        try:
-            return query.one()
-        except orm.exc.NoResultFound:
+        if count == 0:
             return None
+        if count == 1:
+            return query.one()
+        else:
+            return query.all()
 
     def get_or_create(self, model, **kwargs):
-        obj = self.get(model, **kwargs)
-        if not obj:
-            return model(**kwargs), True
+        o = self.get(model, **kwargs)
+
+        if o:
+            return o, False
         else:
-            return obj, False
+            return model(**kwargs), True
 
     def reset(self):
         for model in [models.Source, models.Movie, models.Episode]:
