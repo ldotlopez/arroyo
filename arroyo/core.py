@@ -13,18 +13,18 @@ from ldotcommons import (
     utils
 )
 
+import arroyo.exc
 from arroyo import (
     importer,
     cron,
     db,
-    downloader,
+    downloads,
     exts,
     mediainfo,
     models,
     selector,
     signaler)
 
-import arroyo.exc
 
 #
 # Default values for config
@@ -275,7 +275,7 @@ class Arroyo:
 
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
-        self.downloader = downloader.Downloader(self)
+        self.downloads = downloads.Downloads(self)
 
         # Mediainfo instance is not never used directly, it can be considered
         # as a "service", but it's keep anyway
@@ -364,4 +364,7 @@ class Arroyo:
 
         # Get extension instances and extract its argument names
         extension = self.get_extension('command', args.subcommand)
-        extension.run(args)
+        try:
+            extension.run(args)
+        except arroyo.exc.BackendError as e:
+            self.logger.critical(e)

@@ -4,17 +4,16 @@
 
 from urllib import parse
 
-from sqlalchemy.orm import exc as orm_exc
+from sqlalchemy import orm
 import transmissionrpc
-
 from ldotcommons import store
 
 from arroyo import (
-    downloader,
-    exc,
+    downloads,
     exts,
     models
 )
+import arroyo.exc
 
 
 _SETTINGS_NS = 'extensions.downloaders.transmission'
@@ -23,7 +22,7 @@ _SETTINGS_NS = 'extensions.downloaders.transmission'
 def settings_validator(key, value):
     k = key[len(_SETTINGS_NS)+1:]
 
-    if k in 'enabled':
+    if k == 'enabled':
         return store.cast_value(value, bool)
 
     if k in ['address', 'user', 'password']:
@@ -33,7 +32,7 @@ def settings_validator(key, value):
         return store.cast_value(value, int)
 
     else:
-        raise Exception('Invalid key: {}'.format(key))
+        raise KeyError(key)
 
 
 class TransmissionDownloader(exts.Downloader):
@@ -45,13 +44,10 @@ class TransmissionDownloader(exts.Downloader):
     }
 
     def __init__(self, app):
-        super(TransmissionDownloader, self).__init__(app)
-
-        app.settings.set_validator(settings_validator, ns=_SETTINGS_NS, )
+        super().__init__(app)
 
         self._logger = self.app.logger.getChild('transmission')
-
-        error = None
+        self.app.settings.set_validator(settings_validator, ns=_SETTINGS_NS, )
 
         try:
             s = app.settings.get_tree(_SETTINGS_NS, {})
@@ -63,20 +59,15 @@ class TransmissionDownloader(exts.Downloader):
             )
             self._shield = {
                 'urn:btih:' + x.hashString: x
-                for x in self._api.list().values()}
+                for x in self._api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
-            msg = "Unable to connect to transmission daemon: {message}"
-            error = msg.format(message=e.original.message)
+            msg = "Unable to connect to transmission daemon: '{message}'"
+            msg = msg.format(message=e.original.message)
+            raise arroyo.exc.BackendError(msg)
 
-        if error:
-            raise exc.BackendError(error)
-
-    def do_list(self):
-        return self._api.get_torrents()
-
-    def do_add(self, source, **kwargs):
-        sha1_urn = downloader.calculate_urns(source.urn)[0]
+    def add(self, source, **kwargs):
+        sha1_urn = downloads.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
             self._logger.warning('Avoid duplicate')
@@ -85,15 +76,18 @@ class TransmissionDownloader(exts.Downloader):
         try:
             ret = self._api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
-            raise exc.BackendError(e)
+            raise arroyo.exc.BackendError(e)
 
         self._shield[sha1_urn] = ret
         return ret
 
-    def do_remove(self, item):
+    def remove(self, item):
         self._shield = {
             urn: i for (urn, i) in self._shield.items() if i != item}
         return self._api.remove_torrent(item.id, delete_data=True)
+
+    def list(self):
+        return self._api.get_torrents()
 
     def get_state(self, tr_obj):
         # stopped status can mean:
@@ -111,12 +105,12 @@ class TransmissionDownloader(exts.Downloader):
         if state in self._STATE_MAP:
             return self._STATE_MAP[state]
         else:
-            raise exc.NoMatchingState(state)
+            raise arroyo.exc.NoMatchingState(state)
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloader.calculate_urns(urn)
+        urns = downloads.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None
@@ -128,16 +122,17 @@ class TransmissionDownloader(exts.Downloader):
                 ret = q.one()
                 break
 
-            except orm_exc.MultipleResultsFound:
+            except orm.exc.MultipleResultsFound:
                 msg = "Multiple results found for urn '{urn}'"
                 msg = msg.format(urn=u)
                 self._logger.error(msg)
+                return None
 
-            except orm_exc.NoResultFound:
+            except orm.exc.NoResultFound:
                 pass
 
         if not ret:
-            raise exc.NoMatchingItem(tr_obj.name)
+            return None
 
         # Attach some fields to item
         for k in ('progress', ):

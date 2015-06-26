@@ -2,29 +2,49 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
-from arroyo import (exts, models)
+from arroyo import (
+    exts,
+    models
+)
 
 
 class MockDownloader(exts.Downloader):
-    def __init__(self, db_session, *args, **kwargs):
-        self.sources = set()
+    _VARIABLES_NS = 'downloader.mock.states'
 
-    def do_add(self, source, **kwargs):
-        self.sources.add(source)
+    def __init__(self, app):
+        super().__init__(app)
+
+    def add(self, source, **kwargs):
+        self.app.variables.set(
+            self.get_source_key(source),
+            models.Source.State.INITIALIZING)
+
         source.state = models.Source.State.INITIALIZING
 
-    def do_remove(self, source):
-        self.sources.remove(source)
+    def remove(self, urn):
+        self.app.variables.reset(
+            self.get_urn_key(urn))
 
-    def do_list(self):
-        return list(self.sources)
+    def list(self):
+        idx = len(self._VARIABLES_NS) + 1
+        return [var[idx:] for var in
+                self.app.variables.children(self._VARIABLES_NS)]
 
-    def translate_item(self, source):
-        return source
+    def translate_item(self, urn):
+        return self.app.db.get(models.Source, urn=urn)
 
-    def get_state(self, source):
-        return source.state
+    def get_state(self, urn):
+        try:
+            return self.app.variables.get(
+                self.get_urn_key(urn))
+        except KeyError:
+            return None
 
+    def get_source_key(self, source):
+        return '%s.%s' % (self._VARIABLES_NS, source.urn)
+
+    def get_urn_key(self, urn):
+        return '%s.%s' % (self._VARIABLES_NS, urn)
 
 __arroyo_extensions__ = [
     ('downloader', 'mock', MockDownloader)
