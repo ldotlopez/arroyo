@@ -3,6 +3,9 @@ from ldotcommons import (sqlalchemy as ldotsa, utils)
 
 class QuerySpec(utils.InmutableDict):
     def __init__(self, **kwargs):
+
+        # Should all this normalization should be in BaseQuery?
+
         def _normalize_key(key):
             for x in [' ', '_']:
                 key = key.replace(x, '-')
@@ -17,8 +20,8 @@ class QuerySpec(utils.InmutableDict):
 
         kwargs = tmp
 
-        if 'selector' not in kwargs:
-            kwargs['selector'] = 'source'
+        if 'as' not in kwargs:
+            kwargs['as'] = 'source'
 
         if 'language' in kwargs:
             kwargs['language'] = kwargs['language'].lower()
@@ -34,28 +37,36 @@ class Selector:
         self.app = app
         self._auto_import = self.app.settings.get('auto-import')
 
+    def get_queries_specs(self):
+        return {name: QuerySpec(**params) for (name, params) in
+                self.app.settings.get_tree('query', {}).items()}
+
     def get_queries(self):
-        cfg_dict = utils.configparser_to_dict(self.app.config)
-        queries = utils.MultiDepthDict(cfg_dict).subdict('query')
-        return {k: QuerySpec(**v) for (k, v) in queries.items()}
+        return {name: self.get_query_for_spec(spec)
+                for (name, spec) in self.get_queries_specs().items()}
 
-    def get_selector(self, query):
-        if not isinstance(query, QuerySpec):
-            raise ValueError('query is not a QuerySpec object')
+    def get_query_for_spec(self, spec):
+        return self.app.get_extension('query', spec.get('as'), spec=spec)
 
-        selector_type = query.get('selector')
-        query = query.exclude('selector')
+    # def get_selector(self, query):
+    #     if not isinstance(query, QuerySpec):
+    #         raise ValueError('query is not a QuerySpec object')
 
-        return self.app.get_extension(
-            'selector', selector_type,
-            query=query)
+    #     selector_type = query.get('selector')
+    #     query = query.exclude('selector')
 
-    def select(self, query, everything=False):
-        if not isinstance(query, QuerySpec):
+    #     return self.app.get_extension(
+    #         'selector', selector_type,
+    #         query=query)
+
+    def select_spec(self, spec, everything=False):
+        if not isinstance(spec, QuerySpec):
             raise ValueError('query must be a Query instance')
 
         if self._auto_import:
-            self.app.importer.import_query_spec(query)
+            self.app.importer.import_query_spec(spec)
+
+        self.app.downloads.sync()
 
         selector = self.get_selector(query)
         for src in selector.select(everything):

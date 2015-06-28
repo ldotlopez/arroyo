@@ -65,7 +65,7 @@ _extensions = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-    'selectors': ('source', 'episode', 'movie'),
+    'queries': ('source', )
 }
 
 _extensions = chain.from_iterable([
@@ -294,12 +294,12 @@ class Arroyo:
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
 
-    def get_extension(self, extension_point, name, **params):
+    def get_extension(self, extension_point, name, *args, **kwargs):
         impls = self._registry.get(extension_point, {})
         if name not in impls:
             raise arroyo.exc.NoImplementationError(extension_point, name)
 
-        return impls[name](self, **params)
+        return impls[name](self, *args, **kwargs)
 
     def load_extension(self, *names):
         for name in names:

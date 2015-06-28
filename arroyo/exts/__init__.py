@@ -1,6 +1,7 @@
 from urllib import parse
 
 from ldotcommons import utils
+from arroyo import selector
 
 
 class Extension:
@@ -171,7 +172,8 @@ class Origin(Extension):
 
 
 class Command(Extension):
-    pass
+    def run(self, arguments):
+        raise NotImplementedError()
 
 
 class Downloader(Extension):
@@ -191,8 +193,23 @@ class Downloader(Extension):
         raise NotImplementedError()
 
 
-class Selector(Extension):
-    pass
+class Query(Extension):
+    def __init__(self, app, spec):
+        if not isinstance(spec, selector.QuerySpec):
+            msg = "query must be a QuerySpec"
+            raise TypeError(msg)
+
+        super().__init__(app)
+        self.spec = spec
+
+    def matches(self, include_all=False):
+        raise NotImplementedError()
+
+    def sort(self, iterable):
+        raise NotImplementedError()
+
+    def select(self):
+        raise NotImplementedError()
 
 
 class CronTask(Extension):

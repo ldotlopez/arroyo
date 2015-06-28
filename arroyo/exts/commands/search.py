@@ -82,21 +82,20 @@ class QueryCommand(exts.Command):
             for (k, v) in filters.items():
                 self.app.settings.set('query.command-line.' + k, v)
 
-        queries = self.app.settings.get_tree('query')
-
+        queries = self.app.selector.get_queries()
         if not queries:
             msg = 'One filter or one keyword or one [query.label] is required'
             raise exc.ArgumentError(msg)
 
-        # FIXME: Missing sync
-        # sync()
+        for (label, query) in self.app.selector.get_queries().items():
+            print(repr(query))
 
-        for (label, query) in queries.items():
-            query = selector.QuerySpec(**query)
-            res = list(self.app.selector.select(
-                query,
-                everything=all_states
-            ))
+            res = list(query.matches(everything=all_states))
+
+            # res = list(self.app.selector.select_spec(
+            #     spec,
+            #     everything=all_states
+            # ))
 
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=label, n_results=len(res)))
