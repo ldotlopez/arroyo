@@ -171,7 +171,8 @@ class Origin(Extension):
 
 
 class Command(Extension):
-    pass
+    def run(self, arguments):
+        raise NotImplementedError()
 
 
 class Downloader(Extension):
