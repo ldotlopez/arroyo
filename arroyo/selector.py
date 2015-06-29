@@ -51,3 +51,13 @@ class Selector:
 
     def get_query_for_spec(self, spec):
         return self.app.get_extension('query', spec.get('as'), spec=spec)
+
+    def matches(self, everything, **params):
+        spec = QuerySpec(None, **params)
+        query = self.get_query_for_spec(spec)
+        return query.matches(everything)
+
+    def select(self, **params):
+        spec = QuerySpec(None, **params)
+        query = self.get_query_for_spec(spec)
+        return query.select()

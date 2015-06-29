@@ -195,6 +195,21 @@ class Downloader(Extension):
         raise NotImplementedError()
 
 
+class Filter(Extension):
+    HANDLES = []
+
+    def __init__(self, app, key, value):
+        if key not in self.HANDLES:
+            raise ValueError(key)
+
+        super().__init__(app)
+        self.key = key
+        self.value = value
+
+    def apply(self, items):
+        raise NotImplementedError()
+
+
 class Query(Extension):
     def __init__(self, app, spec):
         if not isinstance(spec, selector.QuerySpec):

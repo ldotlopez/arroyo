@@ -37,10 +37,11 @@ class SelectorTest(unittest.TestCase):
 
         self.app.db.session.commit()
 
-    def assertQuery(self, query, expected):
+    def assertQuery(self, expected, **params):
+        res = self.app.selector.matches(True, **params)
         self.assertEqual(
             set([x.name for x in expected]),
-            set([x.name for x in self.app.selector.select(query)])
+            set([x.name for x in res])
         )
 
 
@@ -58,12 +59,12 @@ class SourceSelectorTest(SelectorTest):
         self.init_db(expected + other)
 
         self.assertQuery(
-            selector.QuerySpec(name_like='interstellar'),
-            expected)
+            expected,
+            name_like='interstellar')
 
         self.assertQuery(
-            selector.QuerySpec(name_like='none'),
-            [])
+            [],
+            name_like='none')
 
     def test_source_language(self):
         eng = [
@@ -78,17 +79,16 @@ class SourceSelectorTest(SelectorTest):
         self.init_db(eng + esp + undef)
 
         self.assertQuery(
-            selector.QuerySpec(name_like='game of thrones'),
-            eng + esp + undef
-        )
+            eng + esp + undef,
+            name_like='game of thrones')
+
         self.assertQuery(
-            selector.QuerySpec(name_like='game of thrones', language='eng-us'),
-            eng
-        )
+            eng,
+            name_like='game of thrones', language='eng-us')
+
         self.assertQuery(
-            selector.QuerySpec(name_like='game of thrones', language='esp-es'),
-            esp
-        )
+            esp,
+            name_like='game of thrones', language='esp-es')
 
 
 class EpisodeSelectorTest(SelectorTest):
@@ -107,8 +107,8 @@ class EpisodeSelectorTest(SelectorTest):
         self.init_db(expected + other)
 
         self.assertQuery(
-            selector.QuerySpec(selector='episode', series='game of thrones'),
-            expected)
+            expected,
+            selector='episode', series='game of thrones')
 
         # expected[0].state = models.Source.State.DONE
         # self.assertQuery(
@@ -126,20 +126,20 @@ class EpisodeSelectorTest(SelectorTest):
         self.init_db(hdready + hdtv)
 
         self.assertQuery(
-            selector.QuerySpec(selector='episode', series='game of thrones'),
-            hdtv + hdready)
+            hdtv + hdready,
+            selector='episode', series='game of thrones')
 
         self.assertQuery(
-            selector.QuerySpec(selector='episode', series='game of thrones', quality='1080p'),
-            [])
+            [],
+            selector='episode', series='game of thrones', quality='1080p')
 
         self.assertQuery(
-            selector.QuerySpec(selector='episode', series='game of thrones', quality='720p'),
-            hdready)
+            hdready,
+            selector='episode', series='game of thrones', quality='720p')
 
         self.assertQuery(
-            selector.QuerySpec(selector='episode', series='game of thrones', quality='hdtv'),
-            hdtv)
+            hdtv,
+            selector='episode', series='game of thrones', quality='hdtv')
 
     def test_everything(self):
         x = [
@@ -152,14 +152,16 @@ class EpisodeSelectorTest(SelectorTest):
         ]
         self.init_db(x)
 
-        q = selector.QuerySpec(selector='episode', series='game of thrones', season=1)
-        res = list(self.app.selector.select(q))
+        q = self.app.selector.get_query_for_spec(
+            selector.QuerySpec('test', selector='episode', series='game of thrones', season=1))
+        res = q.matches(everything=False)
         self.assertTrue(
             (x[0] in res or x[1] in res) and (x[2] in res or x[3] in res)
         )
 
-        q = selector.QuerySpec(selector='episode', series='game of thrones', season=1)
-        res = list(self.app.selector.select(q, everything=True))
+        q = self.app.selector.get_query_for_spec(
+            selector.QuerySpec('test', selector='episode', series='game of thrones', season=1))
+        res = q.matches(everything=False)
         self.assertTrue(set(res), set(x[0:3]))
 
     def test_selection(self):
@@ -174,11 +176,11 @@ class EpisodeSelectorTest(SelectorTest):
 
         q = selector.QuerySpec(selector='episode', series='game of thrones')
         res = list(self.app.selector.select(q, everything=True))
-        self.assertTrue(set(res), set(x))
+        self.assertEqual(set(res), set(x))
 
         q = selector.QuerySpec(selector='episode', series='game of thrones')
         res = list(self.app.selector.select(q))
-        self.assertTrue(set(res), set(x[1]))
+        self.assertEqual(set(res), set(x[1]))
 
     def test_proper(self):
         x = [
