@@ -65,7 +65,7 @@ _extensions = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-    'queries': ('source', )
+    'queries': ('episode', 'movie', 'source')
 }
 
 _extensions = chain.from_iterable([
@@ -366,5 +366,6 @@ class Arroyo:
         extension = self.get_extension('command', args.subcommand)
         try:
             extension.run(args)
-        except arroyo.exc.BackendError as e:
+        except (arroyo.exc.BackendError,
+                arroyo.exc.NoImplementationError) as e:
             self.logger.critical(e)

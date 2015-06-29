@@ -87,20 +87,15 @@ class QueryCommand(exts.Command):
             msg = 'One filter or one keyword or one [query.label] is required'
             raise exc.ArgumentError(msg)
 
-        for (label, query) in self.app.selector.get_queries().items():
-            print(repr(query))
+        for query in self.app.selector.get_queries():
+            matches = query.matches(everything=all_states)
 
-            res = list(query.matches(everything=all_states))
-
-            # res = list(self.app.selector.select_spec(
-            #     spec,
-            #     everything=all_states
-            # ))
+            groups = itertools.groupby(matches, lambda src: src.superitem)
 
             msg = "== Search '{label}: {n_results} result(s)'"
-            print(msg.format(label=label, n_results=len(res)))
-            grouping = itertools.groupby(res, lambda src: src.superitem)
-            for (superitem, grouper) in grouping:
+            print(msg.format(label=query.name, n_results=len(matches)))
+
+            for (superitem, grouper) in groups:
                 print('+ {}'.format(superitem or 'Ungroupped'))
                 print(fmt_grp('|-', (fmt_src(x) for x in grouper)))
 

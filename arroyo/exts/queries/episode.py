@@ -1,7 +1,4 @@
-import re
-
 import guessit
-from sqlalchemy.sql import functions
 from arroyo import (
     exc,
     exts,
@@ -9,15 +6,14 @@ from arroyo import (
 )
 
 
-class Selector(exts.Selector):
+class Query(exts.Query):
     _SUPPORTED_Q = ('1080p', '720p', '480p', 'hdtv')
     _SUPPORTED_Q_STRING = ", ".join([
         "'{}'".format(x) for x in _SUPPORTED_Q
     ])
 
-    def __init__(self, app, query):
-        super(Selector, self).__init__(app)
-        self._query = query
+    def __init__(self, app, spec):
+        super().__init__(app, spec)
         self._source_table = {}
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
@@ -34,12 +30,6 @@ class Selector(exts.Selector):
         del(self._source_table[src])
 
     @staticmethod
-    def proper_sort(x):
-        return re.search(
-            r'\b(PROPER|REPACK|FIX)\b',
-            x.name) is None
-
-    @staticmethod
     def quality_filter(x, quality):
         info = guessit.guess_episode_info(x.name)
         screen_size = info.get('screenSize', '').lower()
@@ -50,20 +40,20 @@ class Selector(exts.Selector):
         else:
             return not screen_size and fmt == 'hdtv'
 
-    def select(self, everything):
+    def matches(self, everything):
         # Get various parameters
-        series = self._query.get('series')
-        year = self._query.get('year')
-        language = self._query.get('language')
-        season = self._query.get('season')
-        number = self._query.get('episode')
+        series = self.spec.get('series')
+        year = self.spec.get('year')
+        language = self.spec.get('language')
+        season = self.spec.get('season')
+        number = self.spec.get('episode')
 
         # Basic checks
         if not series:
             raise exc.ArgumentError('series filter is required')
 
         # Parse quality filter
-        quality = self._query.get('quality', None)
+        quality = self.spec.get('quality', None)
         if quality:
             quality = quality.lower()
             if quality not in self.__class__._SUPPORTED_Q:
@@ -78,6 +68,10 @@ class Selector(exts.Selector):
                 raise exc.ArgumentError(msg)
 
         qs = self.app.db.session.query(models.Episode)
+
+        # Strip episodes with a selection
+        if not everything:
+            qs = qs.filter(models.Episode.selection == None)  # nopep8
 
         if series:
             qs = qs.filter(models.Episode.series.ilike(series))
@@ -94,31 +88,35 @@ class Selector(exts.Selector):
         if number:
             qs = qs.filter(models.Episode.number == number)
 
-        # Strip episodes with a selection
-        if not everything:
-            qs = qs.filter(models.Episode.selection == None)  # nopep8
-
+        ret = []
         for ep in qs:
             srcs = ep.sources
-
-            # Filter out by quality
-            if not everything and quality:
+            if quality:
                 srcs = filter(lambda x: self.quality_filter(x, quality), srcs)
 
-            # Put PROPER's first
-            srcs = sorted(srcs, key=self.proper_sort)
+            ret += srcs
+
             for src in srcs:
                 self._source_table[src] = ep
-                yield src
 
-                if not everything:
-                    break  # Go to the next episode
+        return ret
 
-            # if srcs:
-            #     self._source_table[srcs[0]] = ep
-            #     yield srcs[0]
+    def sort(self, srcs):
+        # https://wiki.python.org/moin/HowTo/Sorting#The_Old_Way_Using_the_cmp_Parameter
+        # def proper_sort(x):
+        #     # guessit property other contains 'Proper'
+        #     return re.search(
+        #         r'\b(PROPER|REPACK|FIX)\b',
+        #         x.name)
 
+        # def release_group_sort(x):
+        #     pass
+        #
+
+        # return sorted(srcs, key=self.proper_sort, reverse=True)
+
+        return srcs
 
 __arroyo_extensions__ = [
-    ('selector', 'episode', Selector)
+    ('query', 'episode', Query)
 ]
