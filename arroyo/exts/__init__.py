@@ -1,9 +1,12 @@
 import itertools
-from ldotcommons import utils
+from ldotcommons import (
+    sqlalchemy as ldotsa,
+    utils
+)
 from urllib import parse
 
-
-from arroyo import selector
+import arroyo.exc
+from arroyo import models
 
 
 class Extension:
@@ -196,7 +199,8 @@ class Downloader(Extension):
 
 
 class Filter(Extension):
-    HANDLES = []
+    APPLIES_TO = None
+    HANDLES = ()
 
     def __init__(self, app, key, value):
         if key not in self.HANDLES:
@@ -206,18 +210,71 @@ class Filter(Extension):
         self.key = key
         self.value = value
 
-    def apply(self, items):
+    def filter(self, x):
         raise NotImplementedError()
+
+    def apply(self, iterable):
+        return filter(self.filter, iterable)
+
+
+class QuerySpec(utils.InmutableDict):
+    def __init__(self, query_name, **kwargs):
+        #
+        # FIXME: Should all this normalization should be in exts.Query?
+        #
+
+        def _normalize_key(key):
+            for x in [' ', '_']:
+                key = key.replace(x, '-')
+            return key
+
+        # Some sanity checks/modifications
+        # for (k, v) in kwargs.items():
+        #     k = _normalize_key(k)
+        #     if k.endswith('-like'):
+        #         v = ldotsa.glob_to_like(v, wide=True)
+        #     tmp[k] = v
+        #
+        # kwargs = tmp
+
+        kwargs = {_normalize_key(k): v for (k, v) in kwargs.items()}
+        kwargs['as'] = kwargs.get('as', 'source')
+
+        if 'language' in kwargs:
+            kwargs['language'] = kwargs['language'].lower()
+
+        if 'type' in kwargs:
+            kwargs['type'] = kwargs['type'].lower()
+
+        super().__init__(**kwargs)
+        self._name = query_name
+
+    @property
+    def name(self):
+        return self._name
 
 
 class Query(Extension):
     def __init__(self, app, spec):
-        if not isinstance(spec, selector.QuerySpec):
-            msg = "query must be a QuerySpec"
-            raise TypeError(msg)
-
         super().__init__(app)
         self.spec = spec
+
+    def apply_filters(self, model, iterable):
+        filters = self.app.selector.filter_map.get(model, {})
+
+        provided = set(filters.keys())
+        needed = set(self.spec.keys())
+        needed.discard('as')
+        print("missing", needed - provided)
+
+        funcs = [filters[key](self.app, key, value)
+                 for (key, value) in self.spec.items()
+                 if key in provided]
+
+        for f in funcs:
+            iterable = f.apply(iterable)
+
+        return iterable
 
     @property
     def name(self):

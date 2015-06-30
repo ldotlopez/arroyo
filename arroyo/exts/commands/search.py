@@ -73,7 +73,7 @@ class QueryCommand(exts.Command):
             query_name = ' '.join(keywords)
             query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
             self.app.settings.set(
-                'query.' + query_name + '.name-like',
+                'query.' + query_name + '.name-glob',
                 '*' + '*'.join(keywords) + '*')
 
         elif filters:
@@ -88,7 +88,7 @@ class QueryCommand(exts.Command):
             raise exc.ArgumentError(msg)
 
         for query in self.app.selector.get_queries():
-            matches = query.matches(everything=all_states)
+            matches = list(query.matches(everything=all_states))
 
             groups = itertools.groupby(matches, lambda src: src.superitem)
 

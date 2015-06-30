@@ -117,6 +117,7 @@ class Query(exts.Query):
 
         return srcs
 
+
 __arroyo_extensions__ = [
     ('query', 'episode', Query)
 ]

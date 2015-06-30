@@ -1,49 +1,14 @@
-from ldotcommons import (sqlalchemy as ldotsa, utils)
-
-
-class QuerySpec(utils.InmutableDict):
-    def __init__(self, name, **kwargs):
-
-        # Should all this normalization should be in BaseQuery?
-
-        def _normalize_key(key):
-            for x in [' ', '_']:
-                key = key.replace(x, '-')
-            return key
-
-        tmp = {}
-        for (k, v) in kwargs.items():
-            k = _normalize_key(k)
-            if k.endswith('-like'):
-                v = ldotsa.glob_to_like(v, wide=True)
-            tmp[k] = v
-
-        kwargs = tmp
-
-        if 'as' not in kwargs:
-            kwargs['as'] = 'source'
-
-        if 'language' in kwargs:
-            kwargs['language'] = kwargs['language'].lower()
-
-        if 'type' in kwargs:
-            kwargs['type'] = kwargs['type'].lower()
-
-        super().__init__(**kwargs)
-        self._name = name
-
-    @property
-    def name(self):
-        return self._name
+from arroyo import exts
 
 
 class Selector:
     def __init__(self, app):
         self.app = app
         self._auto_import = self.app.settings.get('auto-import')
+        self._filter_map = None
 
     def get_queries_specs(self):
-        return [QuerySpec(name, **params) for (name, params) in
+        return [exts.QuerySpec(x, **params) for (x, params) in
                 self.app.settings.get_tree('query', {}).items()]
 
     def get_queries(self):
@@ -53,11 +18,37 @@ class Selector:
         return self.app.get_extension('query', spec.get('as'), spec=spec)
 
     def matches(self, everything, **params):
-        spec = QuerySpec(None, **params)
+        spec = exts.QuerySpec(None, **params)
         query = self.get_query_for_spec(spec)
         return query.matches(everything)
 
     def select(self, **params):
-        spec = QuerySpec(None, **params)
+        spec = exts.QuerySpec(None, **params)
         query = self.get_query_for_spec(spec)
         return query.select()
+
+    #
+    # This doesn't really fit here but it's better than anywhere else…
+    #
+    @property
+    def filter_map(self):
+        if self._filter_map is None:
+            self._filter_map = {}
+
+            for cls in self.app.get_implementations('filter').values():
+                if cls.APPLIES_TO not in self.filter_map:
+                    self._filter_map[cls.APPLIES_TO] = {}
+
+                for key in cls.HANDLES:
+                    if key in self._filter_map[cls.APPLIES_TO]:
+                        msg = "{key} is currently mapped to {active}, ignoring {current}"
+                        msg = msg.format(
+                            key=key,
+                            active=repr(self._filter_map[cls.APPLIES_TO][key]),
+                            current=repr(cls))
+                        self._logger.warning(msg)
+                        continue
+
+                    self._filter_map[cls.APPLIES_TO][key] = cls
+
+        return self._filter_map
