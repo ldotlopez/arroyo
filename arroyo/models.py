@@ -111,7 +111,11 @@ class Source(Base):
         if self.seeds is None or self.leechers is None:
             return 0
 
+        if self.leechers == 0:
+            return sys.maxsize
+
         return self.seeds / self.leechers
+
 
     #
     # Type property
