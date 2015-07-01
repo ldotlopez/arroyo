@@ -5,6 +5,7 @@
 import hashlib
 import re
 from urllib import parse
+import sys
 
 from ldotcommons.sqlalchemy import Base
 from ldotcommons import keyvaluestore, utils

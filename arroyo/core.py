@@ -25,7 +25,6 @@ from arroyo import (
     selector,
     signaler)
 
-
 #
 # Default values for config
 #
@@ -73,7 +72,6 @@ _extensions = {
 _extensions = chain.from_iterable([
     [ns+'.'+ext for ext in _extensions[ns]]
     for ns in _extensions])
-
 _extensions = [x for x in _extensions]
 _defaults.update({'extensions.{}.enabled'.format(x): True
                   for x in _extensions})
