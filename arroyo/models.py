@@ -201,10 +201,10 @@ class Episode(Base):
     series = Column(String, nullable=False)
     _language = Column('language', String, nullable=True)
     year = Column(Integer, nullable=True)
-    season = Column(String, nullable=False)
+    season = Column(Integer, nullable=False)
     # guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
-    number = Column(String, nullable=False)
+    number = Column(Integer, nullable=False)
 
     @hybrid_property
     def language(self):

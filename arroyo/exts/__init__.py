@@ -202,10 +202,11 @@ class Filter(Extension):
     APPLIES_TO = None
     HANDLES = ()
 
-    def __init__(self, app, key, value):
-        if key not in self.HANDLES:
-            raise ValueError(key)
+    @classmethod
+    def compatible(cls, model, key):
+        return model == cls.APPLIES_TO and key in cls.HANDLES
 
+    def __init__(self, app, key, value):
         super().__init__(app)
         self.key = key
         self.value = value
@@ -257,28 +258,41 @@ class QuerySpec(utils.InmutableDict):
 class Query(Extension):
     def __init__(self, app, spec):
         super().__init__(app)
-        self.spec = spec
+        self._name = spec.name
+        self.params = utils.InmutableDict(spec.exclude('as'))
 
-    def apply_filters(self, model, iterable):
-        filters = self.app.selector.filter_map.get(model, {})
+    def apply_filters(self, model, params, items):
+        filters = self.app.selector.get_filters(model, params)
 
-        provided = set(filters.keys())
-        needed = set(self.spec.keys())
-        needed.discard('as')
-        print("missing", needed - provided)
+        missing = set((model, x) for x in params)
+        missing = missing.difference(filters)
+        missing = {k: params[k] for (m, k) in missing}
 
-        funcs = [filters[key](self.app, key, value)
-                 for (key, value) in self.spec.items()
-                 if key in provided]
+        for f in filters.values():
+            items = f.apply(items)
 
-        for f in funcs:
-            iterable = f.apply(iterable)
+        return items, missing
 
-        return iterable
+    # def apply_filters(self, model, iterable):
+    #     filters = self.app.selector.filter_map.get(model, {})
+
+    #     provided = set(filters.keys())
+    #     needed = set(self.spec.keys())
+    #     needed.discard('as')
+    #     print("missing", needed - provided)
+
+    #     funcs = [filters[key](self.app, key, value)
+    #              for (key, value) in self.spec.items()
+    #              if key in provided]
+
+    #     for f in funcs:
+    #         iterable = f.apply(iterable)
+
+    #     return iterable
 
     @property
     def name(self):
-        return self.spec.name
+        return self._name
 
     def matches(self, include_all=False):
         raise NotImplementedError()

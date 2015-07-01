@@ -27,28 +27,41 @@ class Selector:
         query = self.get_query_for_spec(spec)
         return query.select()
 
-    #
-    # This doesn't really fit here but it's better than anywhere else…
-    #
+    def _build_filter_map(self):
+        table = {}
+
+        for filtercls in self.app.get_implementations('filter').values():
+            for k in ((filtercls.APPLIES_TO, k) for k in filtercls.HANDLES):
+                if k in table:
+                    msg = ("{key} is currently mapped to {active}, "
+                           "ignoring {current}")
+                    msg = msg.format(
+                        key=k,
+                        active=repr(table[k]),
+                        current=repr(filtercls))
+                    self._logger.warning(msg)
+                    continue
+
+                table[k] = filtercls
+
+        return table
+
     @property
     def filter_map(self):
-        if self._filter_map is None:
-            self._filter_map = {}
-
-            for cls in self.app.get_implementations('filter').values():
-                if cls.APPLIES_TO not in self.filter_map:
-                    self._filter_map[cls.APPLIES_TO] = {}
-
-                for key in cls.HANDLES:
-                    if key in self._filter_map[cls.APPLIES_TO]:
-                        msg = "{key} is currently mapped to {active}, ignoring {current}"
-                        msg = msg.format(
-                            key=key,
-                            active=repr(self._filter_map[cls.APPLIES_TO][key]),
-                            current=repr(cls))
-                        self._logger.warning(msg)
-                        continue
-
-                    self._filter_map[cls.APPLIES_TO][key] = cls
+        if not self._filter_map:
+            self._filter_map = self._build_filter_map()
 
         return self._filter_map
+
+    def get_filters(self, model, d={}):
+        def instantiate_filter(k):
+            return self.filter_map[(model, k)](self.app, k, d[k])
+
+        registered = set(self.filter_map)
+        required = set((model, x) for x in d)
+
+        found = required.intersection(registered)
+        # missing = required.difference(registered)
+
+        return {(model, key): instantiate_filter(key)
+                for (model, key) in found}

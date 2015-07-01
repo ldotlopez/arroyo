@@ -10,8 +10,20 @@ class Query(exts.Query):
         if not everything:
             qs = qs.filter(models.Source.state == models.Source.State.NONE)
 
-        return self.apply_filters(models.Source, qs.all())
+        items, params = self.apply_filters(
+            models.Source,
+            dict(self.params),
+            (x for x in qs))
 
+        for k in params:
+            msg = "Unknow filter {key}"
+            msg = msg.format(key=k)
+            self.app.logger.warning(msg)
+
+        if params == self.params:
+            return []
+
+        return items
 
 __arroyo_extensions__ = [
     ('query', 'source', Query)
