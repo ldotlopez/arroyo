@@ -199,7 +199,6 @@ class Downloader(Extension):
 
 
 class Filter(Extension):
-    APPLIES_TO = None
     HANDLES = ()
 
     @classmethod
@@ -216,6 +215,9 @@ class Filter(Extension):
 
     def apply(self, iterable):
         return filter(self.filter, iterable)
+
+    def alter_query(self, qs):
+        raise NotImplementedError()
 
 
 class QuerySpec(utils.InmutableDict):
@@ -260,35 +262,66 @@ class Query(Extension):
         super().__init__(app)
         self._name = spec.name
         self.params = utils.InmutableDict(spec.exclude('as'))
+        self._filter_map = None
 
-    def apply_filters(self, model, params, items):
-        filters = self.app.selector.get_filters(model, params)
+    def _build_filter_map(self):
+        table = {}
 
-        missing = set((model, x) for x in params)
-        missing = missing.difference(filters)
+        for filtercls in self.app.get_implementations('filter').values():
+            for k in filtercls.HANDLES:
+                if k in table:
+                    msg = ("{key} is currently mapped to {active}, "
+                           "ignoring {current}")
+                    msg = msg.format(
+                        key=k,
+                        active=repr(table[k]),
+                        current=repr(filtercls))
+                    self._logger.warning(msg)
+                    continue
+
+                table[k] = filtercls
+
+        return table
+
+    @property
+    def filter_map(self):
+        if not self._filter_map:
+            self._filter_map = self._build_filter_map()
+
+        return self._filter_map
+
+    def get_filters(self, params):
+        def instantiate_filter(k):
+            return self.filter_map[k](self.app, k, params[k])
+
+        registered = set(self.filter_map)
+        required = set(params)
+
+        found = required.intersection(registered)
+        # missing = required.difference(registered)
+
+        return {key: instantiate_filter(key)
+                for key in found}
+
+    def apply_filters(self, q, params):
+        filters = self.get_filters(params)
+
+        missing = set(params).difference(set(filters))
         missing = {k: params[k] for (m, k) in missing}
 
+        sql_aware = {True: [], False: []}
         for f in filters.values():
+            test = f.__class__.alter_query != Filter.alter_query
+            sql_aware[test].append(f)
+
+        for f in sql_aware.get(True, []):
+            q = f.alter_query(q)
+
+        items = (x for x in q)
+        for f in sql_aware.get(False, []):
             items = f.apply(items)
 
         return items, missing
-
-    # def apply_filters(self, model, iterable):
-    #     filters = self.app.selector.filter_map.get(model, {})
-
-    #     provided = set(filters.keys())
-    #     needed = set(self.spec.keys())
-    #     needed.discard('as')
-    #     print("missing", needed - provided)
-
-    #     funcs = [filters[key](self.app, key, value)
-    #              for (key, value) in self.spec.items()
-    #              if key in provided]
-
-    #     for f in funcs:
-    #         iterable = f.apply(iterable)
-
-    #     return iterable
 
     @property
     def name(self):

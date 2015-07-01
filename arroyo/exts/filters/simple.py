@@ -1,121 +1,132 @@
 import functools
-from glob import fnmatch
-import guessit
 import re
+
+
+import guessit
+from ldotcommons import sqlalchemy as ldotsa, utils
 
 
 from arroyo import exts, models
 
 
-class GenericFields:
-    def __init__(self, app, key, value):
+def alter_query_for_model_attr(q, model, key, value):
+    # Get possible modifier from key
+    m = re.search(
+        r'(?P<key>(.+?))-(?P<mod>(glob|regexp|in|min|max))$', key)
 
-        # Get possible modifier from key
-        m = re.search(
-            r'(?P<key>(.+?))-(?P<mod>(glob|regexp|in|min|max))$', key)
+    if m:
+        key = m.group('key')
+        mod = m.group('mod')
+    else:
+        mod = None
 
-        if m:
-            key = m.group('key')
-            mod = m.group('mod')
-        else:
-            mod = None
+    # To access directly to source attributes key must be normalize to model
+    # fields standards
+    key = key.replace('-', '_')
 
-        # This filter access directly to source attributes.
-        # key must be normalize to model fields
-        key = key.replace('-', '_')
+    # Minor optimizations for glob modifier
+    if mod == 'glob':
+        value = value.lower()
 
-        # Minor optimizations for glob modifier
-        if mod == 'glob':
-            value = value.lower()
+    # Extract attr
+    attr = getattr(model, key)
 
-        super().__init__(app, key, value)
-        self.mod = mod
-        self._type_check = False
+    if mod is None:
+        q = q.filter(attr == value)
 
-    def filter(self, x):
-        f = getattr(self, 'check_' + (self.mod or 'raw'))
-        attr = getattr(x, self.key)
+    elif mod == 'glob':
+        q = q.filter(attr.like(ldotsa.glob_to_like(value)))
 
-        if attr is not None and not self._type_check:
-            if not isinstance(self.value, type(attr)):
-                self.value = type(attr)(self.value)
-            self._type_check = True
+    elif mod == 'like':
+        q = q.filter(attr.like(value))
 
-        return f(attr)
+    elif mod == 'regexp':
+        q = q.filter(attr.op('regexp')(value))
 
-    def check_raw(self, x):
-        return x == self.value
+    elif mod == 'min':
+        q = q.filter(attr >= value)
 
-    def check_glob(self, x):
-        return fnmatch.fnmatchcase(x.lower(), self.value)
+    elif mod == 'max':
+        q = q.filter(attr <= value)
 
-    def check_regexp(self, x):
-        return re.match(self.value, x, re.IGNORECASE)
+    else:
+        raise TypeError(key)
 
-    def check_in(self, x):
-        raise NotImplementedError()
-
-    def check_min(self, x):
-        if x is None:
-            return False
-
-        return x >= self.value
-
-    def check_max(self, x):
-        if x is None:
-            return False
-
-        return x <= self.value
+    return q
 
 
-#
-# SourceFields
-#
-
-
-class SourceFields(GenericFields, exts.Filter):
+class SourceFields(exts.Filter):
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
              'state-name')
-    _nums = ('id', 'size', 'seeds', 'leechers', 'share-ratio', 'state', 'age')
-
     _strs = [[x, x + '-glob', x + '-regexp', x + '-in'] for x in _strs]
+    _strs = functools.reduce(lambda x, y: x + y, _strs, [])
+
+    _nums = ('id', 'size', 'seeds', 'leechers', 'share-ratio', 'state', 'age')
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
+    _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    _handles = (
-        functools.reduce(lambda x, y: x + y, _strs, []) +
-        functools.reduce(lambda x, y: x + y, _nums, []))
+    HANDLES = _strs + _nums
+    SQL_AWARE = True
 
-    APPLIES_TO = models.Source
-    HANDLES = _handles
+    def alter_query(self, q):
+
+        if self.key == 'size' or self.key.startswith('size-'):
+            self.value = utils.parse_size(self.value)
+
+        elif self.key == 'age' or self.key.startswith('age-'):
+            self.value = utils.parse_interval(self.value)
+
+        elif self.key in self._nums:
+            self.value = int(self.value)
+
+        return alter_query_for_model_attr(
+            q, models.Source, self.key, self.value)
 
 
-#
-# EpisodeFields
-#
+class EpisodeFields(exts.Filter):
+    _strs = ['series', 'series-glob']
+    _nums = ('year', 'season', 'episode')
+    _nums = [[x, x + '-min', x + '-max'] for x in _nums]
+    _nums = functools.reduce(lambda x, y: x + y, _nums, [])
+
+    HANDLES = _strs + _nums
+    SQL_AWARE = True
+
+    def alter_query(self, q):
+        if self.key == 'series':
+            self.key = 'series-glob'
+
+        elif self.key == 'episode' or self.key.startswith('episode-'):
+            self.key = self.key.replace('episode', 'number')
+
+        elif self.key in self._nums:
+            self.value = int(self.value)
+
+        return alter_query_for_model_attr(
+            q, models.Episode, self.key, self.value)
 
 
-class EpisodeFields(GenericFields, exts.Filter):
-    APPLIES_TO = models.Episode
-    HANDLES = (
-        'series', 'series-glob',
-        'year', 'year-min', 'year-max',
-        'season', 'season-min', 'season-max',
-        'episode', 'episode-min', 'episode-max'
-    )
+class MovieFields(exts.Filter):
+    _strs = ['title', 'series-glob']
+    _nums = ['year']
+    _nums = [[x, x + '-min', x + '-max'] for x in _nums]
+    _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    def __init__(self, app, key, value):
-        if key == 'series':
-            key = 'series-glob'
+    HANDLES = _strs + _nums
+    SQL_AWARE = True
 
-        if key == 'episode' or key.startswith('episode-'):
-            key = key.replace('episode', 'number')
+    def alter_query(self, q):
+        if self.key == 'title':
+            self.key = 'title-glob'
 
-        super().__init__(app, key, value)
-        print(self.key)
+        elif self.key == 'episode' or self.key.startswith('episode-'):
+            self.key = self.key.replace('episode', 'number')
 
-#
-# Quality
-#
+        elif self.key in self._nums:
+            self.value = int(self.value)
+
+        return alter_query_for_model_attr(
+            q, models.Episode, self.key, self.value)
 
 
 class QualityFilter(exts.Filter):
@@ -150,9 +161,70 @@ class QualityFilter(exts.Filter):
         else:
             return not screen_size and fmt == 'hdtv'
 
+# class GenericFields:
+#     def __init__(self, app, key, value):
+
+#         # Get possible modifier from key
+#         m = re.search(
+#             r'(?P<key>(.+?))-(?P<mod>(glob|regexp|in|min|max))$', key)
+
+#         if m:
+#             key = m.group('key')
+#             mod = m.group('mod')
+#         else:
+#             mod = None
+
+#         # This filter access directly to source attributes.
+#         # key must be normalize to model fields
+#         key = key.replace('-', '_')
+
+#         # Minor optimizations for glob modifier
+#         if mod == 'glob':
+#             value = value.lower()
+
+#         super().__init__(app, key, value)
+#         self.mod = mod
+#         self._type_check = False
+
+#     def filter(self, x):
+#         f = getattr(self, 'check_' + (self.mod or 'raw'))
+#         attr = getattr(x, self.key)
+
+#         if attr is not None and not self._type_check:
+#             if not isinstance(self.value, type(attr)):
+#                 self.value = type(attr)(self.value)
+#             self._type_check = True
+
+#         return f(attr)
+
+#     def check_raw(self, x):
+#         return x == self.value
+
+#     def check_glob(self, x):
+#         return fnmatch.fnmatchcase(x.lower(), self.value)
+
+#     def check_regexp(self, x):
+#         return re.match(self.value, x, re.IGNORECASE)
+
+#     def check_in(self, x):
+#         raise NotImplementedError()
+
+#     def check_min(self, x):
+#         if x is None:
+#             return False
+
+#         return x >= self.value
+
+#     def check_max(self, x):
+#         if x is None:
+#             return False
+
+#         return x <= self.value
+
 
 __arroyo_extensions__ = [
-    ('filter', 'simple', SourceFields),
-    ('filter', 'episodefields', EpisodeFields),
+    ('filter', 'source', SourceFields),
+    ('filter', 'episode', EpisodeFields),
+    # ('filter', 'movie', MovieFields),
     ('filter', 'quality', QualityFilter),
 ]

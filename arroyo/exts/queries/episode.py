@@ -1,10 +1,27 @@
-from itertools import chain
-# import guessit
 from arroyo import (
-    exc,
     exts,
     models
 )
+
+
+class Query(exts.Query):
+    def matches(self, everything):
+        q = self.app.db.session.query(models.Source).join(models.Episode)
+
+        if not everything:
+            q = q.filter(models.Episode.selection == None)  # nopep8
+
+        items, params = self.apply_filters(q, dict(self.params))
+
+        for k in params:
+            msg = "Unknow filter {key}"
+            msg = msg.format(key=k)
+            self.app.logger.warning(msg)
+
+        if params == self.params:
+            return []
+
+        return items
 
 
 # class Query(exts.Query):
@@ -118,34 +135,6 @@ from arroyo import (
 
 #         return srcs
 
-
-class Query(exts.Query):
-    def matches(self, everything):
-        qs = self.app.db.session.query(models.Episode)
-
-        # Strip episodes with a selection
-        if not everything:
-            qs = qs.filter(models.Episode.selection == None)  # nopep8
-
-        items, params = self.apply_filters(
-            models.Episode,
-            dict(self.params),
-            (x for x in qs))
-
-        items, params = self.apply_filters(
-            models.Source,
-            params,
-            chain.from_iterable(x.sources for x in items))
-
-        for k in params:
-            msg = "Unknow filter {key}"
-            msg = msg.format(key=k)
-            self.app.logger.warning(msg)
-
-        if params == self.params:
-            return []
-
-        return items
 
 __arroyo_extensions__ = [
     ('query', 'episode', Query)

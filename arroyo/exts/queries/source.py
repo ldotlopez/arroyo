@@ -7,13 +7,11 @@ from arroyo import (
 class Query(exts.Query):
     def matches(self, everything):
         qs = self.app.db.session.query(models.Source)
+
         if not everything:
             qs = qs.filter(models.Source.state == models.Source.State.NONE)
 
-        items, params = self.apply_filters(
-            models.Source,
-            dict(self.params),
-            (x for x in qs))
+        items, params = self.apply_filters(qs, dict(self.params))
 
         for k in params:
             msg = "Unknow filter {key}"
