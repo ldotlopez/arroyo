@@ -1,17 +1,14 @@
-from arroyo import (
-    exts,
-    models
-)
+from arroyo import exts, models
 
 
 class Query(exts.Query):
     def matches(self, everything):
-        q = self.app.db.session.query(models.Source).join(models.Movie)
+        qs = self.app.db.session.query(models.Source).join(models.Movie)
 
         if not everything:
-            q = q.filter(models.Movie.selection == None)  # nopep8
+            qs = qs.filter(models.Movie.selection == None)  # nopep8
 
-        items, params = self.apply_filters(q, dict(self.params))
+        items, params = self.apply_filters(qs, dict(self.params))
 
         for k in params:
             msg = "Unknow filter {key}"
@@ -22,6 +19,7 @@ class Query(exts.Query):
             return []
 
         return items
+
 
 __arroyo_extensions__ = [
     ('query', 'movie', Query)

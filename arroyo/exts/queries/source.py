@@ -1,7 +1,4 @@
-from arroyo import (
-    exts,
-    models
-)
+from arroyo import exts, models
 
 
 class Query(exts.Query):
@@ -22,6 +19,7 @@ class Query(exts.Query):
             return []
 
         return items
+
 
 __arroyo_extensions__ = [
     ('query', 'source', Query)

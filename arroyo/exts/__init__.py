@@ -1,12 +1,6 @@
 import itertools
-from ldotcommons import (
-    sqlalchemy as ldotsa,
-    utils
-)
+from ldotcommons import utils
 from urllib import parse
-
-import arroyo.exc
-from arroyo import models
 
 
 class Extension:
@@ -276,7 +270,7 @@ class Query(Extension):
                         key=k,
                         active=repr(table[k]),
                         current=repr(filtercls))
-                    self._logger.warning(msg)
+                    self.app.logger.warning(msg)
                     continue
 
                 table[k] = filtercls

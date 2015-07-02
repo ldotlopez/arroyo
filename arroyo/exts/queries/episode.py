@@ -1,7 +1,7 @@
-from arroyo import (
-    exts,
-    models
-)
+import itertools
+
+
+from arroyo import exts, models
 
 
 class Query(exts.Query):
@@ -11,7 +11,6 @@ class Query(exts.Query):
         self._known_srcs = set()
         self.app.signals.connect('source-state-change',
                                  self._on_source_state_change)
-
 
     def _on_source_state_change(self, sender, **kwargs):
         src = kwargs['source']
@@ -25,12 +24,12 @@ class Query(exts.Query):
         self._known_srcs.remove(src)
 
     def matches(self, everything):
-        q = self.app.db.session.query(models.Source).join(models.Episode)
+        qs = self.app.db.session.query(models.Source).join(models.Episode)
 
         if not everything:
-            q = q.filter(models.Episode.selection == None)  # nopep8
+            qs = qs.filter(models.Episode.selection == None)  # nopep8
 
-        items, params = self.apply_filters(q, dict(self.params))
+        items, params = self.apply_filters(qs, dict(self.params))
 
         for k in params:
             msg = "Unknow filter {key}"
