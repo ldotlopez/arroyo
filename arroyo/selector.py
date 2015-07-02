@@ -4,8 +4,6 @@ from arroyo import exts
 class Selector:
     def __init__(self, app):
         self.app = app
-        self._auto_import = self.app.settings.get('auto-import')
-        self._filter_map = None
 
     def get_queries_specs(self):
         return [exts.QuerySpec(x, **params) for (x, params) in
@@ -17,12 +15,16 @@ class Selector:
     def get_query_for_spec(self, spec):
         return self.app.get_extension('query', spec.get('as'), spec=spec)
 
-    def matches(self, everything, **params):
-        spec = exts.QuerySpec(None, **params)
+    def _auto_import(self, query):
+        if self.app.settings.get('auto-import'):
+            self.app.importer.import_query_spec(query.spec)
+
+    def matches(self, spec, everything=False):
         query = self.get_query_for_spec(spec)
+        self._auto_import(query)
         return query.matches(everything)
 
-    def select(self, **params):
-        spec = exts.QuerySpec(None, **params)
+    def select(self, spec):
         query = self.get_query_for_spec(spec)
+        self._auto_import(query)
         return query.selection()

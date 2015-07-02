@@ -25,7 +25,7 @@ class Filter(exts.Filter):
             self.value = int(self.value)
 
         return common.alter_query_for_model_attr(
-            q, models.Episode, self.key, self.value)
+            q, models.Movie, self.key, self.value)
 
 
 __arroyo_extensions__ = [

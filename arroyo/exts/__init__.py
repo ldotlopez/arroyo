@@ -254,7 +254,7 @@ class QuerySpec(utils.InmutableDict):
 class Query(Extension):
     def __init__(self, app, spec):
         super().__init__(app)
-        self._name = spec.name
+        self._spec = spec
         self.params = utils.InmutableDict(spec.exclude('as'))
 
     def get_filters(self, models, params):
@@ -303,7 +303,11 @@ class Query(Extension):
 
     @property
     def name(self):
-        return self._name
+        return self.spec.name
+
+    @property
+    def spec(self):
+        return self._spec
 
     def matches(self, include_all=False):
         raise NotImplementedError()

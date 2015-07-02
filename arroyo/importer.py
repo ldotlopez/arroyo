@@ -270,6 +270,7 @@ class Importer:
     def import_query_spec(self, query_spec):
         origins = self.get_origins_for_query_spec(query_spec)
         for origin in origins:
+
             self.import_origin(origin)
 
     def run(self):

@@ -49,7 +49,7 @@ class Eztv(exts.Origin):
         if selector != 'episode':
             return
 
-        series = query.get('series')
+        series = query.get('as')
         if not series:
             return
 

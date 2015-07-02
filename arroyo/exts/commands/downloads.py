@@ -91,7 +91,8 @@ class DownloadCommand(exts.Command):
             self.app.downloads.remove(src)
 
         elif query:
-            srcs = self.app.selector.select(**query)
+            spec = exts.QuerySpec('command-line', **query)
+            srcs = self.app.selector.select(spec)
             for src in srcs:
                 if not dry_run:
                     self.app.downloads.add(src)
@@ -101,8 +102,9 @@ class DownloadCommand(exts.Command):
                 self.app.logger.info(msg)
 
         elif from_queries:
-            for query in self.app.selector.get_queries():
-                srcs = query.selection()
+            specs = self.app.selector.get_queries_specs()
+            for spec in specs:
+                srcs = self.app.selector.selection(spec)
                 if srcs is None:
                     msg = "No selection for {query}"
                     msg = msg.format(query=query)

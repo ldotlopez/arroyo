@@ -41,9 +41,9 @@ class Spanishtracker(exts.Origin):
             'episode': '7',
             'movie': '1'
         }
-        catstr = categories.get(query.get('selector', None), '')
+        catstr = categories.get(query.get('as', None), '')
 
-        selector = query.get('selector', None)
+        selector = query.get('as', None)
 
         if selector == 'episode':
             catstr = '7'

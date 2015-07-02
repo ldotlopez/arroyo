@@ -36,12 +36,6 @@ class QueryCommand(exts.Command):
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
-            '--auto-import',
-            dest='auto_import',
-            action='store_true',
-            help=('Enable dynamic search')),
-
-        exts.argument(
             '-f', '--filter',
             dest='filters',
             required=False,
@@ -60,8 +54,6 @@ class QueryCommand(exts.Command):
         all_states = args.all_states
         filters = args.filters
         keywords = args.keywords
-
-        self.app.settings.set('auto-import', args.auto_import)
 
         if all([filters, keywords]):
             raise exc.ArgumentError('Filters and keywords are mutually '
@@ -82,22 +74,22 @@ class QueryCommand(exts.Command):
             for (k, v) in filters.items():
                 self.app.settings.set('query.command-line.' + k, v)
 
-        queries = self.app.selector.get_queries()
-        if not queries:
+        specs = self.app.selector.get_queries_specs()
+        if not specs:
             msg = 'One filter or one keyword or one [query.label] is required'
             raise exc.ArgumentError(msg)
 
-        for query in self.app.selector.get_queries():
-            matches = list(query.matches(everything=all_states))
-
-            groups = itertools.groupby(matches, lambda src: src.superitem)
+        for spec in specs:
+            matches = list(self.app.selector.matches(spec,
+                                                     everything=all_states))
 
             msg = "== Search '{label}: {n_results} result(s)'"
-            print(msg.format(label=query.name, n_results=len(matches)))
+            print(msg.format(label=spec.name, n_results=len(matches)))
 
-            for (superitem, grouper) in groups:
+            grouper = itertools.groupby(matches, lambda src: src.superitem)
+            for (superitem, group) in grouper:
                 print('+ {}'.format(superitem or 'Ungroupped'))
-                print(fmt_grp('|-', (fmt_src(x) for x in grouper)))
+                print(fmt_grp('|-', (fmt_src(x) for x in group)))
 
 
 __arroyo_extensions__ = [
