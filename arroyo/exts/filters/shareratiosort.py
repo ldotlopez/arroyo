@@ -26,8 +26,7 @@ class Sorter(exts.Filter):
         def has_release_group(info):
             return info.get('releaseGroup')
 
-        # Only applied to episode or movie
-        # A proper match is top priority
+        # proper over non-proper
         a_is_proper = is_proper(a_info)
         b_is_proper = is_proper(b_info)
 
@@ -38,7 +37,7 @@ class Sorter(exts.Filter):
             return 1
 
         #
-        # Prefer releases from a team over others
+        # Put releases from a team over others
         #
         a_has_release_team = has_release_group(a_info)
         b_has_release_team = has_release_group(b_info)
@@ -48,7 +47,7 @@ class Sorter(exts.Filter):
         if b_has_release_team and a_has_release_team:
             return 1
 
-        # Nothings make one source better that the other.
+        # Nothing makes one source better that the other
         # Fallback to default sort
         if a == b:
             return 0
