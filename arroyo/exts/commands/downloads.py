@@ -1,3 +1,5 @@
+from ldotcommons import utils
+
 import arroyo.exc
 from arroyo import (
     exts,
@@ -25,12 +27,12 @@ class DownloadCommand(exts.Command):
             dest='remove',
             help='cancel (and/or remove) a source ID'),
 
-        # exts.argument(
-        #     '-f', '--filter',
-        #     dest='query',
-        #     type=str,
-        #     action=utils.DictAction,
-        #     help='filters to apply in key_mod=value form'),
+        exts.argument(
+            '-f', '--filter',
+            dest='query',
+            type=str,
+            action=utils.DictAction,
+            help='filters to apply in key_mod=value form'),
 
         exts.argument(
             '--queries',
@@ -49,7 +51,7 @@ class DownloadCommand(exts.Command):
         show = args.show
         source_id_add = args.add
         source_id_remove = args.remove
-        # query = args.query
+        query = args.query
         from_queries = args.from_queries
         dry_run = args.dry_run
 
@@ -88,6 +90,16 @@ class DownloadCommand(exts.Command):
 
             self.app.downloads.remove(src)
 
+        elif query:
+            srcs = self.app.selector.select(**query)
+            for src in srcs:
+                if not dry_run:
+                    self.app.downloads.add(src)
+
+                msg = "%s %s %s" % \
+                    (src.pretty_repr, src.language, src.type)
+                self.app.logger.info(msg)
+
         elif from_queries:
             for query in self.app.selector.get_queries():
                 srcs = query.selection()
@@ -103,7 +115,8 @@ class DownloadCommand(exts.Command):
                     if not dry_run:
                         self.app.downloads.add(src)
 
-                    msg = "%s %s %s" % (src.pretty_repr, src.language, src.type)
+                    msg = "%s %s %s" % \
+                        (src.pretty_repr, src.language, src.type)
                     self.app.logger.info(msg)
 
 

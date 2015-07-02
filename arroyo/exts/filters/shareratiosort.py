@@ -13,21 +13,40 @@ class Sorter(exts.Filter):
     HANDLES = ('share-ratio-sort',)
 
     def cmp_source_health(self, a, b):
-        def is_proper(x):
-            return "Proper" in \
-                   guessit.guess_video_info(x.name).get('other', [])
+        if a.episode or b.movie:
+            a_info = guessit.guess_video_info(a.name)
+            b_info = guessit.guess_video_info(b.name)
+        else:
+            a_info = {}
+            b_info = {}
+
+        def is_proper(info):
+            return "Proper" in info.get('other', [])
+
+        def has_release_group(info):
+            return info.get('releaseGroup')
 
         # Only applied to episode or movie
         # A proper match is top priority
-        if a.episode or b.movie:
-            proper_a = is_proper(a)
-            proper_b = is_proper(b)
+        a_is_proper = is_proper(a_info)
+        b_is_proper = is_proper(b_info)
 
-            if proper_a and not proper_b:
-                return -1
+        if a_is_proper and not b_is_proper:
+            return -1
 
-            if proper_b and not proper_a:
-                return 1
+        if b_is_proper and not a_is_proper:
+            return 1
+
+        #
+        # Prefer releases from a team over others
+        #
+        a_has_release_team = has_release_group(a_info)
+        b_has_release_team = has_release_group(b_info)
+
+        if a_has_release_team and not b_has_release_team:
+            return -1
+        if b_has_release_team and a_has_release_team:
+            return 1
 
         # Nothings make one source better that the other.
         # Fallback to default sort
@@ -37,16 +56,23 @@ class Sorter(exts.Filter):
         return -1 if a < b else 1
 
     def apply(self, items):
-        ret = []
-        for (hl, group) in itertools.groupby(items, lambda x: x.superitem):
-            if hl:
-                group = sorted(
-                    group,
-                    key=functools.cmp_to_key(self.cmp_source_health))
+        m = {}
 
-            ret.append(group)
+        for item in items:
+            if item.superitem not in m:
+                m[item.superitem] = []
 
-        return itertools.chain.from_iterable(ret)
+            m[item.superitem].append(item)
+
+        for superitem in m:
+            if superitem is None:
+                continue
+
+            m[superitem] = sorted(
+                m[superitem],
+                key=functools.cmp_to_key(self.cmp_source_health))
+
+        return itertools.chain.from_iterable((m[k] for k in m))
 
 __arroyo_extensions__ = [
     ('filter', 'share-ratio-sort', Sorter),

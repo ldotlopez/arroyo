@@ -9,8 +9,17 @@ class Query(exts.Query):
         super().__init__(app, spec)
 
         self._known_srcs = set()
+
+        # Connect signal
+        # Important note here: it's using weak=False.
+        # With weak=True the signal will disconnect automatically when the
+        # Query object goes out of scope.
+        # Cavehead: we will keep the object in memory forever, it's not
+        # important for one-shot applications like command line but for webapps
+        # it will be a problem.
         self.app.signals.connect('source-state-change',
-                                 self._on_source_state_change)
+                                 self._on_source_state_change,
+                                 weak=False)
 
     def _on_source_state_change(self, sender, **kwargs):
         src = kwargs['source']
@@ -43,56 +52,6 @@ class Query(exts.Query):
         self._known_srcs = set(list(g))
 
         return items
-
-
-#
-# Old stuff from previous architecture.
-# Keep here as a reference
-#
-
-#     def __init__(self, app, spec):
-#         super().__init__(app, spec)
-#         self._source_table = {}
-#         self.app.signals.connect('source-state-change',
-#                                  self._on_source_state_change)
-
-#     def _on_source_state_change(self, sender, **kwargs):
-#         src = kwargs['source']
-#         if src not in self._source_table:
-#             return
-
-#         # Link src and episode
-#         ep = self._source_table[src]
-#         ep.selection = models.EpisodeSelection(source=src)
-#         self.app.db.session.commit()
-#         del(self._source_table[src])
-
-#     @staticmethod
-#     def quality_filter(x, quality):
-#         info = guessit.guess_episode_info(x.name)
-#         screen_size = info.get('screenSize', '').lower()
-#         fmt = info.get('format', '').lower()
-
-#         if quality != 'hdtv':
-#             return quality == screen_size
-#         else:
-#             return not screen_size and fmt == 'hdtv'
-
-#     def sort(self, srcs):
-#         # https://wiki.python.org/moin/HowTo/Sorting#The_Old_Way_Using_the_cmp_Parameter
-#         # def proper_sort(x):
-#         #     # guessit property other contains 'Proper'
-#         #     return re.search(
-#         #         r'\b(PROPER|REPACK|FIX)\b',
-#         #         x.name)
-
-#         # def release_group_sort(x):
-#         #     pass
-#         #
-
-#         # return sorted(srcs, key=self.proper_sort, reverse=True)
-
-#         return srcs
 
 
 __arroyo_extensions__ = [

@@ -25,4 +25,4 @@ class Selector:
     def select(self, **params):
         spec = exts.QuerySpec(None, **params)
         query = self.get_query_for_spec(spec)
-        return query.select()
+        return query.selection()

@@ -3,7 +3,6 @@ import binascii
 import re
 from urllib import parse
 
-import arroyo.exc
 from arroyo import (
     exts,
     models

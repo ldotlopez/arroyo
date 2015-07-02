@@ -309,15 +309,15 @@ class Query(Extension):
         raise NotImplementedError()
 
     def selection(self):
+        # Method match should return matches in superitem order
         matches = self.matches(False)
         groups = itertools.groupby(matches, lambda src: src.superitem)
 
         ret = []
         for (superitem, group) in groups:
-            group = self.sort(list(group))
-            ret.append(group[0])
+            ret.append(next(group))
 
-        return ret or None
+        return ret
 
 
 class CronTask(Extension):
