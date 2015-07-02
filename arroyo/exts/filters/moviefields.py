@@ -11,6 +11,7 @@ class Filter(exts.Filter):
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
+    APPLIES_TO = models.Movie
     HANDLES = _strs + _nums
 
     def alter_query(self, q):

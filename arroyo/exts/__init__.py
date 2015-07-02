@@ -256,13 +256,15 @@ class Query(Extension):
         super().__init__(app)
         self._name = spec.name
         self.params = utils.InmutableDict(spec.exclude('as'))
-        self._filter_map = None
 
-    def _build_filter_map(self):
+    def get_filters(self, models, params):
         table = {}
 
         for filtercls in self.app.get_implementations('filter').values():
-            for k in filtercls.HANDLES:
+            if filtercls.APPLIES_TO not in models:
+                continue
+
+            for k in [k for k in filtercls.HANDLES if k in params]:
                 if k in table:
                     msg = ("{key} is currently mapped to {active}, "
                            "ignoring {current}")
@@ -275,33 +277,16 @@ class Query(Extension):
 
                 table[k] = filtercls
 
-        return table
+        return {k: table[k](self.app, k, params[k]) for k in table}
 
-    @property
-    def filter_map(self):
-        if not self._filter_map:
-            self._filter_map = self._build_filter_map()
+    def apply_filters(self, qs, models, params):
+        guessed_models = itertools.chain(qs._entities, qs._join_entities)
+        guessed_models = [x.mapper.class_ for x in guessed_models]
+        assert set(guessed_models) == set(models)
 
-        return self._filter_map
-
-    def get_filters(self, params):
-        def instantiate_filter(k):
-            return self.filter_map[k](self.app, k, params[k])
-
-        registered = set(self.filter_map)
-        required = set(params)
-
-        found = required.intersection(registered)
-        # missing = required.difference(registered)
-
-        return {key: instantiate_filter(key)
-                for key in found}
-
-    def apply_filters(self, q, params):
-        filters = self.get_filters(params)
+        filters = self.get_filters(guessed_models, params)
 
         missing = set(params).difference(set(filters))
-        missing = {k: params[k] for (m, k) in missing}
 
         sql_aware = {True: [], False: []}
         for f in filters.values():
@@ -309,9 +294,9 @@ class Query(Extension):
             sql_aware[test].append(f)
 
         for f in sql_aware.get(True, []):
-            q = f.alter_query(q)
+            qs = f.alter_query(qs)
 
-        items = (x for x in q)
+        items = (x for x in qs)
         for f in sql_aware.get(False, []):
             items = f.apply(items)
 

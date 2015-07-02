@@ -25,11 +25,11 @@ class Query(exts.Query):
 
     def matches(self, everything):
         qs = self.app.db.session.query(models.Source).join(models.Episode)
-
         if not everything:
             qs = qs.filter(models.Episode.selection == None)  # nopep8
 
-        items, params = self.apply_filters(qs, dict(self.params))
+        items, params = self.apply_filters(
+            qs, [models.Source, models.Episode], dict(self.params))
 
         for k in params:
             msg = "Unknow filter {key}"

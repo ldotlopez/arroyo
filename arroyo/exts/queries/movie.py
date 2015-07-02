@@ -8,7 +8,8 @@ class Query(exts.Query):
         if not everything:
             qs = qs.filter(models.Movie.selection == None)  # nopep8
 
-        items, params = self.apply_filters(qs, dict(self.params))
+        items, params = self.apply_filters(
+            qs, [models.Source, models.Movie], dict(self.params))
 
         for k in params:
             msg = "Unknow filter {key}"
