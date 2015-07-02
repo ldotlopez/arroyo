@@ -265,7 +265,9 @@ class Query(Extension):
                 continue
 
             for k in [k for k in filtercls.HANDLES if k in params]:
-                if k in table:
+                if k not in table:
+                    table[k] = filtercls
+                else:
                     msg = ("{key} is currently mapped to {active}, "
                            "ignoring {current}")
                     msg = msg.format(
@@ -273,9 +275,6 @@ class Query(Extension):
                         active=repr(table[k]),
                         current=repr(filtercls))
                     self.app.logger.warning(msg)
-                    continue
-
-                table[k] = filtercls
 
         return {k: table[k](self.app, k, params[k]) for k in table}
 
@@ -308,9 +307,6 @@ class Query(Extension):
 
     def matches(self, include_all=False):
         raise NotImplementedError()
-
-    def sort(self, iterable):
-        return iterable
 
     def selection(self):
         matches = self.matches(False)

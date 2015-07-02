@@ -116,7 +116,6 @@ class Source(Base):
 
         return self.seeds / self.leechers
 
-
     #
     # Type property
     #
