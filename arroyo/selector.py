@@ -1,4 +1,4 @@
-from itertools import chain
+import sys
 
 
 from arroyo import exts
@@ -26,16 +26,19 @@ class Selector:
         query = self.get_query_for_spec(spec)
         self._auto_import(query)
         ret = query.matches(everything)
+ 
+        return sorted(ret,
+            key=lambda x: -sys.maxsize if x.superitem is None else hash(x))
 
-        # Sort them
-        t = {None: []}
-        for (superitem, item) in ((x.superitem, x) for x in ret):
-            if superitem not in t:
-                t[superitem] = []
-            t[superitem].append(item)
-
-        keys = [None] + list([x for x in t if x is not None])
-        return list(chain.from_iterable([t[k] for k in keys]))
+        # Alternative sorting method for reference
+        # t = {None: []}
+        # for (superitem, item) in ((x.superitem, x) for x in ret):
+        #    if superitem not in t:
+        #         t[superitem] = []
+        #    t[superitem].append(item)
+        # 
+        # keys = [None] + list([x for x in t if x is not None])
+        # return list(chain.from_iterable([t[k] for k in keys]))
 
     def select(self, spec):
         query = self.get_query_for_spec(spec)
