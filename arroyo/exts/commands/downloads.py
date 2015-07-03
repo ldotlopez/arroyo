@@ -104,7 +104,7 @@ class DownloadCommand(exts.Command):
         elif from_queries:
             specs = self.app.selector.get_queries_specs()
             for spec in specs:
-                srcs = self.app.selector.selection(spec)
+                srcs = self.app.selector.select(spec)
                 if srcs is None:
                     msg = "No selection for {query}"
                     msg = msg.format(query=query)
