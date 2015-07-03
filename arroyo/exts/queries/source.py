@@ -8,7 +8,7 @@ class Query(exts.Query):
         if not everything:
             qs = qs.filter(models.Source.state == models.Source.State.NONE)
 
-        items, params = self.apply_filters(
+        items, params = self.app.selector.apply_filters(
             qs, [models.Source], dict(self.params))
 
         for k in params:

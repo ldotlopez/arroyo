@@ -38,7 +38,7 @@ class HighLevelQuery(exts.Query):
         if not everything:
             qs = qs.filter(self.HIGH_LEVEL_MODEL.selection == None)  # nopep8
 
-        items, params = self.apply_filters(
+        items, params = self.app.selector.apply_filters(
             qs, [models.Source, self.HIGH_LEVEL_MODEL], dict(self.params))
 
         for k in params:

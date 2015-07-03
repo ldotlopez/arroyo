@@ -214,6 +214,11 @@ class Filter(Extension):
         raise NotImplementedError()
 
 
+class Sorter(Extension):
+    def sort(self, sources):
+        return sources
+
+
 class QuerySpec(utils.InmutableDict):
     def __init__(self, query_name, **kwargs):
         #
@@ -257,50 +262,6 @@ class Query(Extension):
         self._spec = spec
         self.params = utils.InmutableDict(spec.exclude('as'))
 
-    def get_filters(self, models, params):
-        table = {}
-
-        for filtercls in self.app.get_implementations('filter').values():
-            if filtercls.APPLIES_TO not in models:
-                continue
-
-            for k in [k for k in filtercls.HANDLES if k in params]:
-                if k not in table:
-                    table[k] = filtercls
-                else:
-                    msg = ("{key} is currently mapped to {active}, "
-                           "ignoring {current}")
-                    msg = msg.format(
-                        key=k,
-                        active=repr(table[k]),
-                        current=repr(filtercls))
-                    self.app.logger.warning(msg)
-
-        return {k: table[k](self.app, k, params[k]) for k in table}
-
-    def apply_filters(self, qs, models, params):
-        guessed_models = itertools.chain(qs._entities, qs._join_entities)
-        guessed_models = [x.mapper.class_ for x in guessed_models]
-        assert set(guessed_models) == set(models)
-
-        filters = self.get_filters(guessed_models, params)
-
-        missing = set(params).difference(set(filters))
-
-        sql_aware = {True: [], False: []}
-        for f in filters.values():
-            test = f.__class__.alter_query != Filter.alter_query
-            sql_aware[test].append(f)
-
-        for f in sql_aware.get(True, []):
-            qs = f.alter_query(qs)
-
-        items = (x for x in qs)
-        for f in sql_aware.get(False, []):
-            items = f.apply(items)
-
-        return items, missing
-
     @property
     def name(self):
         return self.spec.name
@@ -312,16 +273,11 @@ class Query(Extension):
     def matches(self, include_all=False):
         raise NotImplementedError()
 
-    def selection(self):
-        # Method match should return matches in superitem order
-        matches = self.matches(False)
-        groups = itertools.groupby(matches, lambda src: src.superitem)
-
-        ret = []
-        for (superitem, group) in groups:
-            ret.append(next(group))
-
-        return ret
+    # def selection(self, matches):
+    #     try:
+    #         return matches[0]
+    #     except IndexError:
+    #         return None
 
 
 class CronTask(Extension):

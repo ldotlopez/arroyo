@@ -5,13 +5,10 @@ import itertools
 import guessit
 
 
-from arroyo import exts, models
+from arroyo import exts
 
 
-class Sorter(exts.Filter):
-    APPLIES_TO = models.Source
-    HANDLES = ('share-ratio-sort',)
-
+class Sorter(exts.Sorter):
     def cmp_source_health(self, a, b):
         if a.episode or b.movie:
             a_info = guessit.guess_video_info(a.name)
@@ -54,7 +51,7 @@ class Sorter(exts.Filter):
 
         return -1 if a < b else 1
 
-    def apply(self, items):
+    def sort(self, items):
         m = {}
 
         for item in items:
@@ -73,6 +70,7 @@ class Sorter(exts.Filter):
 
         return itertools.chain.from_iterable((m[k] for k in m))
 
+
 __arroyo_extensions__ = [
-    ('filter', 'share-ratio-sort', Sorter),
+    ('sorter', 'basic', Sorter),
 ]

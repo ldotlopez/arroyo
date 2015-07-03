@@ -64,8 +64,8 @@ _extensions = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-    'filters': ('sourcefields', 'episodefields', 'moviefields', 'quality',
-                'shareratiosort'),
+    'filters': ('sourcefields', 'episodefields', 'moviefields', 'quality'),
+    'sorters': ('basic',),
     'queries': ('episode', 'movie', 'source')
 }
 
