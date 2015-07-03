@@ -76,11 +76,11 @@ class Mediainfo:
 
         fixes = {
             'movie': (
-                ('title', 'year', 'language'),
+                ('title', 'year'),
                 ('.avi')
             ),
             'episode': (
-                ('series', 'year', 'language', 'season', 'episodeNumber'),
+                ('series', 'year', 'season', 'episodeNumber'),
                 ('.mp4')
             )
         }
@@ -90,7 +90,15 @@ class Mediainfo:
             filename, extension = path.splitext(source.name)
 
             if extension != expected_ext:
-                fake_info = guessit.guess_file_info(source.name + expected_ext)
+                try:
+                    fake_info = guessit.guess_file_info(
+                        source.name + expected_ext)
+                except RuntimeError:
+                    # See: https://github.com/wackou/guessit/issues/209
+                    msg = "Trap RuntimeError: {name}"
+                    msg = msg.format(name=source.name + expected_ext)
+                    self._logger.critical(msg)
+
                 for f in wanted_fields:
                     if f not in info and f in fake_info:
                         info[f] = fake_info[f]
@@ -126,8 +134,7 @@ class Mediainfo:
                 model = models.Movie
                 arguments = {
                     'title': info['title'],
-                    'year': info.get('year', None),
-                    'language': info.get('language', None)
+                    'year': info.get('year', None)
                 }
             except KeyError:
                 raise ValueError('info data for movie source is incomplete')
@@ -139,8 +146,7 @@ class Mediainfo:
                     'series': info['series'],
                     'season': info.get('season', -1),
                     'number': info['episodeNumber'],
-                    'year': info.get('year', None),
-                    'language': info.get('language', None)
+                    'year': info.get('year', None)
                 }
             except KeyError:
                 raise ValueError('info data for episode source is incomplete')
