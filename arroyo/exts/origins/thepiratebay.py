@@ -15,10 +15,10 @@ from arroyo import exts
 
 class Tpb(exts.Origin):
     PROVIDER_NAME = 'tpb'
-    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(
-        tld=random.sample([
-            'am', 'gs', 'mn', 'la', 'vg'
-        ], 1)[0])
+
+    TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=TLD)
+
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
     def paginate(self, url):
@@ -37,6 +37,31 @@ class Tpb(exts.Origin):
         while True:
             yield pre + '/' + str(page) + '/' + post
             page += 1
+
+    def get_query_url(self, query):
+        t = {
+            'source': 'name',
+            'episode': 'series',
+            'movie': 'title'
+        }
+        typ = query.get('as')
+        field = t.get(typ, None)
+        if not field:
+            return
+
+        value = None
+        for x in ['', '-glob', 'like']:
+            value = query.get(field + x, None)
+            if value:
+                break
+
+        if not value:
+            return
+
+        value = re.sub(r'[^a-zA-Z0-9]', ' ', value)
+        return "https://thepiratebay.{tld}/search/{value}/0/99/0".format(
+                tld=self.TLD,
+                value=value)
 
     def process_buffer(self, buff):
         def parse_row(row):
