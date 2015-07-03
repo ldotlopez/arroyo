@@ -90,7 +90,14 @@ class Mediainfo:
             filename, extension = path.splitext(source.name)
 
             if extension != expected_ext:
-                fake_info = guessit.guess_file_info(source.name + expected_ext)
+                try:
+                    fake_info = guessit.guess_file_info(
+                        source.name + expected_ext)
+                except RuntimeError:
+                    # See: https://github.com/wackou/guessit/issues/209
+                    msg = "Trap RuntimeError: {name}"
+                    msg = msg.format(name=source.name + expected_ext)
+                    self._logger.critical(msg)
 
                 for f in wanted_fields:
                     if f not in info and f in fake_info:
