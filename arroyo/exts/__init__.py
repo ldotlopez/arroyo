@@ -240,7 +240,7 @@ class QuerySpec(utils.InmutableDict):
         # kwargs = tmp
 
         kwargs = {_normalize_key(k): v for (k, v) in kwargs.items()}
-        kwargs['as'] = kwargs.get('as', 'source')
+        kwargs['kind'] = kwargs.get('kind', 'source')
 
         if 'language' in kwargs:
             kwargs['language'] = kwargs['language'].lower()
@@ -260,7 +260,7 @@ class Query(Extension):
     def __init__(self, app, spec):
         super().__init__(app)
         self._spec = spec
-        self.params = utils.InmutableDict(spec.exclude('as'))
+        self.params = utils.InmutableDict(spec.exclude('kind'))
 
     @property
     def name(self):
