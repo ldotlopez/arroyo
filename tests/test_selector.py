@@ -4,7 +4,7 @@
 
 import unittest
 
-from arroyo import core, models, selector
+from arroyo import core, models, selector, exts
 
 
 def src(name, **kwsrc):
@@ -38,7 +38,8 @@ class SelectorTest(unittest.TestCase):
         self.app.db.session.commit()
 
     def assertQuery(self, expected, **params):
-        res = self.app.selector.matches(True, **params)
+        spec = exts.QuerySpec('test', **params)
+        res = self.app.selector.matches(spec, True)
         self.assertEqual(
             set([x.name for x in expected]),
             set([x.name for x in res])
@@ -46,7 +47,7 @@ class SelectorTest(unittest.TestCase):
 
 
 class SourceSelectorTest(SelectorTest):
-    def test_name_like(self):
+    def test_name_glob(self):
         expected = [
             src('Interstellar [BluRay Rip][Español Latino][2014]'),
             src('Interstellar (2014) 720p BrRip x264 - YIFY'),
@@ -60,11 +61,11 @@ class SourceSelectorTest(SelectorTest):
 
         self.assertQuery(
             expected,
-            name_like='interstellar')
+            name_glob='*interstellar*')
 
         self.assertQuery(
             [],
-            name_like='none')
+            name_glob='none')
 
     def test_source_language(self):
         eng = [
@@ -80,15 +81,15 @@ class SourceSelectorTest(SelectorTest):
 
         self.assertQuery(
             eng + esp + undef,
-            name_like='game of thrones')
+            name_glob='*game.of.thrones*')
 
         self.assertQuery(
             eng,
-            name_like='game of thrones', language='eng-us')
+            name_glob='*game.of.thrones*', language='eng-us')
 
         self.assertQuery(
             esp,
-            name_like='game of thrones', language='esp-es')
+            name_glob='*game.of.thrones*', language='esp-es')
 
 
 class EpisodeSelectorTest(SelectorTest):
@@ -108,7 +109,7 @@ class EpisodeSelectorTest(SelectorTest):
 
         self.assertQuery(
             expected,
-            selector='episode', series='game of thrones')
+            kind='episode', series='game of thrones')
 
         # expected[0].state = models.Source.State.DONE
         # self.assertQuery(
@@ -127,19 +128,19 @@ class EpisodeSelectorTest(SelectorTest):
 
         self.assertQuery(
             hdtv + hdready,
-            selector='episode', series='game of thrones')
+            kind='episode', series='game of thrones')
 
         self.assertQuery(
             [],
-            selector='episode', series='game of thrones', quality='1080p')
+            kind='episode', series='game of thrones', quality='1080p')
 
         self.assertQuery(
             hdready,
-            selector='episode', series='game of thrones', quality='720p')
+            kind='episode', series='game of thrones', quality='720p')
 
         self.assertQuery(
             hdtv,
-            selector='episode', series='game of thrones', quality='hdtv')
+            series='game of thrones', quality='hdtv')
 
     def test_everything(self):
         x = [
@@ -153,14 +154,14 @@ class EpisodeSelectorTest(SelectorTest):
         self.init_db(x)
 
         q = self.app.selector.get_query_for_spec(
-            selector.QuerySpec('test', selector='episode', series='game of thrones', season=1))
+            exts.QuerySpec('test', selector='episode', series='game of thrones', season=1))
         res = q.matches(everything=False)
         self.assertTrue(
             (x[0] in res or x[1] in res) and (x[2] in res or x[3] in res)
         )
 
         q = self.app.selector.get_query_for_spec(
-            selector.QuerySpec('test', selector='episode', series='game of thrones', season=1))
+            exts.QuerySpec('test', selector='episode', series='game of thrones', season=1))
         res = q.matches(everything=False)
         self.assertTrue(set(res), set(x[0:3]))
 
@@ -174,13 +175,13 @@ class EpisodeSelectorTest(SelectorTest):
         x[0].episode.selection.source = x[0]
         self.app.db.session.commit()
 
-        q = selector.QuerySpec(selector='episode', series='game of thrones')
-        res = list(self.app.selector.select(q, everything=True))
+        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
+        res = list(self.app.selector.matches(q, everything=True))
         self.assertEqual(set(res), set(x))
 
-        q = selector.QuerySpec(selector='episode', series='game of thrones')
+        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
         res = list(self.app.selector.select(q))
-        self.assertEqual(set(res), set(x[1]))
+        self.assertEqual(set(*res), set(x[1]))
 
     def test_proper(self):
         x = [
@@ -189,7 +190,7 @@ class EpisodeSelectorTest(SelectorTest):
         ]
         self.init_db(x)
 
-        q = selector.QuerySpec(selector='episode', series='game of thrones')
+        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
         res = list(self.app.selector.select(q))
         self.assertEqual(set(res[0]), set(x[1]))
 

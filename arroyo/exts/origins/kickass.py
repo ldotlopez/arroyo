@@ -37,7 +37,7 @@ class KickAss(exts.Origin):
         yield from self.paginate_by_query_param(url, 'page', default=1)
 
     def get_query_url(self, query):
-        selector = query.get('as')
+        selector = query.get('kind')
         if selector == 'episode':
             catstr = '%20category:tv'
             q = query.get('series', '')
@@ -47,7 +47,10 @@ class KickAss(exts.Origin):
         else:
             catstr = ''
             q = query.get('name') or \
-                query.get('name-like', '').replace('%', ' ').replace('*', ' ')
+                query.get('name-glob') or \
+                query.get('name-like') or \
+                query.get('name-regexp') or ''
+            q = q.replace('%', ' ').replace('*', ' ')
             q = q.strip()
 
         if not q:

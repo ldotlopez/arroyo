@@ -44,24 +44,24 @@ class Tpb(exts.Origin):
             'episode': 'series',
             'movie': 'title'
         }
-        typ = query.get('as')
-        field = t.get(typ, None)
+        selector = query.get('kind')
+        field = t.get(selector, None)
         if not field:
             return
 
-        value = None
-        for x in ['', '-glob', 'like']:
-            value = query.get(field + x, None)
-            if value:
+        q = None
+        for suffix in ['', '-glob', '-like', '-regexp']:
+            q = query.get(field + suffix, None)
+            if q is not None:
+                q = q.replace('%', ' ').replace('*', ' ')
+                q = q.strip()
+                q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
                 break
 
-        if not value:
-            return
-
-        value = re.sub(r'[^a-zA-Z0-9]', ' ', value)
-        return "https://thepiratebay.{tld}/search/{value}/0/99/0".format(
-                tld=self.TLD,
-                value=value)
+        if q:
+            return "https://thepiratebay.{tld}/search/{q}/0/99/0".format(
+                   tld=self.TLD,
+                   q=q)
 
     def process_buffer(self, buff):
         def parse_row(row):

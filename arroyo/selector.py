@@ -17,7 +17,7 @@ class Selector:
         return list(map(self.get_query_for_spec, self.get_queries_specs()))
 
     def get_query_for_spec(self, spec):
-        return self.app.get_extension('query', spec.get('as'), spec=spec)
+        return self.app.get_extension('query', spec.get('kind'), spec=spec)
 
     def _auto_import(self, query):
         if self.app.settings.get('auto-import'):

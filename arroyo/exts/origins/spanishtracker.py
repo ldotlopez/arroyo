@@ -37,13 +37,7 @@ class Spanishtracker(exts.Origin):
         if not query.get('language', '').startswith('spa-'):
             return
 
-        categories = {
-            'episode': '7',
-            'movie': '1'
-        }
-        catstr = categories.get(query.get('as', None), '')
-
-        selector = query.get('as', None)
+        selector = query.get('kind', 'source')
 
         if selector == 'episode':
             catstr = '7'
@@ -55,8 +49,11 @@ class Spanishtracker(exts.Origin):
 
         elif selector == 'source':
             q = query.get('name') or \
-                query.get('name-like', '').replace('%', ' ').replace('*', ' ').strip() or \
-                ''
+                query.get('name-glob') or \
+                query.get('name-like') or \
+                query.get('name-regexp') or ''
+            q = q.replace('%', ' ').replace('*', ' ')
+            q = q.strip()
 
         if not q:
             return

@@ -45,7 +45,7 @@ class Eztv(exts.Origin):
             page += 1
 
     def get_query_url(self, query):
-        selector = query.get('as')
+        selector = query.get('kind')
         if selector != 'episode':
             return
 
