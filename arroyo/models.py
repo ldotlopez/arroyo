@@ -196,37 +196,24 @@ class Source(Base):
 class Episode(Base):
     __tablename__ = 'episode'
     __table_args__ = (
-        schema.UniqueConstraint('series', 'year', 'language', 'season',
+        schema.UniqueConstraint('series', 'year', 'season',
                                 'number'),
     )
 
     id = Column(Integer, primary_key=True)
 
     series = Column(String, nullable=False)
-    _language = Column('language', String, nullable=True)
     year = Column(Integer, nullable=True)
     season = Column(Integer, nullable=False)
     # guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
     number = Column(Integer, nullable=False)
 
-    @hybrid_property
-    def language(self):
-        return self._language
-
-    @language.setter
-    def language(self, value):
-        if not _check_language(value):
-            raise ValueError(value)
-
-        self._language = value
-
     def __str__(self):
-        ret = '{series}{year} ({language}){season}{number}'
+        ret = '{series}{year} {season}{number}'
         ret = ret.format(
             series=self.series,
             year=' ({})'.format(self.year) if self.year else '',
-            language=self.language or 'no region',
             season=', season {}'.format(self.season) if self.season else '',
             number=', episode {}'.format(self.number) if self.number else ''
         )
@@ -248,7 +235,7 @@ class Episode(Base):
         return "<Episode ('%s')>" % ret
 
     def __iter__(self):
-        keys = 'id series year language season number'.split(' ')
+        keys = 'id series year season number'.split(' ')
         for k in keys:
             yield (k, getattr(self, k))
 
@@ -259,25 +246,13 @@ class Episode(Base):
 class Movie(Base):
     __tablename__ = 'movie'
     __table_args__ = (
-        schema.UniqueConstraint('title', 'language', 'year'),
+        schema.UniqueConstraint('title', 'year'),
     )
 
     id = Column(Integer, primary_key=True)
 
     title = Column(String, nullable=False)
     year = Column(Integer, nullable=True)
-    _language = Column('language', String, nullable=True)
-
-    @hybrid_property
-    def language(self):
-        return self._language
-
-    @language.setter
-    def language(self, value):
-        if not _check_language(value):
-            raise ValueError(value)
-
-        self._language = value
 
     def __repr__(self):
         ret = self.title
@@ -288,11 +263,10 @@ class Movie(Base):
         return "<Movie ('%s')>" % ret
 
     def __str__(self):
-        ret = '{title}{year} ({language})'
+        ret = '{title}{year}'
         ret = ret.format(
             title=self.title,
-            year=' ({})'.format(self.year) if self.year else '',
-            language=self.language or 'no region'
+            year=' ({})'.format(self.year) if self.year else ''
         )
 
         return ret
@@ -301,7 +275,7 @@ class Movie(Base):
         return self.__str__()
 
     def __iter__(self):
-        keys = 'id title year language'.split(' ')
+        keys = 'id title year'.split(' ')
         for k in keys:
             yield (k, getattr(self, k))
 
