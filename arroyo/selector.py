@@ -30,7 +30,8 @@ class Selector:
 
         return sorted(
             ret,
-            key=lambda x: -sys.maxsize if x.superitem is None else hash(x))
+            key=lambda x: -sys.maxsize
+            if x.superitem is None else x.superitem.id)
 
     def select(self, spec):
         sorter = self.app.get_extension(
