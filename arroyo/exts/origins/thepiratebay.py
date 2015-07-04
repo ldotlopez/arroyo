@@ -49,19 +49,20 @@ class Tpb(exts.Origin):
         if not field:
             return
 
-        value = None
-        for x in ['', '-glob', 'like']:
-            value = query.get(field + x, None)
-            if value:
-                break
+        q = query.get('name') or \
+            query.get('name-glob') or \
+            query.get('name-like') or \
+            query.get('name-regexp') or ''
+        q = q.replace('%', ' ').replace('*', ' ')
+        q = q.strip()
 
-        if not value:
+        if not q:
             return
 
-        value = re.sub(r'[^a-zA-Z0-9]', ' ', value)
-        return "https://thepiratebay.{tld}/search/{value}/0/99/0".format(
-                tld=self.TLD,
-                value=value)
+        q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
+        return "https://thepiratebay.{tld}/search/{q}/0/99/0".format(
+               tld=self.TLD,
+               q=q)
 
     def process_buffer(self, buff):
         def parse_row(row):
