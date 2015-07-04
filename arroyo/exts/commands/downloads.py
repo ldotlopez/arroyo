@@ -1,9 +1,9 @@
 from ldotcommons import utils
 
+import arroyo.exc
 from arroyo import (
     exts,
-    models,
-    selector
+    models
 )
 
 
@@ -35,6 +35,12 @@ class DownloadCommand(exts.Command):
             help='filters to apply in key_mod=value form'),
 
         exts.argument(
+            '--queries',
+            dest='from_queries',
+            action='store_true',
+            help="Download matching sources from queries"),
+
+        exts.argument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
@@ -46,6 +52,7 @@ class DownloadCommand(exts.Command):
         source_id_add = args.add
         source_id_remove = args.remove
         query = args.query
+        from_queries = args.from_queries
         dry_run = args.dry_run
 
         add, remove, source_id = False, False, False
@@ -55,9 +62,9 @@ class DownloadCommand(exts.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        if sum([1 for x in (show, add, remove, query) if x]) > 1:
+        if sum([1 for x in (show, add, remove, from_queries) if x]) > 1:
             msg = 'Only one action at time is supported'
-            raise exc.ArgumentError(msg)
+            raise arroyo.exc.ArgumentError(msg)
 
         if show:
             for src in self.app.downloads.list():
@@ -83,19 +90,36 @@ class DownloadCommand(exts.Command):
 
             self.app.downloads.remove(src)
 
-        else:
-            if not query:
-                queries = self.app.downloads.get_queries()
-            else:
-                queries = {'Command line': selector.Query(**query)}
+        elif query:
+            spec = exts.QuerySpec('command-line', **query)
+            srcs = self.app.selector.select(spec)
+            for src in srcs:
+                if not dry_run:
+                    self.app.downloads.add(src)
 
-            for (name, query) in queries.items():
-                print(name)
-                srcs = self.app.selector.select(query, everything=False)
+                msg = "%s %s %s" % \
+                    (src.pretty_repr, src.language, src.type)
+                self.app.logger.info(msg)
+
+        elif from_queries:
+            specs = self.app.selector.get_queries_specs()
+            for spec in specs:
+                srcs = self.app.selector.select(spec)
+                if srcs is None:
+                    msg = "No selection for {query}"
+                    msg = msg.format(query=query)
+                    self.app.logger.warning(msg)
+                    continue
+
+                self.app.logger.info(query)
+
                 for src in srcs:
                     if not dry_run:
                         self.app.downloads.add(src)
-                    print(src.pretty_repr)
+
+                    msg = "%s %s %s" % \
+                        (src.pretty_repr, src.language, src.type)
+                    self.app.logger.info(msg)
 
 
 __arroyo_extensions__ = [

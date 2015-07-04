@@ -1,62 +1,93 @@
-from ldotcommons import (sqlalchemy as ldotsa, utils)
+import itertools
+import sys
 
 
-class QuerySpec(utils.InmutableDict):
-    def __init__(self, **kwargs):
-        def _normalize_key(key):
-            for x in [' ', '_']:
-                key = key.replace(x, '-')
-            return key
-
-        tmp = {}
-        for (k, v) in kwargs.items():
-            k = _normalize_key(k)
-            if k.endswith('-like'):
-                v = ldotsa.glob_to_like(v, wide=True)
-            tmp[k] = v
-
-        kwargs = tmp
-
-        if 'selector' not in kwargs:
-            kwargs['selector'] = 'source'
-
-        if 'language' in kwargs:
-            kwargs['language'] = kwargs['language'].lower()
-
-        if 'type' in kwargs:
-            kwargs['type'] = kwargs['type'].lower()
-
-        super().__init__(**kwargs)
+from arroyo import exts
 
 
 class Selector:
     def __init__(self, app):
         self.app = app
-        self._auto_import = self.app.settings.get('auto-import')
+
+    def get_queries_specs(self):
+        return [exts.QuerySpec(x, **params) for (x, params) in
+                self.app.settings.get_tree('query', {}).items()]
 
     def get_queries(self):
-        cfg_dict = utils.configparser_to_dict(self.app.config)
-        queries = utils.MultiDepthDict(cfg_dict).subdict('query')
-        return {k: QuerySpec(**v) for (k, v) in queries.items()}
+        return list(map(self.get_query_for_spec, self.get_queries_specs()))
 
-    def get_selector(self, query):
-        if not isinstance(query, QuerySpec):
-            raise ValueError('query is not a QuerySpec object')
+    def get_query_for_spec(self, spec):
+        return self.app.get_extension('query', spec.get('kind'), spec=spec)
 
-        selector_type = query.get('selector')
-        query = query.exclude('selector')
+    def _auto_import(self, query):
+        if self.app.settings.get('auto-import'):
+            self.app.importer.import_query_spec(query.spec)
 
-        return self.app.get_extension(
-            'selector', selector_type,
-            query=query)
+    def matches(self, spec, everything=False):
+        query = self.get_query_for_spec(spec)
+        self._auto_import(query)
+        ret = query.matches(everything)
 
-    def select(self, query, everything=False):
-        if not isinstance(query, QuerySpec):
-            raise ValueError('query must be a Query instance')
+        return sorted(
+            ret,
+            key=lambda x: -sys.maxsize if x.superitem is None else hash(x))
 
-        if self._auto_import:
-            self.app.importer.import_query_spec(query)
+    def select(self, spec):
+        sorter = self.app.get_extension(
+            'sorter',
+            self.app.settings.get('selector.sorter', 'basic'))
 
-        selector = self.get_selector(query)
-        for src in selector.select(everything):
-            yield src
+        query = self.matches(spec, everything=False)
+
+        groups = itertools.groupby(query, lambda src: src.superitem)
+
+        ret = []
+        for (superitem, group) in groups:
+            r = iter(sorter.sort(group))
+            ret.append(next(r))
+
+        return ret
+
+    def get_filters(self, models, params):
+        table = {}
+
+        for filtercls in self.app.get_implementations('filter').values():
+            if filtercls.APPLIES_TO not in models:
+                continue
+
+            for k in [k for k in filtercls.HANDLES if k in params]:
+                if k not in table:
+                    table[k] = filtercls
+                else:
+                    msg = ("{key} is currently mapped to {active}, "
+                           "ignoring {current}")
+                    msg = msg.format(
+                        key=k,
+                        active=repr(table[k]),
+                        current=repr(filtercls))
+                    self.app.logger.warning(msg)
+
+        return {k: table[k](self.app, k, params[k]) for k in table}
+
+    def apply_filters(self, qs, models, params):
+        guessed_models = itertools.chain(qs._entities, qs._join_entities)
+        guessed_models = [x.mapper.class_ for x in guessed_models]
+        assert set(guessed_models) == set(models)
+
+        filters = self.get_filters(guessed_models, params)
+
+        missing = set(params).difference(set(filters))
+
+        sql_aware = {True: [], False: []}
+        for f in filters.values():
+            test = f.__class__.alter_query != exts.Filter.alter_query
+            sql_aware[test].append(f)
+
+        for f in sql_aware.get(True, []):
+            qs = f.alter_query(qs)
+
+        items = (x for x in qs)
+        for f in sql_aware.get(False, []):
+            items = f.apply(items)
+
+        return items, missing

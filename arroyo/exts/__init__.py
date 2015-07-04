@@ -1,6 +1,6 @@
-from urllib import parse
-
+import itertools
 from ldotcommons import utils
+from urllib import parse
 
 
 class Extension:
@@ -192,8 +192,92 @@ class Downloader(Extension):
         raise NotImplementedError()
 
 
-class Selector(Extension):
-    pass
+class Filter(Extension):
+    HANDLES = ()
+
+    @classmethod
+    def compatible(cls, model, key):
+        return model == cls.APPLIES_TO and key in cls.HANDLES
+
+    def __init__(self, app, key, value):
+        super().__init__(app)
+        self.key = key
+        self.value = value
+
+    def filter(self, x):
+        raise NotImplementedError()
+
+    def apply(self, iterable):
+        return filter(self.filter, iterable)
+
+    def alter_query(self, qs):
+        raise NotImplementedError()
+
+
+class Sorter(Extension):
+    def sort(self, sources):
+        return sources
+
+
+class QuerySpec(utils.InmutableDict):
+    def __init__(self, query_name, **kwargs):
+        #
+        # FIXME: Should all this normalization should be in exts.Query?
+        #
+
+        def _normalize_key(key):
+            for x in [' ', '_']:
+                key = key.replace(x, '-')
+            return key
+
+        # Some sanity checks/modifications
+        # for (k, v) in kwargs.items():
+        #     k = _normalize_key(k)
+        #     if k.endswith('-like'):
+        #         v = ldotsa.glob_to_like(v, wide=True)
+        #     tmp[k] = v
+        #
+        # kwargs = tmp
+
+        kwargs = {_normalize_key(k): v for (k, v) in kwargs.items()}
+        kwargs['kind'] = kwargs.get('kind', 'source')
+
+        if 'language' in kwargs:
+            kwargs['language'] = kwargs['language'].lower()
+
+        if 'type' in kwargs:
+            kwargs['type'] = kwargs['type'].lower()
+
+        super().__init__(**kwargs)
+        self._name = query_name
+
+    @property
+    def name(self):
+        return self._name
+
+
+class Query(Extension):
+    def __init__(self, app, spec):
+        super().__init__(app)
+        self._spec = spec
+        self.params = utils.InmutableDict(spec.exclude('kind'))
+
+    @property
+    def name(self):
+        return self.spec.name
+
+    @property
+    def spec(self):
+        return self._spec
+
+    def matches(self, include_all=False):
+        raise NotImplementedError()
+
+    # def selection(self, matches):
+    #     try:
+    #         return matches[0]
+    #     except IndexError:
+    #         return None
 
 
 class CronTask(Extension):

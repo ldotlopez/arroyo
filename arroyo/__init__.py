@@ -1,13 +1,13 @@
 __all__ = [
     'Arroyo',
-    'Importer', 'OriginSpec'
+    'Importer',
     'Downloads',
-    'Selector', 'QuerySpec',
+    'Selector',
     'Signaler'
 ]
 
 from .core import Arroyo
-from .importer import Importer, OriginSpec
+from .importer import Importer
 from .downloads import Downloads
-from .selector import Selector, QuerySpec
+from .selector import Selector
 from .signaler import Signaler

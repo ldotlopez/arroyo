@@ -45,7 +45,7 @@ class Eztv(exts.Origin):
             page += 1
 
     def get_query_url(self, query):
-        selector = query.get('selector')
+        selector = query.get('kind')
         if selector != 'episode':
             return
 
@@ -86,7 +86,9 @@ class Eztv(exts.Origin):
             try:
                 return {
                     'name': children[1].text.strip(),
-                    'uri': children[2].select('a.magnet')[0]['href']
+                    'uri': children[2].select('a.magnet')[0]['href'],
+                    'language': 'eng-us',
+                    'type': 'episode'
                 }
             except (IndexError, AttributeError):
                 return None

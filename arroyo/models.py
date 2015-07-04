@@ -5,6 +5,7 @@
 import hashlib
 import re
 from urllib import parse
+import sys
 
 from ldotcommons.sqlalchemy import Base
 from ldotcommons import keyvaluestore, utils
@@ -110,6 +111,9 @@ class Source(Base):
         if self.seeds is None or self.leechers is None:
             return 0
 
+        if self.leechers == 0:
+            return sys.maxsize
+
         return self.seeds / self.leechers
 
     #
@@ -201,10 +205,10 @@ class Episode(Base):
     series = Column(String, nullable=False)
     _language = Column('language', String, nullable=True)
     year = Column(Integer, nullable=True)
-    season = Column(String, nullable=False)
+    season = Column(Integer, nullable=False)
     # guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
-    number = Column(String, nullable=False)
+    number = Column(Integer, nullable=False)
 
     @hybrid_property
     def language(self):

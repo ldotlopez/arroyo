@@ -25,7 +25,6 @@ from arroyo import (
     selector,
     signaler)
 
-
 #
 # Default values for config
 #
@@ -65,13 +64,14 @@ _extensions = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-    'selectors': ('source', 'episode', 'movie'),
+    'filters': ('sourcefields', 'episodefields', 'moviefields', 'quality'),
+    'sorters': ('basic',),
+    'queries': ('episode', 'movie', 'source')
 }
 
 _extensions = chain.from_iterable([
     [ns+'.'+ext for ext in _extensions[ns]]
     for ns in _extensions])
-
 _extensions = [x for x in _extensions]
 _defaults.update({'extensions.{}.enabled'.format(x): True
                   for x in _extensions})
@@ -294,12 +294,12 @@ class Arroyo:
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
 
-    def get_extension(self, extension_point, name, **params):
+    def get_extension(self, extension_point, name, *args, **kwargs):
         impls = self._registry.get(extension_point, {})
         if name not in impls:
             raise arroyo.exc.NoImplementationError(extension_point, name)
 
-        return impls[name](self, **params)
+        return impls[name](self, *args, **kwargs)
 
     def load_extension(self, *names):
         for name in names:
@@ -366,5 +366,6 @@ class Arroyo:
         extension = self.get_extension('command', args.subcommand)
         try:
             extension.run(args)
-        except arroyo.exc.BackendError as e:
+        except (arroyo.exc.BackendError,
+                arroyo.exc.NoImplementationError) as e:
             self.logger.critical(e)

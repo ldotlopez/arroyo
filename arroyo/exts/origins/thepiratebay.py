@@ -15,10 +15,10 @@ from arroyo import exts
 
 class Tpb(exts.Origin):
     PROVIDER_NAME = 'tpb'
-    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(
-        tld=random.sample([
-            'am', 'gs', 'mn', 'la', 'vg'
-        ], 1)[0])
+
+    TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=TLD)
+
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
     def paginate(self, url):
@@ -37,6 +37,31 @@ class Tpb(exts.Origin):
         while True:
             yield pre + '/' + str(page) + '/' + post
             page += 1
+
+    def get_query_url(self, query):
+        t = {
+            'source': 'name',
+            'episode': 'series',
+            'movie': 'title'
+        }
+        selector = query.get('kind')
+        field = t.get(selector, None)
+        if not field:
+            return
+
+        q = None
+        for suffix in ['', '-glob', '-like', '-regexp']:
+            q = query.get(field + suffix, None)
+            if q is not None:
+                q = q.replace('%', ' ').replace('*', ' ')
+                q = q.strip()
+                q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
+                break
+
+        if q:
+            return "https://thepiratebay.{tld}/search/{q}/0/99/0".format(
+                   tld=self.TLD,
+                   q=q)
 
     def process_buffer(self, buff):
         def parse_row(row):

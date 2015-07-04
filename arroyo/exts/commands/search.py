@@ -36,12 +36,6 @@ class QueryCommand(exts.Command):
                   '(by default only sources with NONE state are displayed)')),
 
         exts.argument(
-            '--auto-import',
-            dest='auto_import',
-            action='store_true',
-            help=('Enable dynamic search')),
-
-        exts.argument(
             '-f', '--filter',
             dest='filters',
             required=False,
@@ -61,8 +55,6 @@ class QueryCommand(exts.Command):
         filters = args.filters
         keywords = args.keywords
 
-        self.app.settings.set('auto-import', args.auto_import)
-
         if all([filters, keywords]):
             raise exc.ArgumentError('Filters and keywords are mutually '
                                     'exclusive')
@@ -73,7 +65,7 @@ class QueryCommand(exts.Command):
             query_name = ' '.join(keywords)
             query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
             self.app.settings.set(
-                'query.' + query_name + '.name-like',
+                'query.' + query_name + '.name-glob',
                 '*' + '*'.join(keywords) + '*')
 
         elif filters:
@@ -82,28 +74,22 @@ class QueryCommand(exts.Command):
             for (k, v) in filters.items():
                 self.app.settings.set('query.command-line.' + k, v)
 
-        queries = self.app.settings.get_tree('query')
-
-        if not queries:
+        specs = self.app.selector.get_queries_specs()
+        if not specs:
             msg = 'One filter or one keyword or one [query.label] is required'
             raise exc.ArgumentError(msg)
 
-        # FIXME: Missing sync
-        # sync()
-
-        for (label, query) in queries.items():
-            query = selector.QuerySpec(**query)
-            res = list(self.app.selector.select(
-                query,
-                everything=all_states
-            ))
+        for spec in specs:
+            matches = list(self.app.selector.matches(spec,
+                                                     everything=all_states))
 
             msg = "== Search '{label}: {n_results} result(s)'"
-            print(msg.format(label=label, n_results=len(res)))
-            grouping = itertools.groupby(res, lambda src: src.superitem)
-            for (superitem, grouper) in grouping:
+            print(msg.format(label=spec.name, n_results=len(matches)))
+
+            grouper = itertools.groupby(matches, lambda src: src.superitem)
+            for (superitem, group) in grouper:
                 print('+ {}'.format(superitem or 'Ungroupped'))
-                print(fmt_grp('|-', (fmt_src(x) for x in grouper)))
+                print(fmt_grp('|-', (fmt_src(x) for x in group)))
 
 
 __arroyo_extensions__ = [
