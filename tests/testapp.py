@@ -6,7 +6,7 @@ from arroyo import core, models
 
 
 class TestApp(core.Arroyo):
-    def __init__(self, d):
+    def __init__(self, d={}):
         basedir = os.path.dirname(__file__)
         mock_fetcher_basedir = os.path.join(basedir, 'www-samples')
 

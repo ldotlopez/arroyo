@@ -4,14 +4,15 @@
 
 import unittest
 
-from itertools import count
+import itertools
 import time
 
-from arroyo import core
-from arroyo.exts import CronTask
+
+from arroyo import exts
+import testapp
 
 
-class TestZeroTask(CronTask):
+class TestZeroTask(exts.CronTask):
     NAME = 'zero'
     INTERVAL = 0
 
@@ -24,13 +25,13 @@ class TestZeroTask(CronTask):
         super().run()
 
 
-class TestMinuteTask(CronTask):
+class TestMinuteTask(exts.CronTask):
     NAME = 'minute'
     INTERVAL = 60
 
     def __init__(self, app):
         super().__init__(app)
-        self.g = count()
+        self.g = itertools.count()
 
     def run(self):
         i = getattr(self.app, 'minute', -1)
@@ -38,18 +39,14 @@ class TestMinuteTask(CronTask):
         super().run()
 
 
-class MissingIntervalTask(CronTask):
+class MissingIntervalTask(exts.CronTask):
     pass
 
 
 class CronTest(unittest.TestCase):
 
     def setUp(self):
-        self.settings = core.build_basic_settings()
-        self.settings.set('mediainfo', False)
-        self.settings.set('log-level', 'CRITICAL')
-        self.settings.set('db-uri', 'sqlite:///:memory:')
-        self.app = core.Arroyo(self.settings)
+        self.app = testapp.TestApp()
 
     def test_discover(self):
         self.app.register('crontask', 'minute', TestMinuteTask)
@@ -70,14 +67,14 @@ class CronTest(unittest.TestCase):
         self.app.register('crontask', 'minute', TestMinuteTask)
 
         self.assertFalse(hasattr(self.app, 'minute'))
-        self.app.cron.run_task('zero')
-        self.app.cron.run_task('minute')
+        self.app.cron.run('zero')
+        self.app.cron.run('minute')
         self.assertEqual(getattr(self.app, 'zero', None), 0)
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
         time.sleep(1)
-        self.app.cron.run_task('zero')
-        self.app.cron.run_task('minute')
+        self.app.cron.run('zero')
+        self.app.cron.run('minute')
         self.assertEqual(getattr(self.app, 'zero', None), 1)
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
@@ -86,10 +83,10 @@ class CronTest(unittest.TestCase):
 
         self.assertFalse(hasattr(self.app, 'minute'))
 
-        self.app.cron.run_task('minute')
+        self.app.cron.run('minute')
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
-        self.app.cron.run_task('minute', force=True)
+        self.app.cron.run('minute', force=True)
         self.assertEqual(getattr(self.app, 'minute', None), 1)
 
 if __name__ == '__main__':
