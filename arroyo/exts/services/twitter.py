@@ -4,31 +4,23 @@ from arroyo import (exc, exts)
 
 
 class TwitterNotifier(exts.Service):
-    _SECTION_NAME = 'extension.services.twitter'
+    SETTINGS_NS = 'extensions.services.twitter'
 
     def __init__(self, app):
-        super(TwitterNotifier, self).__init__(app)
+        super().__init__(app)
         self._logger = self.app.logger.getChild('twitter-notifier')
 
-        if not self.app.config.has_section(self._SECTION_NAME):
-            msg = "Section [{section_name}] not found"
-            msg = msg.format(section_name=self._SECTION_NAME)
-            raise exc.ArgumentError(msg)
+        settings = self.app.settings.get_tree(self.SETTINGS_NS)
 
-        keys = 'consumer_key consumer_secret token token_secret'.split()
+        keys = 'consumer-key consumer-secret token token-secret'.split()
         try:
-            api_params = {k: self.app.config[self._SECTION_NAME][k]
-                          for k in keys}
+            api_params = {k.replace('-', '_'): settings[k] for k in keys}
         except KeyError as e:
-            msg = "Section [{section_name}] doesn't have {key} key"
-            msg = msg.format(section_name=self._SECTION_NAME, key=e.args[0])
+            msg = "Missing {ns}.{key} setting"
+            msg = msg.format(ns=self.SETTINGS_NS, key=e.args[0])
             raise exc.ArgumentError(msg)
 
-        self._api = ldottwitter.Twitter(**api_params)
-
-        notify_on = self.app.config.get(self._SECTION_NAME,
-                                        'notify_on',
-                                        fallback='')
+        notify_on = settings.get('notify-on', '')
 
         self.signals = {}
         for signal in [x.strip() for x in notify_on.split(',')]:
@@ -43,6 +35,8 @@ class TwitterNotifier(exts.Service):
 
         self.app.signals.connect('source-state-change', self.on_state_change)
         # app.signals.connect('origin-failed', self.on_origin_failed)
+
+        self._api = ldottwitter.Twitter(**api_params)
 
     def on_state_change(self, sender, source):
         state = source.state_name
