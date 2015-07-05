@@ -1,4 +1,3 @@
-import itertools
 from ldotcommons import utils
 from urllib import parse
 
