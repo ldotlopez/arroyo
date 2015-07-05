@@ -19,8 +19,6 @@ class MockDownloader(exts.Downloader):
             self.get_source_key(source),
             models.Source.State.INITIALIZING)
 
-        source.state = models.Source.State.INITIALIZING
-
     def remove(self, urn):
         self.app.variables.reset(
             self.get_urn_key(urn))
@@ -45,6 +43,9 @@ class MockDownloader(exts.Downloader):
 
     def get_urn_key(self, urn):
         return '%s.%s' % (self._VARIABLES_NS, urn)
+
+    def _update_state(self, source, state):
+        self.app.variables.set(self.get_source_key(source), state)
 
 __arroyo_extensions__ = [
     ('downloader', 'mock', MockDownloader)
