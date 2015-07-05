@@ -129,7 +129,7 @@ def build_argument_parser():
         return parser
 
 
-def build_basic_settings(arguments=sys.argv[1:]):
+def build_basic_settings(arguments=[]):
     global _defaults, _extensions
 
     # The first task is parse arguments
@@ -279,8 +279,10 @@ class Arroyo:
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load extensions
-        for ext in [x for x in _extensions
-                    if self.settings.get('extensions.' + x + '.enabled')]:
+        exts = [["{}.{}".format(kind, ext) for ext in
+                self.settings.get_tree('extensions.{}'.format(kind))]
+                for kind in self.settings.get_tree('extensions')]
+        for ext in chain.from_iterable(exts):
             self.load_extension(ext)
 
         # Run cron tasks
@@ -316,9 +318,16 @@ class Arroyo:
 
                 for (ext_point, ext_name, ext_cls) in mod_exts:
                     self.register(ext_point, ext_name, ext_cls)
-                    if issubclass(ext_cls, exts.Service) and \
-                       ext_cls not in self._services:
-                        self._services[ext_cls] = ext_cls(self)
+                    if issubclass(ext_cls, exts.Service):
+                        if ext_name in self._services:
+                            msg = ("Service '{name}' already registered by "
+                                   "'{cls}'")
+                            msg = msg.format(
+                                name=ext_name,
+                                cls=type(self._services[ext_name]))
+                            self.logger.critical(msg)
+                        else:
+                            self._services[ext_name] = ext_cls(self)
 
                 self._extensions.add(name)
 
