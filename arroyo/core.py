@@ -258,13 +258,10 @@ class Arroyo:
         except KeyError:
             fetcher_opts = {}
 
-        # FIX: Logger feature is missing
-        self.fetcher = fetchers.Fetcher(fetcher, **fetcher_opts)
-        # self.fetcher = fetchers.UrllibFetcher(
-        #     cache=self.settings.get('enable-cache'),
-        #     cache_delta=self.settings.get('cache-delta'),
-        #     headers={'User-Agent': self.settings.get('user-agent')},
-        #     logger=self.logger.getChild('fetcher'))
+        self.fetcher = fetchers.Fetcher(
+            fetcher,
+            logger=self.logger.getChild('fetcher.' + fetcher),
+            **fetcher_opts)
 
         # Built-in providers
         self.db = db.Db(self.settings.get('db-uri'))
