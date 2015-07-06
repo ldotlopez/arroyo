@@ -130,7 +130,7 @@ class KickAss(exts.Origin):
                 'type': typ
             }
 
-        soup = bs4.BeautifulSoup(buff)
+        soup = bs4.BeautifulSoup(buff, "html.parser")
         return map(process_row, soup.select('table.data tr')[1:])
 
 

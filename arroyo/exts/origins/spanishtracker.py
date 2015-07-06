@@ -138,7 +138,7 @@ class Spanishtracker(exts.Origin):
                 'language': lang
             }
 
-        soup = bs4.BeautifulSoup(buff)
+        soup = bs4.BeautifulSoup(buff, "html.parser")
         rows = [x for x in soup.select('tr')
                 if len(x.findChildren('td')) == 11][1:]
 

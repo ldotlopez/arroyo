@@ -54,7 +54,7 @@ class Eztv(exts.Origin):
             return
 
         buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
-        soup = bs4.BeautifulSoup(buff)
+        soup = bs4.BeautifulSoup(buff, "html.parser")
 
         series = series.lower()
         if series.startswith('the '):
@@ -93,7 +93,8 @@ class Eztv(exts.Origin):
             except (IndexError, AttributeError):
                 return None
 
-        return map(parse_row, bs4.BeautifulSoup(buff).select('tr'))
+        soup = bs4.BeautifulSoup(buff, "html.parser")
+        return map(parse_row, soup.select('tr'))
 
 __arroyo_extensions__ = [
     ('origin', 'eztv', Eztv)

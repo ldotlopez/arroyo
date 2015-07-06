@@ -85,7 +85,7 @@ class Tpb(exts.Origin):
             return any((link.attrs.get('href', '').startswith('magnet')
                         for link in row.select('a')))
 
-        soup = bs4.BeautifulSoup(buff)
+        soup = bs4.BeautifulSoup(buff, "html.parser")
         rows = soup.select('tr')
         rows = filter(filter_row, rows)
         return map(parse_row, rows)
