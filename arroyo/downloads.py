@@ -77,6 +77,7 @@ class Downloads:
                 msg = "Unrelated item found: '{item}'"
                 msg = msg.format(item=dler_item)
                 self.logger.warning(msg)
+                continue
 
             assert source not in table
 
