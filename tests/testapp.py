@@ -37,7 +37,7 @@ class TestApp(core.Arroyo):
                 pass
 
             if src.type:
-                self.app.mediainfo.process(src)
+                self.mediainfo.process(src)
 
             self.db.session.add(src)
 

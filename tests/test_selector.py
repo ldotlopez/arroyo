@@ -3,61 +3,54 @@
 # vim: set fileencoding=utf-8 :
 
 import unittest
-
-from arroyo import core, models, selector, exts
-
-
-def src(name, **kwsrc):
-    return models.Source.from_data(name, **kwsrc)
+from arroyo import exts, models, selector
+import testapp
 
 
-class SelectorTest(unittest.TestCase):
-    @classmethod
-    def setUpClass(cls):
-        settings = core.build_basic_settings()
-
-        settings.set('mediainfo', False)
-        settings.set('log-level', 'CRITICAL')
-        settings.set('db-uri', 'sqlite:///:memory:')
-
-        app = core.Arroyo(settings)
-        cls.app = app
-
-    def setUp(self):
-        self.app = self.__class__.app
-
-    def tearDown(self):
-        self.app.db.reset()
-
-    def init_db(self, srcs):
-        for src in srcs:
-            self.app.db.session.add(src)
-            if src.type:
-                self.app.mediainfo.process(src)
-
-        self.app.db.session.commit()
-
+class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
         spec = exts.QuerySpec('test', **params)
-        res = self.app.selector.matches(spec, True)
+        res = self.app.selector.matches(spec, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
             set([x.name for x in res])
         )
 
 
-class SourceSelectorTest(SelectorTest):
+class SourceSelectorTest(SelectorTestCase):
+    def setUp(self):
+        self.app = testapp.TestApp({
+            'extensions.queries.source.enabled': True,
+            'extensions.filters.sourcefields.enabled': True
+        })
+
+    def test_not_everything(self):
+        srcs = [
+            testapp.mock_source('foo'),
+            testapp.mock_source('bar'),
+            testapp.mock_source('baz')
+        ]
+        self.app.insert_sources(*srcs)
+        self.assertQuery(srcs, name_glob='*')
+
+        for src in srcs:
+            src.state = models.Source.State.DOWNLOADING
+            self.app.db.session.add(src)
+
+        self.app.db.session.commit()
+
+        self.assertQuery([], name_glob='*')
+
     def test_name_glob(self):
         expected = [
-            src('Interstellar [BluRay Rip][Español Latino][2014]'),
-            src('Interstellar (2014) 720p BrRip x264 - YIFY'),
-            src('Interstellar 2014 TRUEFRENCH BRRip XviD-Slay3R avi')
+            testapp.mock_source('Interstellar [BluRay Rip][Español Latino][2014]'),
+            testapp.mock_source('Interstellar (2014) 720p BrRip x264 - YIFY'),
+            testapp.mock_source('Interstellar 2014 TRUEFRENCH BRRip XviD-Slay3R avi')
         ]
         other = [
-            src('Game of Thrones S05E05 HDTV x264-ASAP[ettv]')
+            testapp.mock_source('Game of Thrones S05E05 HDTV x264-ASAP[ettv]')
         ]
-
-        self.init_db(expected + other)
+        self.app.insert_sources(*(expected + other))
 
         self.assertQuery(
             expected,
@@ -65,19 +58,19 @@ class SourceSelectorTest(SelectorTest):
 
         self.assertQuery(
             [],
-            name_glob='none')
+            name_glob='nothing matches')
 
     def test_source_language(self):
         eng = [
-            src('Game of Thrones S05E08 1080p HDTV x264', language='eng-us')
+            testapp.mock_source('Game of Thrones S05E08 1080p HDTV x264', language='eng-us')
         ]
         esp = [
-            src('Game of Thrones S05E08 SPANISH ESPAÑOL 720p HDTV x264', language='esp-es')
+            testapp.mock_source('Game of Thrones S05E08 SPANISH ESPAÑOL 720p HDTV x264', language='esp-es')
         ]
         undef = [
-            src('Game of Thrones S05E08 720p HDTV x264')
+            testapp.mock_source('Game of Thrones S05E08 720p HDTV x264')
         ]
-        self.init_db(eng + esp + undef)
+        self.app.insert_sources(*(eng + esp + undef))
 
         self.assertQuery(
             eng + esp + undef,
@@ -92,107 +85,136 @@ class SourceSelectorTest(SelectorTest):
             name_glob='*game.of.thrones*', language='esp-es')
 
 
-class EpisodeSelectorTest(SelectorTest):
-    def test_series(self):
-        expected = [
-            src('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]', type='episode')
-        ]
-        other = [
-            # one movie
-            src('Interstellar [BluRay Rip][Español Latino][2014]', type='movie'),
-            # episode from another series
-            src('Arrow S03E22 HDTV x264-LOL[ettv]', type='episode'),
-            # episode without type info
-            src('Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]')
-        ]
-        self.init_db(expected + other)
-
-        self.assertQuery(
-            expected,
-            kind='episode', series='game of thrones')
-
-        # expected[0].state = models.Source.State.DONE
-        # self.assertQuery(
-        #     selector.QuerySpec(selector='episode', series='game of thrones'),
-        #     [])
+class QualityFilterTest(SelectorTestCase):
+    def setUp(self):
+        self.app = testapp.TestApp({
+            'extensions.queries.source.enabled': True,
+            'extensions.queries.episode.enabled': True,
+            'extensions.filters.quality.enabled': True
+        })
 
     def test_quality(self):
         hdready = [
-            src('Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]', type='episode')
+            testapp.mock_source('Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]', type='episode')
         ]
         hdtv = [
-            src('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]', type='episode')
+            testapp.mock_source('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]')
         ]
-
-        self.init_db(hdready + hdtv)
-
-        self.assertQuery(
-            hdtv + hdready,
-            kind='episode', series='game of thrones')
+        self.app.insert_sources(*(hdtv + hdready))
 
         self.assertQuery(
             [],
-            kind='episode', series='game of thrones', quality='1080p')
+            quality='1080p')
 
         self.assertQuery(
             hdready,
-            kind='episode', series='game of thrones', quality='720p')
+            quality='720p')
 
         self.assertQuery(
             hdtv,
-            series='game of thrones', quality='hdtv')
+            quality='hdtv')
 
-    def test_everything(self):
-        x = [
-            src('Game Of Thrones S01E01 720p', type='episode'),
-            src('Game Of Thrones S01E01 HDTV', type='episode'),
-            src('Game Of Thrones S01E02 720p', type='episode'),
-            src('Game Of Thrones S01E02 HDTV', type='episode'),
-            src('Game Of Thrones S02E01 720p', type='episode'),
-            src('Game Of Thrones S02E01 HDTV', type='episode'),
+
+class EpisodeSelectorTest(SelectorTestCase):
+    def setUp(self):
+        self.app = testapp.TestApp({
+            'extensions.queries.episode.enabled': True,
+            'extensions.filters.sourcefields.enabled': True,
+            'extensions.filters.episodefields.enabled': True,
+            'extensions.filters.quality.enabled': True,
+            'extensions.sorters.basic.enabled': True
+        })
+
+    def test_series(self):
+        srcs = [
+            # episode from GoT
+            testapp.mock_source('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]', type='episode'),
+            # one movie
+            testapp.mock_source('Interstellar [BluRay Rip][Español Latino][2014]', type='movie'),
+            # episode from another series
+            testapp.mock_source('Arrow S03E22 HDTV x264-LOL[ettv]', type='episode'),
+            # episode without type info
+            testapp.mock_source('Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]')
         ]
-        self.init_db(x)
+        self.app.insert_sources(*srcs)
 
-        q = self.app.selector.get_query_for_spec(
-            exts.QuerySpec('test', selector='episode', series='game of thrones', season=1))
-        res = q.matches(everything=False)
-        self.assertTrue(
-            (x[0] in res or x[1] in res) and (x[2] in res or x[3] in res)
-        )
+        self.assertQuery(
+            [srcs[0], srcs[2]],
+            kind='episode', series='*')
 
-        q = self.app.selector.get_query_for_spec(
-            exts.QuerySpec('test', selector='episode', series='game of thrones', season=1))
-        res = q.matches(everything=False)
-        self.assertTrue(set(res), set(x[0:3]))
+        self.assertQuery(
+            [srcs[0]],
+            kind='episode', series='game of thrones')
 
-    def test_selection(self):
-        x = [
-            src('Game Of Thrones S01E01 720p', type='episode'),
-            src('Game Of Thrones S01E02 720p', type='episode'),
+        srcs[0].state = models.Source.State.DONE
+
+        self.assertQuery(
+            [srcs[2]],
+            kind='episode', series='*')
+
+        self.assertQuery(
+            [],
+            kind='episode', series='game of thrones')
+
+    def test_real_world_first_use(self):
+        s = testapp.mock_source
+        srcs = [
+            s('Game of Thrones S05E01 HDTV', type='episode'),
+            s('Game of Thrones S05E01 720p', type='episode'),
+            s('Game of Thrones S05E02 HDTV', type='episode'),
+            s('Game of Thrones S05E02 720p', type='episode'),
+            s('Game of Thrones S05E03 HDTV', type='episode'),
+            s('Game of Thrones S05E03 720p', type='episode'),
+            s('Arrow S03E22 FuM XViD HDTV', type='episode'),
+            s('Arrow S03E23 FuM XViD', type='episode'),
         ]
-        self.init_db(x)
-        x[0].episode.selection = models.EpisodeSelection()
-        x[0].episode.selection.source = x[0]
-        self.app.db.session.commit()
+        self.app.insert_sources(*srcs)
 
-        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
-        res = list(self.app.selector.matches(q, everything=True))
-        self.assertEqual(set(res), set(x))
+        # All GoT episodes match
+        self.assertQuery(
+            srcs[:5:2],
+            kind='episode', series='game of thrones', quality='hdtv')
 
-        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
-        res = list(self.app.selector.select(q))
-        self.assertEqual(set(*res), set(x[1]))
+        # After this state change nothing matches
+        for src in srcs:
+            src.state = models.Source.State.DONE
+        self.assertQuery(
+            [],
+            kind='episode', series='game of thrones', quality='hdtv')
 
-    def test_proper(self):
-        x = [
-            src('Game Of Thrones S01E01 720p', type='episode'),
-            src('Game Of Thrones S01E01 REPACK 720p', type='episode'),
-        ]
-        self.init_db(x)
+        # Adding a new version from existings episode should be matched
+        new_source = s('Game of Thrones S05E01 HDTV PROPER', type='episode')
+        self.app.insert_sources(new_source,)
+        self.assertQuery(
+            [new_source],
+            kind='episode', series='game of thrones', quality='hdtv')
 
-        q = exts.QuerySpec('test', kind='episode', series='game of thrones')
-        res = list(self.app.selector.select(q))
-        self.assertEqual(set(res[0]), set(x[1]))
+        # Revert src states and link episodes with sources
+        for src in srcs:
+            src.state = models.Source.State.NONE
+        spec = exts.QuerySpec('test', kind='episode', series='game of thrones', quality='hdtv')
+        for src in self.app.selector.select(spec):
+            src.episode.selection = models.EpisodeSelection(source=src)
+
+        # Check or queryspec again
+        self.assertQuery(
+            [],
+            kind='episode', series='game of thrones', quality='hdtv')
+
+        # And with new sources?
+        new_source = s('Game of Thrones S05E01 HDTV LoL x264', type='episode')
+        self.app.insert_sources(new_source,)
+        self.assertQuery(
+            [],
+            kind='episode', series='game of thrones', quality='hdtv')
+
+        # But… let's check with new episode
+        new_source = s('Game of Thrones S05E04 HDTV LoL x264', type='episode')
+        self.app.insert_sources(new_source,)
+        self.assertQuery(
+            [new_source],
+            kind='episode', series='game of thrones', quality='hdtv')
+
 
 if __name__ == '__main__':
     unittest.main()

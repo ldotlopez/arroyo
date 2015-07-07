@@ -36,6 +36,7 @@ class HighLevelQuery(exts.Query):
         qs = self.app.db.session.query(models.Source)
         qs = qs.join(self.HIGH_LEVEL_MODEL)
         if not everything:
+            qs = qs.filter(models.Source.state == models.Source.State.NONE)  # nopep8
             qs = qs.filter(self.HIGH_LEVEL_MODEL.selection == None)  # nopep8
 
         items, params = self.app.selector.apply_filters(
