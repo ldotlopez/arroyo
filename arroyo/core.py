@@ -327,7 +327,10 @@ class Arroyo:
                                 cls=type(self._services[ext_name]))
                             self.logger.critical(msg)
                         else:
-                            self._services[ext_name] = ext_cls(self)
+                            try:
+                                self._services[ext_name] = ext_cls(self)
+                            except arroyo.exc.ArgumentError as e:
+                                self.logger.critical(str(e))
 
                 self._extensions.add(name)
 

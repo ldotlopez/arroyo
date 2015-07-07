@@ -1,13 +1,13 @@
 import itertools
 import re
 
+
 from ldotcommons import utils
 
 
 from arroyo import (
     exc,
-    exts,
-    selector
+    exts
 )
 
 

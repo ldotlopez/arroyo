@@ -170,6 +170,9 @@ class Origin(Extension):
 
 
 class Command(Extension):
+    help = ''
+    arguments = ()
+
     def run(self, arguments):
         raise NotImplementedError()
 
