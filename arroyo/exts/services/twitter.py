@@ -1,23 +1,84 @@
 from ldotcommons.messaging import twitter as ldottwitter
+import twitter
+
 
 from arroyo import (exc, exts)
 
 
-class TwitterNotifier(exts.Service):
-    SETTINGS_NS = 'extensions.services.twitter'
+_SETTINGS_NS = "extensions.services.twitter"
 
+_NEW_APP_HELP = """
+You should create a new app from: https://apps.twitter.com/app/new
+
+Next you have been configure it you should save consumer key and consumer
+secret values to your config as the following keys:
+
+    consumer key:    '{settings_ns}.consumer-key'
+    consumer secret: '{settings_ns}.consumer-secret'
+
+Once you have done this you must re-run this command to authorize the app
+"""
+
+_AUTH_DONE = """
+Authorization is done.
+
+Save these values to your config:
+
+    {settings_ns}.token = {token}
+    {settings_ns}.token-secret = {token_secret}
+"""
+
+
+class TwitterNotifierCommand(exts.Command):
+    help = 'Authorize twitter notifier'
+
+    exts.argument(
+        '--consumer-key',
+        dest='consumer_key',
+        default=None,
+        help='Application consumer key'),
+
+    exts.argument(
+        '--consumer-secret',
+        dest='consumer_secret',
+        default=None,
+        help='Application consumer secret'),
+
+    def run(self, args):
+        consumer_key = args.consumer_key or self.app.settings.get(
+            "{}.consumer-key".format(_SETTINGS_NS),
+            "")
+
+        consumer_secret = args.consumer_secret or self.app.settings.get(
+            "{}.consumer-secret".format(_SETTINGS_NS),
+            "")
+
+        if not consumer_key or not consumer_secret:
+            print(_NEW_APP_HELP)
+            return
+
+        token, token_secret = twitter.oauth_dance(
+            "", consumer_key, consumer_secret)
+
+        print(_AUTH_DONE.format(
+            settings_ns=_SETTINGS_NS,
+            token=token,
+            token_secret=token_secret))
+
+
+class TwitterNotifierService(exts.Service):
     def __init__(self, app):
         super().__init__(app)
         self._logger = self.app.logger.getChild('twitter-notifier')
 
-        settings = self.app.settings.get_tree(self.SETTINGS_NS)
+        settings = self.app.settings.get_tree(_SETTINGS_NS)
 
         keys = 'consumer-key consumer-secret token token-secret'.split()
         try:
             api_params = {k.replace('-', '_'): settings[k] for k in keys}
         except KeyError as e:
             msg = "Missing {ns}.{key} setting"
-            msg = msg.format(ns=self.SETTINGS_NS, key=e.args[0])
+            msg = msg.format(ns=_SETTINGS_NS, key=e.args[0])
             raise exc.ArgumentError(msg)
 
         notify_on = settings.get('notify-on', '')
@@ -63,5 +124,6 @@ class TwitterNotifier(exts.Service):
 
 
 __arroyo_extensions__ = [
-    ('generic', 'twitter-notifier', TwitterNotifier)
+    ('generic', 'twitter-notifier', TwitterNotifierService),
+    ('command', 'twitter-notifier', TwitterNotifierCommand)
 ]
