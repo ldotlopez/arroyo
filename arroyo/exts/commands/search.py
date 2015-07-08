@@ -79,6 +79,9 @@ class QueryCommand(exts.Command):
             msg = 'One filter or one keyword or one [query.label] is required'
             raise exc.ArgumentError(msg)
 
+        src_fmt = ("[{state_symbol}] {id} ({seeds}/{leechers}, {language}) "
+                   "{name}")
+
         for spec in specs:
             matches = list(self.app.selector.matches(spec,
                                                      everything=all_states))
@@ -89,7 +92,7 @@ class QueryCommand(exts.Command):
             grouper = itertools.groupby(matches, lambda src: src.superitem)
             for (superitem, group) in grouper:
                 print('+ {}'.format(superitem or 'Ungroupped'))
-                print(fmt_grp('|-', (fmt_src(x) for x in group)))
+                print(fmt_grp('|-', (x.__str__(fmt=src_fmt) for x in group)))
 
 
 __arroyo_extensions__ = [

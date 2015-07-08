@@ -144,19 +144,29 @@ class Source(Base):
 
         self._language = value.lower() if value else None
 
-    def __str__(self):
-        return self.__unicode__()
+    def __str__(self, fmt='[{state_symbol}] {id} {name}'):
+        d = self.as_dict()
+        d.update({
+            'seeds': self.seeds or '-',
+            'leechers': self.leechers or '-',
+            'share_ratio': self.share_ratio or '-',
+            'language': self.language or 'no language'
+        })
+
+        return fmt.format(**d)
 
     def __unicode__(self):
         return self.name
 
     def __repr__(self):
-        return "<Source('%s')>" % (self.name)
+        return "<Source {id} ('{name}')>".format(
+            id=self.id,
+            name=self.name)
 
     def __iter__(self):
         keys = (
             'id name uri type language created last_seen seeds leechers size '
-            'provider state state_name').split(' ')
+            'provider state state_name state_symbol share_ratio').split(' ')
         keys += [k for k in vars(self) if k[0] != '_']
 
         for k in set(keys):
@@ -185,13 +195,6 @@ class Source(Base):
     def state_symbol(self):
         return self._SYMBOL_TABLE.get(self.state, ' ')
 
-    @property
-    def pretty_repr(self):
-        return "[{icon}] {id} {name}".format(
-            icon=self.state_symbol,
-            id=self.id,
-            name=self.name)
-
 
 class Episode(Base):
     __tablename__ = 'episode'
@@ -209,30 +212,29 @@ class Episode(Base):
     # detected, take care of this
     number = Column(Integer, nullable=False)
 
-    def __str__(self):
-        ret = '{series}{year} {season}{number}'
-        ret = ret.format(
-            series=self.series,
-            year=' ({})'.format(self.year) if self.year else '',
-            season=', season {}'.format(self.season) if self.season else '',
-            number=', episode {}'.format(self.number) if self.number else ''
-        )
+    def __str__(self, fmt='{series_with_year} S{season:02d}E{number:02d}'):
+        d = self.as_dict()
+        d.update({
+            'series_with_year':
+                ('{series} ({year})' if self.year else '{series}').format(
+                    series=self.series,
+                    year=self.year),
+            'year': self.year or ''
+        })
 
-        return ret
+        return fmt.format(**d)
 
     def __unicode__(self):
         return self.__str__()
 
     def __repr__(self):
-        ret = self.series
-
-        if self.year is not None:
-            ret += ' (%04d)' % self.year
-
-        ret += ' S%02d E%02d' % \
-            (int(self.season or -1), int(self.number))
-
-        return "<Episode ('%s')>" % ret
+        fmt = "<Episode {id} {series} ({year}) S{season:02d}E{number:02d})>"
+        return fmt.format(
+            id=self.id,
+            series=self.series,
+            year=self.year or '----',
+            season=self.season,
+            number=self.number)
 
     def __iter__(self):
         keys = 'id series year season number'.split(' ')
@@ -255,21 +257,23 @@ class Movie(Base):
     year = Column(Integer, nullable=True)
 
     def __repr__(self):
-        ret = self.title
-
-        if self.year is not None:
-            ret += ' (%04d)' % self.year
-
-        return "<Movie ('%s')>" % ret
-
-    def __str__(self):
-        ret = '{title}{year}'
-        ret = ret.format(
+        fmt = "<Movie {id} {title} ({year})>"
+        return fmt.format(
+            id=self.id,
             title=self.title,
-            year=' ({})'.format(self.year) if self.year else ''
-        )
+            year=self.year or '----')
 
-        return ret
+    def __str__(self, fmt='{title_with_year}'):
+        d = self.as_dict()
+        d.update({
+            'title_with_year':
+                ('{title} ({year})' if self.year else '{title}').format(
+                    title=self.title,
+                    year=self.year),
+            'year': self.year or ''
+        })
+
+        return fmt.format(**d)
 
     def __unicode__(self):
         return self.__str__()
@@ -307,6 +311,13 @@ class EpisodeSelection(Selection):
         'polymorphic_identity': 'episode'
     }
 
+    def __repr__(self):
+        fmt = '<EpisodeSelection {id} episode:{episode} <-> source:{source}'
+        return fmt.format(
+            id=self.id,
+            episode=self.episode.__repr__(),
+            source=self.source.__repr__())
+
 
 class MovieSelection(Selection):
     movie_id = Column(Integer,
@@ -320,6 +331,13 @@ class MovieSelection(Selection):
     __mapper_args__ = {
         'polymorphic_identity': 'movie'
     }
+
+    def __repr__(self):
+        fmt = '<MovieSelection {id} movie:{movie} <-> source:{source}'
+        return fmt.format(
+            id=self.id,
+            movie=self.movie.__repr__(),
+            source=self.source.__repr__())
 
 
 def _check_language(lang):
