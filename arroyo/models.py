@@ -26,11 +26,11 @@ SourceTag = keyvaluestore.keyvaluemodel(
     dict({
         '__tablename__': 'sourcetag',
         '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
-        'source_id': Column(Integer, ForeignKey('source.id')),
+        'source_id': Column(Integer, ForeignKey('source.id', ondelete="CASCADE")),
         'source': relationship("Source",
                                backref=backref("tags",
                                                lazy='dynamic',
-                                               cascade="all, delete-orphan"))
+                                               cascade="all, delete, delete-orphan"))
     }))
 
 
