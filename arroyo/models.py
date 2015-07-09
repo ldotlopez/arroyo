@@ -29,6 +29,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
         'source_id': Column(Integer, ForeignKey('source.id')),
         'source': relationship("Source",
                                backref=backref("tags",
+                                               lazy='dynamic',
                                                cascade="all, delete-orphan"))
     }))
 
