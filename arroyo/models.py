@@ -168,8 +168,8 @@ class Source(Base):
     def __str__(self, fmt='[{state_symbol}] {id} {name}'):
         d = self.as_dict()
         d.update({
-            'seeds': self.seeds or '-',
-            'leechers': self.leechers or '-',
+            'seeds': self.seeds if self.seeds is not None else '-',
+            'leechers': self.leechers if self.leechers is not None else '-',
             'share_ratio': self.share_ratio or '-',
             'language': self.language or 'no language'
         })
