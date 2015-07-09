@@ -7,6 +7,7 @@ import re
 from urllib import parse
 import sys
 
+
 from ldotcommons.sqlalchemy import Base
 from ldotcommons import keyvaluestore, utils
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
@@ -14,7 +15,22 @@ from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import relationship, backref
 
 
-Variable = keyvaluestore.keyvaluemodel('Variable', Base)
+Variable = keyvaluestore.keyvaluemodel('Variable', Base, dict({
+    '__table_args__': (schema.UniqueConstraint('key'),)
+    }))
+
+
+SourceTag = keyvaluestore.keyvaluemodel(
+    'SourceTag',
+    Base,
+    dict({
+        '__tablename__': 'sourcetag',
+        '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
+        'source_id': Column(Integer, ForeignKey('source.id')),
+        'source': relationship("Source",
+                               backref=backref("tags",
+                                               cascade="all, delete-orphan"))
+    }))
 
 
 class Source(Base):

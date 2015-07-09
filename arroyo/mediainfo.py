@@ -189,6 +189,14 @@ class Mediainfo:
             elif src.language is not None:
                 info['language'] = src.language
 
+            qs = self._app.db.session.query(models.SourceTag)
+            qs = qs.filter(models.SourceTag.source == src)
+            qs = qs.filter(models.SourceTag.key.startswith('mediainfo.'))
+            qs.delete(synchronize_session='fetch')
+
+            for (k, v) in info.items():
+                src.tags.append(models.SourceTag('mediainfo.'+k, v))
+
             # Create specilized model
             try:
                 specilized_source, created = self._get_specilized_source(info)
