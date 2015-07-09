@@ -194,6 +194,17 @@ class Mediainfo:
                 delete(synchronize_session='fetch')
 
             for (k, v) in info.items():
+                if k in ('type', 'language'):
+                    continue
+
+                if info['type'] == 'episode' and \
+                   k in ('series', 'year', 'season', 'episodeNumber'):
+                    continue
+
+                if info['type'] == 'movie' and \
+                   k in ('title', 'year'):
+                    continue
+
                 src.tags.append(models.SourceTag('mediainfo.'+k, v))
 
             # Create specilized model

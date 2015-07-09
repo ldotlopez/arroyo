@@ -87,6 +87,10 @@ class Source(Base):
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
 
+    @property
+    def tag_dict(self):
+        return {x.key: x.value for x in self.tags.all()}
+
     @staticmethod
     def from_data(name, sha1=None, **kwargs):
         if not sha1:

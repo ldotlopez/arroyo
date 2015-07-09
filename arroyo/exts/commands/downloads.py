@@ -97,9 +97,7 @@ class DownloadCommand(exts.Command):
                 if not dry_run:
                     self.app.downloads.add(src)
 
-                msg = "%s %s %s" % \
-                    (src.pretty_repr, src.language, src.type)
-                self.app.logger.info(msg)
+                self.app.logger.info(str(src))
 
         elif from_queries:
             specs = self.app.selector.get_queries_specs()
@@ -117,9 +115,7 @@ class DownloadCommand(exts.Command):
                     if not dry_run:
                         self.app.downloads.add(src)
 
-                    msg = "%s %s %s" % \
-                        (src.pretty_repr, src.language, src.type)
-                    self.app.logger.info(msg)
+                    self.app.logger.info(str(src))
 
 
 __arroyo_extensions__ = [

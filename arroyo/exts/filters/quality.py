@@ -1,5 +1,3 @@
-import guessit
-
 from arroyo import exts, models
 
 
@@ -26,9 +24,8 @@ class Filter(exts.Filter):
         super().__init__(app, key, value)
 
     def filter(self, item):
-        info = guessit.guess_episode_info(item.name)
-        screen_size = info.get('screenSize', '').lower()
-        fmt = info.get('format', '').lower()
+        screen_size = item.tag_dict.get('mediainfo.screenSize', '').lower()
+        fmt = item.tag_dict.get('mediainfo.format', '').lower()
 
         if self.value != 'hdtv':
             return self.value == screen_size

@@ -2,20 +2,17 @@ import functools
 import itertools
 
 
-import guessit
-
-
 from arroyo import exts
 
 
 class Sorter(exts.Sorter):
     def cmp_source_health(self, a, b):
-        if a.episode or b.movie:
-            a_info = guessit.guess_video_info(a.name)
-            b_info = guessit.guess_video_info(b.name)
-        else:
-            a_info = {}
-            b_info = {}
+        def _filter_mediainfo_tags(d):
+            return {k[10:]: v for (k, v) in d.items()
+                    if k.startswith('mediainfo.')}
+
+        a_info = _filter_mediainfo_tags(a.tag_dict)
+        b_info = _filter_mediainfo_tags(b.tag_dict)
 
         def is_proper(info):
             return "Proper" in info.get('other', [])
