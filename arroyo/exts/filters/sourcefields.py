@@ -19,7 +19,7 @@ class Filter(exts.Filter):
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
     APPLIES_TO = models.Source
-    HANDLES = _strs + _nums
+    HANDLES = _strs + _nums + ['since']
 
     def alter_query(self, q):
         if self.key == 'size' or self.key.startswith('size-'):
@@ -27,6 +27,10 @@ class Filter(exts.Filter):
 
         elif self.key == 'age' or self.key.startswith('age-'):
             self.value = utils.parse_interval(self.value)
+
+        elif self.key == 'since':
+            self.key = 'created-min'
+            self.value = utils.parse_date(self.value)
 
         elif self.key in self._nums:
             self.value = int(self.value)
