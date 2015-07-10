@@ -52,6 +52,17 @@ class SelectorInterfaceTest(unittest.TestCase):
         self.assertTrue(
             'since' in queries['test2'].params)
 
+    def test_get_query_from_user_spec(self):
+        app = testapp.TestApp({
+            'selector.query-defaults.since': 1234567890,
+            'extensions.queries.source.enabled': True,
+        })
+
+        user_spec = exts.QuerySpec('test', name_glob='*foo*')
+        query = app.selector.get_query_for_spec(user_spec)
+
+        self.assertTrue('since' in query.spec)
+
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
