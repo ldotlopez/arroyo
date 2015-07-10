@@ -36,10 +36,9 @@ class TestApp(core.Arroyo):
             elif isinstance(src, models.Source):
                 pass
 
+            self.db.session.add(src)
             if src.type:
                 self.mediainfo.process(src)
-
-            self.db.session.add(src)
 
         self.db.session.commit()
 

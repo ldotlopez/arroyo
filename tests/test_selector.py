@@ -147,6 +147,7 @@ class QualityFilterTest(SelectorTestCase):
             testapp.mock_source('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]')
         ]
         self.app.insert_sources(*(hdtv + hdready))
+        self.app.mediainfo.process(*(hdtv + hdready))  # Force mediainfo processing
 
         self.assertQuery(
             [],
