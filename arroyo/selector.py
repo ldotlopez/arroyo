@@ -17,6 +17,15 @@ class Selector:
         return list(map(self.get_query_for_spec, self.get_queries_specs()))
 
     def get_query_for_spec(self, spec):
+        base = self.app.settings.get_tree(
+            'selector.query-defaults', {})
+        specific = self.app.settings.get_tree(
+            'selector.query-{}-defaults'.format(spec.get('kind')), {})
+
+        base.update(specific)
+        base.update(spec)
+        spec = exts.QuerySpec(spec.name, **base)
+
         return self.app.get_extension('query', spec.get('kind'), spec=spec)
 
     def _auto_import(self, query):

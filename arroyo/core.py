@@ -60,7 +60,7 @@ _defaults_types = {
 #
 # Default extensions
 #
-_extensions = {
+_plugins = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
@@ -69,12 +69,12 @@ _extensions = {
     'queries': ('episode', 'movie', 'source')
 }
 
-_extensions = chain.from_iterable([
-    [ns+'.'+ext for ext in _extensions[ns]]
-    for ns in _extensions])
-_extensions = [x for x in _extensions]
-_defaults.update({'extensions.{}.enabled'.format(x): True
-                  for x in _extensions})
+_plugins = list(chain.from_iterable([
+    [ns+'.'+ext for ext in _plugins[ns]]
+    for ns in _plugins]))
+# _extensions = [x for x in _plugins]
+# _defaults.update({'plugins.{}.enabled'.format(x): True
+#                   for x in _extensions})
 
 
 def build_argument_parser():
@@ -103,8 +103,8 @@ def build_argument_parser():
             default=[])
 
         parser.add_argument(
-            '--extension',
-            dest='extensions',
+            '--plugin',
+            dest='plugins',
             action='append',
             default=[])
 
@@ -130,7 +130,7 @@ def build_argument_parser():
 
 
 def build_basic_settings(arguments=[]):
-    global _defaults, _extensions
+    global _defaults, _plugins
 
     # The first task is parse arguments
     argparser = build_argument_parser()
@@ -150,12 +150,12 @@ def build_basic_settings(arguments=[]):
     # Arguments must be loaded with care.
 
     # a) Extensions must be merged
-    for ext in args.extensions:
-        store.set('extensions.{}.enabled'.format(ext), True)
-    try:
-        delattr(args, 'extensions')
-    except AttributeError:
-        pass
+    # for plug in args.plugins:
+    #     store.set('plugins.{}.enabled'.format(ext), True)
+    # try:
+    #     delattr(args, 'extensions')
+    # except AttributeError:
+    #     pass
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
@@ -216,7 +216,7 @@ class ArroyoStore(store.Store):
                 if key == 'log-level' and value not in _log_lvls:
                     raise ValueError(value)
 
-                if key.startswith('extensions.') and key.endswith('.enabled'):
+                if key.startswith('plugins.') and key.endswith('.enabled'):
                     return store.cast_value(value, bool)
 
                 return _type_validator(key, value)
@@ -234,7 +234,7 @@ class Arroyo:
         self.settings = settings or build_basic_settings([])
 
         # Support structures for plugins
-        self._extensions = set()
+        self._plugins = set()
         self._services = {}
         self._registry = {}
 
@@ -279,6 +279,7 @@ class Arroyo:
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load extensions
+        import ipdb; ipdb.set_trace(); pass
         exts = [["{}.{}".format(kind, ext) for ext in
                 self.settings.get_tree('extensions.{}'.format(kind))]
                 for kind in self.settings.get_tree('extensions')]

@@ -3,8 +3,65 @@
 # vim: set fileencoding=utf-8 :
 
 import unittest
-from arroyo import exts, models, selector
+
+from arroyo import exts, models
 import testapp
+
+
+class SelectorInterfaceTest(unittest.TestCase):
+    def test_get_queries(self):
+        app = testapp.TestApp({
+            'extensions.queries.source.enabled': True,
+            'extensions.queries.movie.enabled': True,
+
+            'query.test1.name-glob': '*x*',
+            'query.test2.kind': 'movie',
+            'query.test2.title': 'foo',
+            })
+
+        queries = {q.name: q for q in app.selector.get_queries()}
+
+        self.assertTrue('test1' in queries)
+        self.assertTrue('test2' in queries)
+        self.assertTrue(len(queries.keys()) == 2)
+
+    def test_get_queries_with_defaults(self):
+        app = testapp.TestApp({
+            'selector.query-defaults.since': 1234567890,
+            'selector.query-defaults.language': 'eng-us',
+            'selector.query-movie-defaults.quality': '720p',
+            'extensions.queries.source.enabled': True,
+            'extensions.queries.movie.enabled': True,
+
+            'query.test1.name': 'foo',
+
+            'query.test2.kind': 'movie',
+            'query.test2.title': 'bar'
+        })
+
+        queries = {q.name: q for q in app.selector.get_queries()}
+
+        self.assertEqual(
+            queries['test1'].params.get('language', None),
+            'eng-us')
+        self.assertTrue(
+            'quality' not in queries['test1'].params)
+
+        self.assertTrue(
+            'quality' in queries['test2'].params)
+        self.assertTrue(
+            'since' in queries['test2'].params)
+
+    def test_get_query_from_user_spec(self):
+        app = testapp.TestApp({
+            'selector.query-defaults.since': 1234567890,
+            'extensions.queries.source.enabled': True,
+        })
+
+        user_spec = exts.QuerySpec('test', name_glob='*foo*')
+        query = app.selector.get_query_for_spec(user_spec)
+
+        self.assertTrue('since' in query.spec)
 
 
 class SelectorTestCase(unittest.TestCase):
@@ -101,6 +158,7 @@ class QualityFilterTest(SelectorTestCase):
             testapp.mock_source('Game of Thrones S05E02 HDTV x264-Xclusive [eztv]')
         ]
         self.app.insert_sources(*(hdtv + hdready))
+        self.app.mediainfo.process(*(hdtv + hdready))  # Force mediainfo processing
 
         self.assertQuery(
             [],
