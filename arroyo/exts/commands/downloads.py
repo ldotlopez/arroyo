@@ -68,7 +68,7 @@ class DownloadCommand(exts.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(src.pretty_repr)
+                print(str(src))
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
