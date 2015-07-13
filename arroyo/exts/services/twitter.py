@@ -32,19 +32,47 @@ Save these values to your config:
 class TwitterNotifierCommand(exts.Command):
     help = 'Authorize twitter notifier'
 
-    exts.argument(
-        '--consumer-key',
-        dest='consumer_key',
-        default=None,
-        help='Application consumer key'),
+    arguments = (
+        exts.argument(
+            '--test',
+            dest='test',
+            action='store_true',
+            help='Say "hi!" on twitter'),
 
-    exts.argument(
-        '--consumer-secret',
-        dest='consumer_secret',
-        default=None,
-        help='Application consumer secret'),
+        exts.argument(
+            '--message',
+            dest='message',
+            default='Hi there!',
+            help='Text to send to twitter'),
+
+        exts.argument(
+            '--auth',
+            dest='auth',
+            action='store_true',
+            help='Authorize app'),
+
+        exts.argument(
+            '--consumer-key',
+            dest='consumer_key',
+            default=None,
+            help='Application consumer key'),
+
+        exts.argument(
+            '--consumer-secret',
+            dest='consumer_secret',
+            default=None,
+            help='Application consumer secret'))
 
     def run(self, args):
+        if args.auth:
+            delattr(args, 'auth')
+            return self._run_auth(args)
+
+        elif args.test:
+            delattr(args, 'test')
+            return self._run_test(args)
+
+    def _run_auth(self, args):
         consumer_key = args.consumer_key or self.app.settings.get(
             "{}.consumer-key".format(_SETTINGS_NS),
             "")
@@ -64,6 +92,9 @@ class TwitterNotifierCommand(exts.Command):
             settings_ns=_SETTINGS_NS,
             token=token,
             token_secret=token_secret))
+
+    def _run_test(self, args):
+        self.app._services['twitter-notifier']._api.send(args.message)
 
 
 class TwitterNotifierService(exts.Service):
@@ -125,5 +156,5 @@ class TwitterNotifierService(exts.Service):
 
 __arroyo_extensions__ = [
     ('generic', 'twitter-notifier', TwitterNotifierService),
-    ('command', 'twitter-notifier', TwitterNotifierCommand)
+    ('command', 'twitter', TwitterNotifierCommand)
 ]
