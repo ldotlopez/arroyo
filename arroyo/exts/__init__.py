@@ -277,7 +277,7 @@ class CronTask(Extension):
             raise TypeError(msg)
 
         try:
-            self.INTERVAL = utils.parse_time(self.INTERVAL)
+            self.INTERVAL = utils.parse_interval(self.INTERVAL)
         except ValueError as e:
             msg = "Invalid interval value '{interval}', check docs"
             msg = msg.format(interval=self.INTERVAL)
