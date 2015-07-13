@@ -273,6 +273,35 @@ class EpisodeSelectorTest(SelectorTestCase):
             [new_source],
             kind='episode', series='game of thrones', quality='hdtv')
 
+    def test_basic_sorter(self):
+        s = testapp.mock_source
+        srcs = [
+            s('True Detective S02E04 720p HDTV x264-0SEC [GloDLS]', type='episode', seeds=1, leechers=0, language='eng-us'),
+            s('True.Detective.S02E04.720p.HDTV.x264-0SEC [b2ride]', type='episode', seeds=176, leechers=110, language='eng-us'),
+            s('True Detective S02E04 720p HDTV x264-0SEC[rartv]', type='episode', seeds=3498, leechers=5171, language='eng-us'),
+            s('True Detective S02E04 INTERNAL HDTV x264-BATV', type='episode', language='eng-us'),
+            s('True Detective S02E04 720p HDTV x264-0SEC', type='episode', language='eng-us'),
+            s('True Detective S02E04 HDTV x264-ASAP', type='episode', language='eng-us'),
+            s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
+        ]
+        spec = exts.QuerySpec('test', kind='episode', series='true detective', quality='720p', language='eng-us')
+        app = testapp.TestApp({
+            'extensions.queries.episode.enabled': True,
+            'extensions.filters.sourcefields.enabled': True,
+            'extensions.filters.episodefields.enabled': True,
+            'extensions.filters.quality.enabled': True,
+            'extensions.sorters.basic': True
+        })
+        app.insert_sources(*srcs)
+        matches = app.selector.matches(spec)
+        self.assertEqual(len(matches), 4)
+
+        sort = app.selector.sort(matches)
+        self.assertEqual([x.name for x in sort], [
+            'True.Detective.S02E04.720p.HDTV.x264-0SEC [b2ride]',
+            'True Detective S02E04 720p HDTV x264-0SEC[rartv]',
+            'True Detective S02E04 720p HDTV x264-0SEC [GloDLS]',
+            'True Detective S02E04 720p HDTV x264-0SEC'])
 
 if __name__ == '__main__':
     unittest.main()

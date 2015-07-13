@@ -159,7 +159,7 @@ def calculate_urns(urn):
 
 
 class DownloadsCronTask(exts.CronTask):
-    NAME = 'downloads'
+    NAME = 'download'
     INTERVAL = '5M'
 
     def run(self):

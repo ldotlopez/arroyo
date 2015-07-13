@@ -42,6 +42,19 @@ class Selector:
             key=lambda x: -sys.maxsize
             if x.superitem is None else x.superitem.id)
 
+    def sort(self, items):
+        sorter = self.app.get_extension(
+            'sorter',
+            self.app.settings.get('selector.sorter', 'basic'))
+
+        groups = itertools.groupby(items, lambda src: src.superitem)
+
+        ret = []
+        for (superitem, group) in groups:
+            ret += list(sorter.sort(group))
+
+        return ret
+
     def select(self, spec):
         sorter = self.app.get_extension(
             'sorter',
