@@ -115,7 +115,7 @@ class DownloadCommand(exts.Command):
                     if not dry_run:
                         self.app.downloads.add(src)
 
-                    self.app.logger.info(str(src))
+                    print(str(src))
 
 
 __arroyo_extensions__ = [

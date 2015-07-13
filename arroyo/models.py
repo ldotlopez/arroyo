@@ -138,6 +138,10 @@ class Source(Base):
 
         return self.seeds / self.leechers
 
+    @hybrid_property
+    def is_active(self):
+        return ~self.state.in_((Source.State.NONE, Source.State.ARCHIVED))
+
     #
     # Type property
     #
