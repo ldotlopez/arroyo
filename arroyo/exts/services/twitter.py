@@ -1,3 +1,6 @@
+import pprint
+
+from ldotcommons import messaging
 from ldotcommons.messaging import twitter as ldottwitter
 import twitter
 
@@ -94,7 +97,10 @@ class TwitterNotifierCommand(exts.Command):
             token_secret=token_secret))
 
     def _run_test(self, args):
-        self.app._services['twitter-notifier']._api.send(args.message)
+        try:
+            self.app._services['twitter-notifier']._api.send(args.message)
+        except messaging.NotifierError as e:
+            self.app.logger.warning(pprint.pformat(e.args))
 
 
 class TwitterNotifierService(exts.Service):
@@ -144,15 +150,20 @@ class TwitterNotifierService(exts.Service):
         msg = r'[Arroyo] {source.name} is {source.state_name}'
         msg = msg.format(source=source)
         self._logger.info(msg)
-        self._api.send(msg)
+        try:
+            self._api.send(msg)
+        except messaging.NotifierError as e:
+            self.app.logger.warning(pprint.pformat(e.args))
 
     def on_origin_failed(self, sender, **kwargs):
         msg = r'[Arroyo] Origin failed: {}'
         msg = msg.format(repr(kwargs))
 
         self._logger.info(msg)
-        self._api.send(msg)
-
+        try:
+            self._api.send(msg)
+        except messaging.NotifierError as e:
+            self.app.logger.warning(pprint.pformat(e.args))
 
 __arroyo_extensions__ = [
     ('generic', 'twitter-notifier', TwitterNotifierService),

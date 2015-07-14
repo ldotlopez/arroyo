@@ -1,3 +1,18 @@
+class SettingError(Exception):
+    def __init__(self, key, value, original=None):
+        msg = "Invalid setting '{key}': '{value}'"
+        msg = msg.format(key=key, value=value)
+        super().__init__(msg)
+
+        self.key = key
+        self.value = value
+        self.original = original
+
+#
+# The following exceptions aren't reviewed
+#
+
+
 class NoMatchingState(Exception):
     pass
 
@@ -17,6 +32,7 @@ class BackendError(Exception):
 
     def __str__(self):
         return self.__unicode__()
+
 
 class SourceNotFound(Exception):
     pass

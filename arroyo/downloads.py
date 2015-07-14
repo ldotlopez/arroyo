@@ -16,7 +16,8 @@ class Downloads:
     """
     def __init__(self, app):
         app.signals.register('source-state-change')
-        app.register('crontask', 'downloads', DownloadsCronTask)
+        app.register('crontask', 'download-sync', DownloadSyncCronTask)
+        app.register('crontask', 'download-queries', DownloadQueriesCronTask)
 
         self.app = app
         self.logger = app.logger.getChild('downloads')
@@ -129,6 +130,32 @@ class Downloads:
         }
 
 
+class DownloadSyncCronTask(exts.CronTask):
+    NAME = 'download-sync'
+    INTERVAL = '5M'
+
+    def run(self):
+        self.app.downloads.sync()
+        super().run()
+
+
+class DownloadQueriesCronTask(exts.CronTask):
+    NAME = 'download-queries'
+    INTERVAL = '3H'
+
+    def run(self):
+        specs = self.app.selector.get_queries_specs()
+        for spec in specs:
+            srcs = self.app.selector.select(spec)
+            if srcs is None:
+                continue
+
+            for src in srcs:
+                self.app.downloads.add(src)
+
+        super().run()
+
+
 def calculate_urns(urn):
     """Returns all equivalent urns in different encodings
 
@@ -158,13 +185,7 @@ def calculate_urns(urn):
     )
 
 
-class DownloadsCronTask(exts.CronTask):
-    NAME = 'download'
-    INTERVAL = '5M'
 
-    def run(self):
-        self.app.downloads.sync()
-        super().run()
 
 
 def is_sha1_urn(urn):

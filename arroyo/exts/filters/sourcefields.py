@@ -6,6 +6,7 @@ from ldotcommons import utils
 
 from arroyo import exts, models
 from arroyo.exts.filters import common
+import arroyo.exc
 
 
 class Filter(exts.Filter):
@@ -22,18 +23,29 @@ class Filter(exts.Filter):
     HANDLES = _strs + _nums + ['since']
 
     def alter_query(self, q):
+        def _convert_value(func):
+            try:
+                self.value = func(self.value)
+            except ValueError as e:
+                raise arroyo.exc.SettingError(self.key, self.value, e)
+
+        def _warn():
+            msg = "Ignoring invalid setting '{key}': '{value}'"
+            msg = msg.format(key=self.key, value=self.value)
+            self.app.logger.warning(msg)
+
         if self.key == 'size' or self.key.startswith('size-'):
-            self.value = utils.parse_size(self.value)
+            _convert_value(utils.parse_size)
 
         elif self.key == 'age' or self.key.startswith('age-'):
-            self.value = utils.parse_interval(self.value)
+            _convert_value(utils.parse_interval)
 
         elif self.key == 'since':
             self.key = 'created-min'
-            self.value = utils.parse_date(self.value)
+            _convert_value(utils.parse_date)
 
         elif self.key in self._nums:
-            self.value = int(self.value)
+            _convert_value(float)
 
         return common.alter_query_for_model_attr(
             q, models.Source, self.key, self.value)
