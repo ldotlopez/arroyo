@@ -54,15 +54,18 @@ class Sorter(exts.Sorter):
         #
         if (a.leechers and b.leechers):
             # print(a.share_ratio, b.share_ratio)
-            balance = (max(a.share_ratio, b.share_ratio) /
-                       min(a.share_ratio, b.share_ratio))
+            try:
+                balance = (max(a.share_ratio, b.share_ratio) /
+                           min(a.share_ratio, b.share_ratio))
+                if balance > 1.2:
+                    # print("  By share ratio (with balance)".format())
+                    return -1 if a.share_ratio > b.share_ratio else 1
 
-            if balance > 1.2:
-                # print("  By share ratio (with balance)".format())
-                return -1 if a.share_ratio > b.share_ratio else 1
-            else:
-                # print("  By seeds (without balance)".format())
-                return -1 if a.seeds > b.seeds else 1
+            except ZeroDivisionError:
+                return -1 if int(a.share_ratio) else 1
+
+            # print("  By seeds (without balance)".format())
+            return -1 if a.seeds > b.seeds else 1
 
         #
         # Put releases from a team over others
