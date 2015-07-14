@@ -44,7 +44,7 @@ class CronCommand(exts.Command):
                 msg = msg.format(
                     name=name,
                     interval=impl.INTERVAL,
-                    secs=utils.parse_time(impl.INTERVAL))
+                    secs=utils.parse_interval(impl.INTERVAL))
 
                 print(msg)
 

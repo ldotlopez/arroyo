@@ -26,7 +26,8 @@ SourceTag = keyvaluestore.keyvaluemodel(
     dict({
         '__tablename__': 'sourcetag',
         '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
-        'source_id': Column(Integer, ForeignKey('source.id', ondelete="CASCADE")),
+        'source_id': Column(Integer, ForeignKey('source.id',
+                                                ondelete="CASCADE")),
         'source': relationship("Source",
                                backref=backref("tags",
                                                lazy='dynamic',
@@ -137,6 +138,10 @@ class Source(Base):
 
         return self.seeds / self.leechers
 
+    @hybrid_property
+    def is_active(self):
+        return ~self.state.in_((Source.State.NONE, Source.State.ARCHIVED))
+
     #
     # Type property
     #
@@ -233,6 +238,19 @@ class Episode(Base):
     # detected, take care of this
     number = Column(Integer, nullable=False)
 
+    @staticmethod
+    def from_data(series, season, number, **kwargs):
+        ret = Episode()
+        ret.series = series
+        ret.title = season
+        ret.number = number
+
+        for (attr, value) in kwargs.items():
+            if hasattr(ret, attr):
+                setattr(ret, attr, value)
+
+        return ret
+
     def __str__(self, fmt='{series_with_year} S{season:02d}E{number:02d}'):
         d = self.as_dict()
         d.update({
@@ -276,6 +294,17 @@ class Movie(Base):
 
     title = Column(String, nullable=False)
     year = Column(Integer, nullable=True)
+
+    @staticmethod
+    def from_data(title, **kwargs):
+        ret = Movie()
+        ret.title = title
+
+        for (attr, value) in kwargs.items():
+            if hasattr(ret, attr):
+                setattr(ret, attr, value)
+
+        return ret
 
     def __repr__(self):
         fmt = "<Movie {id} {title} ({year})>"

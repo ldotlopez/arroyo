@@ -126,12 +126,25 @@ class TransmissionDownloader(exts.Downloader):
                 msg = "Multiple results found for urn '{urn}'"
                 msg = msg.format(urn=u)
                 self._logger.error(msg)
-                return None
+
+                # There shouldn't be multiple results !!
+                # Trying to do my best
+                by_state = q.filter(models.Source.is_active == True)
+                if by_state.count() == 1:
+                    msg = ("Exception saved using state property but this is "
+                           "a bug")
+                    self._logger.error(msg)
+                    ret = by_state.first()
+                    break
 
             except orm.exc.NoResultFound:
                 pass
 
         if not ret:
+            msg = ("Missing urn '{urn}'\n"
+                   "This is a bug, a real bug. Fix it. Now")
+            msg = msg.format(urn=urns[0])
+            self._logger.error(msg)
             return None
 
         # Attach some fields to item
