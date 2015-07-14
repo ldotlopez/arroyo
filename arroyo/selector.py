@@ -1,8 +1,8 @@
 import itertools
 import sys
 
-
 from arroyo import exts
+import arroyo.exc
 
 
 class Selector:
@@ -107,7 +107,13 @@ class Selector:
             sql_aware[test].append(f)
 
         for f in sql_aware.get(True, []):
-            qs = f.alter_query(qs)
+            try:
+                qs = f.alter_query(qs)
+            except arroyo.exc.SettingError as e:
+                msg = ("Ignoring invalid setting «{key}»: «{value}». "
+                       "Filter discarted")
+                msg = msg.format(key=e.key, value=e.value)
+                self.app.logger.warning(msg)
 
         items = (x for x in qs)
         for f in sql_aware.get(False, []):
