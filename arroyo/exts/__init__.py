@@ -97,6 +97,8 @@ class Origin(Extension):
         deprecated_warn = False
 
         def fix_data(psrc):
+            nonlocal deprecated_warn
+
             if not isinstance(psrc, dict):
                 return None
 
@@ -109,6 +111,7 @@ class Origin(Extension):
                        "«timestamp»")
                 msg = msg.format(provider=self.PROVIDER_NAME)
                 self.app.logger.warning(msg)
+                deprecated_warn = True
 
             psrc = {k: psrc.get(k, None) for k in [
                 'name', 'uri', 'created', 'size', 'seeds', 'leechers',
