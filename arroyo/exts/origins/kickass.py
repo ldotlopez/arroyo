@@ -6,6 +6,7 @@ import re
 from urllib import parse
 
 import bs4
+from ldotcommons import utils
 
 from arroyo import exts
 
@@ -66,6 +67,10 @@ class KickAss(exts.Origin):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
+
+        FIXME: If not results are found KAT show a more generic search with a
+        warning:
+            Your search «***» did not match any documents
         """
 
         def process_row(row):
@@ -121,13 +126,33 @@ class KickAss(exts.Origin):
             except IndexError:
                 typ = None
 
+            try:
+                _table = {
+                    'sec': 1,
+                    'min': 60,
+                    'hour': 60*60,
+                    'day': 60*60*24,
+                    'week': 60*60*24*7,
+                    'month': 60*60*24*30,
+                    'year': 60*60*24*365,
+                }
+                created = row.select('td')[3].text
+                m = re.search(r'(\d+).+(sec|min|hour|day|week|month|year)',
+                              row.select('td')[3].text)
+                amount = int(m.group(1))
+                qual = m.group(2)
+                created = utils.now_timestamp() - (amount*_table[qual])
+            except IndexError:
+                created = None
+
             return {
                 'name': name,
                 'uri': uri,
                 'size': size,
                 'seeds': seeds,
                 'leechers': leechers,
-                'type': typ
+                'type': typ,
+                'created': created
             }
 
         soup = bs4.BeautifulSoup(buff, "html.parser")

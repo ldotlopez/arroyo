@@ -96,5 +96,13 @@ class TpbTest(BaseTest, unittest.TestCase):
             ['https://thepiratebay.am/recent'])
 
 
+class KickassTest(BaseTest, unittest.TestCase):
+    def test_process(self):
+        self._test_process(
+            'kickass', 'http://kat.cr/usearch/category%3Atv%200sec/', 25)
+
+    def test_get_urls(self):
+        pass
+
 if __name__ == '__main__':
     unittest.main()

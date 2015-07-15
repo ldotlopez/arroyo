@@ -76,7 +76,7 @@ class Tpb(exts.Origin):
                 'name': row.findAll('a')[2].text,
                 'uri': row.findAll('a')[3]['href'],
                 'size': size,
-                'timestamp': utils.now_timestamp(),
+                'created': utils.now_timestamp(),
                 'seeds': int(row.findAll('td')[-2].text),
                 'leechers': int(row.findAll('td')[-1].text)
             }
@@ -117,7 +117,7 @@ class TpbRss(exts.Origin):
             return {
                 'uri': entry['link'],
                 'name': entry['title'],
-                'timestamp': int(time.mktime(entry['published_parsed'])),
+                'created': int(time.mktime(entry['published_parsed'])),
                 'size': int(entry['contentlength'])
             }
 

@@ -238,15 +238,25 @@ class Importer:
         for src in sources:
             obj, created = self.app.db.get_or_create(models.Source,
                                                      urn=src['urn'])
+
+            # Override obj's properties with src properties
             for key in src:
+                # …except for 'created'
+                # Some origins report created timestamps from heuristics,
+                # variable or fuzzy data that is degraded over time.
+                # For these reason we keep the first 'created' data as the most
+                # fiable
+                if key == 'created' and \
+                   obj.created is not None and \
+                   obj.created < src['created']:
+                    continue
+
                 setattr(obj, key, src[key])
 
+            obj.last_seen = now
+
             if created:
-                obj.created = now
-                obj.last_seen = now
                 self.app.db.session.add(obj)
-            else:
-                obj.last_seen = now
 
             signal_name = 'source-added' if created else 'source-updated'
             self.app.signals.send(signal_name, source=obj)

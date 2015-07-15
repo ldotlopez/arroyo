@@ -94,6 +94,8 @@ class Origin(Extension):
         """
         now = utils.now_timestamp()
 
+        deprecated_warn = False
+
         def fix_data(psrc):
             if not isinstance(psrc, dict):
                 return None
@@ -102,8 +104,14 @@ class Origin(Extension):
             psrc.update(self._overrides)
 
             # Trim-down protosrc
+            if 'timestamp' in psrc and not deprecated_warn:
+                msg = ("Provider {provider} is using deprecated field "
+                       "«timestamp»")
+                msg = msg.format(provider=self.PROVIDER_NAME)
+                self.app.logger.warning(msg)
+
             psrc = {k: psrc.get(k, None) for k in [
-                'name', 'uri', 'timestamp', 'size', 'seeds', 'leechers',
+                'name', 'uri', 'created', 'size', 'seeds', 'leechers',
                 'language', 'type'
             ]}
 
@@ -120,15 +128,16 @@ class Origin(Extension):
                     return None
 
             # Fix and check integer fields
-            for k in ['timestamp', 'size', 'seeds', 'leechers']:
+            for k in ['created', 'size', 'seeds', 'leechers']:
                 if not isinstance(psrc[k], int):
                     try:
                         psrc[k] = int(psrc[k])
                     except (TypeError, ValueError):
                         psrc[k] = None
 
-            # Fix timestamp
-            psrc['timestamp'] = psrc.get('timestamp', None) or now
+            # Fix created
+            psrc['created'] = psrc.get('created', None) or now
+
             psrc['provider'] = self.PROVIDER_NAME
 
             # All done
