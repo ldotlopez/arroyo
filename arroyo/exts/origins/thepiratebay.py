@@ -2,6 +2,7 @@
 # [SublimeLinter pep8-max-line-length:119]
 # vim: set fileencoding=utf-8 :
 
+from datetime import datetime
 import random
 import re
 import time
@@ -64,6 +65,57 @@ class Tpb(exts.Origin):
                    q=q)
 
     def process_buffer(self, buff):
+        now = utils.now_timestamp()
+        now_dt = datetime.now()
+        now_dt = dict(
+            Y=now_dt.year,
+            m=now_dt.month,
+            d=now_dt.day,
+            H=now_dt.hour,
+            M=now_dt.minute,
+            S=now_dt.second
+        )
+
+        def parse_ts(text):
+            def conv(d):
+                keys = now_dt.copy()
+                keys.update({k: int(v) for (k, v) in d.items()})
+
+                p = '{Y:04d} {m:02d} {d:02d} {H:02d} {M:02d} {S:02d}'
+                p = p.format(**keys)
+                p = datetime.strptime(p, '%Y %m %d %H %M %S')
+
+                return int(time.mktime(p.timetuple()))
+
+            # 20 mins ago
+            m = re.search(r'(\d+).+?mins', text)
+            if m:
+                return now - int(m.group(1)) * 60
+
+            # today 13:14
+            # yester 15:19
+            m = re.search(r'(?P<mod>yester|today).+?(?P<H>\d+):(?P<M>\d+)',
+                          text)
+            if m:
+                d = m.groupdict()
+                mod = d.pop('mod')
+                x = conv(d)
+                return x if mod == 'today' else x - (60*60*24)
+
+            # 07-15 13:34
+            m = re.search(r'(?P<m>\d+)-(?P<d>\d+).+?(?P<H>\d+):(?P<M>\d+)',
+                          text)
+            if m:
+                return conv(m.groupdict())
+
+            # 07-15 2004
+            m = re.search(r'(?P<m>\d+)-(?P<d>\d+).+?(?P<Y>\d{4})',
+                          text)
+            if m:
+                return conv(m.groupdict())
+
+            return now
+
         def parse_row(row):
             details = row.select('font.detDesc')[0].text
 
@@ -71,6 +123,13 @@ class Tpb(exts.Origin):
                                           details,
                                           re.IGNORECASE)[0]
             size = int(float(amount) * self._SIZE_TABLE[suffix])
+
+            try:
+                desc = row.select('.detDesc')[0].text
+                desc = desc.lower().replace('&nbsp;', ' ')
+                created = parse_ts(desc)
+            except IndexError:
+                created = None
 
             return {
                 'name': row.findAll('a')[2].text,
