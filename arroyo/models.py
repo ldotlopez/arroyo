@@ -251,7 +251,7 @@ class Episode(Base):
 
         return ret
 
-    def __str__(self, fmt='{series_with_year} S{season:02d}E{number:02d}'):
+    def __str__(self, fmt='{series_with_year} S{season:0>2s}E{number:0>2s}'):
         d = self.as_dict()
         d.update({
             'series_with_year':
@@ -267,7 +267,7 @@ class Episode(Base):
         return self.__str__()
 
     def __repr__(self):
-        fmt = "<Episode {id} {series} ({year}) S{season:02d}E{number:02d})>"
+        fmt = "<Episode {id} {series} ({year}) S{season:0>2s}E{number:0>2s})>"
         return fmt.format(
             id=self.id,
             series=self.series,
