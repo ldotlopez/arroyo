@@ -33,6 +33,10 @@ class Selector:
             self.app.importer.import_query_spec(query.spec)
 
     def matches(self, spec, everything=False):
+        msg = "Search matches for spec: {spec}"
+        msg = msg.format(spec=str(spec))
+        self.app.logger.debug(msg)
+
         query = self.get_query_for_spec(spec)
         self._auto_import(query)
         ret = query.matches(everything)
@@ -93,6 +97,8 @@ class Selector:
         return {k: table[k](self.app, k, params[k]) for k in table}
 
     def apply_filters(self, qs, models, params):
+        debug = self.app.settings.get('log-level').lower() == 'debug'
+
         guessed_models = itertools.chain(qs._entities, qs._join_entities)
         guessed_models = [x.mapper.class_ for x in guessed_models]
         assert set(guessed_models) == set(models)
@@ -106,9 +112,27 @@ class Selector:
             test = f.__class__.alter_query != exts.Filter.alter_query
             sql_aware[test].append(f)
 
+        for x in sql_aware:
+            filter_list = ', '.join([x.__module__ for x in sql_aware[x]])
+
+            msg = ("{type} based filters: {filter_list}")
+            msg = msg.format(type='SQL' if x else 'Python',
+                             filter_list=filter_list or '[]')
+            self.app.logger.debug(msg)
+
+        if debug:
+            msg = "Initial element is count {count}"
+            msg = msg.format(count=qs.count())
+            self.app.logger.debug(msg)
+
         for f in sql_aware.get(True, []):
             try:
                 qs = f.alter_query(qs)
+                if debug:
+                    msg = "After apply '{filter}' element count is {count}"
+                    msg = msg.format(filter=f.__module__, count=qs.count())
+                    self.app.logger.debug(msg)
+
             except arroyo.exc.SettingError as e:
                 msg = ("Ignoring invalid setting «{key}»: «{value}». "
                        "Filter discarted")
@@ -118,5 +142,10 @@ class Selector:
         items = (x for x in qs)
         for f in sql_aware.get(False, []):
             items = f.apply(items)
+            if debug:
+                items = list(items)
+                msg = "After apply '{filter}' element count is {count}"
+                msg = msg.format(filter=f.__module__, count=len(items))
+                self.app.logger.debug(msg)
 
         return items, missing
