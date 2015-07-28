@@ -274,12 +274,6 @@ class Query(Extension):
     def matches(self, include_all=False):
         raise NotImplementedError()
 
-    # def selection(self, matches):
-    #     try:
-    #         return matches[0]
-    #     except IndexError:
-    #         return None
-
 
 class CronTask(Extension):
     def __init__(self, app):
