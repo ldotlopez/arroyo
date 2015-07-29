@@ -63,7 +63,7 @@ class Importer:
         app.signals.register('sources-added-batch')
         app.signals.register('sources-updated-batch')
 
-        app.register('crontask', 'importer', ImporterCronTask)
+        app.register_extension('crontask', 'importer', ImporterCronTask)
 
     @staticmethod
     def _origin_ns_validator(k, v):

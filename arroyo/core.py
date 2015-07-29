@@ -60,7 +60,7 @@ _defaults_types = {
 #
 # Default extensions
 #
-_extensions = {
+_plugins = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
     'downloaders': ('mock', 'transmission'),
     'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
@@ -69,12 +69,12 @@ _extensions = {
     'queries': ('episode', 'movie', 'source')
 }
 
-_extensions = chain.from_iterable([
-    [ns+'.'+ext for ext in _extensions[ns]]
-    for ns in _extensions])
-_extensions = [x for x in _extensions]
-_defaults.update({'extensions.{}.enabled'.format(x): True
-                  for x in _extensions})
+_plugins = chain.from_iterable([
+    [ns+'.'+ext for ext in _plugins[ns]]
+    for ns in _plugins])
+_plugins = [x for x in _plugins]
+_defaults.update({'plugins.{}.enabled'.format(x): True
+                  for x in _plugins})
 
 
 def build_argument_parser():
@@ -103,8 +103,8 @@ def build_argument_parser():
             default=[])
 
         parser.add_argument(
-            '--extension',
-            dest='extensions',
+            '--plugin',
+            dest='plugins',
             action='append',
             default=[])
 
@@ -130,7 +130,7 @@ def build_argument_parser():
 
 
 def build_basic_settings(arguments=[]):
-    global _defaults, _extensions
+    global _defaults, _plugins
 
     # The first task is parse arguments
     argparser = build_argument_parser()
@@ -149,11 +149,11 @@ def build_basic_settings(arguments=[]):
 
     # Arguments must be loaded with care.
 
-    # a) Extensions must be merged
-    for ext in args.extensions:
-        store.set('extensions.{}.enabled'.format(ext), True)
+    # a) Plugins must be merged
+    for ext in args.plugins:
+        store.set('plugins.{}.enabled'.format(ext), True)
     try:
-        delattr(args, 'extensions')
+        delattr(args, 'plugins')
     except AttributeError:
         pass
 
@@ -216,7 +216,7 @@ class ArroyoStore(store.Store):
                 if key == 'log-level' and value not in _log_lvls:
                     raise ValueError(value)
 
-                if key.startswith('extensions.') and key.endswith('.enabled'):
+                if key.startswith('plugins.') and key.endswith('.enabled'):
                     return store.cast_value(value, bool)
 
                 return _type_validator(key, value)
@@ -226,7 +226,21 @@ class ArroyoStore(store.Store):
         if 'validator' not in kwargs:
             kwargs['validator'] = _get_validator()
 
+        # Build and configure logger
+        handler = EncodedStreamHandler()
+        formater = logging.Formatter(self.get('log-format', r'%(message)s'))
+        handler.setFormatter(formater)
+
+        self._logger = logging.getLogger('arroyo.settings')
+        self._logger.addHandler(handler)
+
         super().__init__(*args, **kwargs)
+
+    def __setitem__(self, key, value):
+        try:
+            super().__setitem__(key, value)
+        except ValueError as e:
+            self._logger.error(str(e))
 
 
 class Arroyo:
@@ -234,7 +248,7 @@ class Arroyo:
         self.settings = settings or build_basic_settings([])
 
         # Support structures for plugins
-        self._extensions = set()
+        # self._extensions = set()
         self._services = {}
         self._registry = {}
 
@@ -278,16 +292,64 @@ class Arroyo:
         # as a "service", but it's keep anyway
         self.mediainfo = mediainfo.Mediainfo(self)
 
-        # Load extensions
-        exts = [["{}.{}".format(kind, ext) for ext in
-                self.settings.get_tree('extensions.{}'.format(kind))]
-                for kind in self.settings.get_tree('extensions')]
-        for ext in chain.from_iterable(exts):
-            self.load_extension(ext)
+        # Load plugins
+        # FIXME: Search for enabled plugins thru the keys of settings is a
+        # temporal solution. This must be changed as soon as the "exts" folder
+        # get flatten
+        for k in [x for x in self.settings if x.startswith('plugins.')]:
+            plugin = k[8:-8]
+            self.load_plugin(plugin)
+
+        # exts = [["{}.{}".format(kind, ext) for ext in
+        #         self.settings.get_tree('extensions.{}'.format(kind))]
+        #         for kind in self.settings.get_tree('extensions')]
+        # for ext in chain.from_iterable(exts):
+        #     self.load_extension(ext)
 
         # Run cron tasks
         if self.settings.get('auto-cron'):
             self.cron.run_all()
+
+    def load_plugin(self, name):
+        # Load module
+        module_name = 'arroyo.exts.' + name
+
+        try:
+            m = importlib.import_module(module_name)
+            mod_exts = getattr(m, '__arroyo_extensions__', [])
+            if not mod_exts:
+                raise ImportError("Plugin doesn't define any extension")
+            for ext_def in mod_exts:
+                self.register_extension(*ext_def)
+
+        except ImportError as e:
+            msg = "Extension '{name}' missing or invalid: {msg}"
+            self.logger.warning(msg.format(name=name, msg=str(e)))
+
+    def register_extension(self, typ, name, cls):
+        if typ not in self._registry:
+            self._registry[typ] = {}
+
+        if name in self._registry[typ]:
+            msg = "Extension '{name}' already registered, skipping"
+            msg = msg.format(name=name)
+            raise ImportError(msg)
+
+        self._registry[typ][name] = cls
+
+        if issubclass(cls, exts.Service):
+            if name in self._services:
+                msg = ("Service '{name}' already registered by "
+                       "'{cls}'")
+                msg = msg.format(
+                    name=name,
+                    cls=type(self._services[name]))
+                self.logger.critical(msg)
+            else:
+                try:
+                    self._services[cls] = cls(self)
+                except arroyo.exc.ArgumentError as e:
+                    self.logger.critical(str(e))
 
     def get_implementations(self, extension_point):
         return {k: v for (k, v) in
@@ -300,55 +362,55 @@ class Arroyo:
 
         return impls[name](self, *args, **kwargs)
 
-    def load_extension(self, *names):
-        for name in names:
-            if name in self._extensions:
-                msg = "Extension '{name}' was already loaded"
-                self.logger.warning(msg.format(name=name))
-                continue
+    # def load_extension(self, *names):
+    #     for name in names:
+    #         if name in self._extensions:
+    #             msg = "Extension '{name}' was already loaded"
+    #             self.logger.warning(msg.format(name=name))
+    #             continue
 
-            # Load module
-            module_name = 'arroyo.exts.' + name
+    #         # Load module
+    #         module_name = 'arroyo.exts.' + name
 
-            try:
-                m = importlib.import_module(module_name)
-                mod_exts = getattr(m, '__arroyo_extensions__', [])
-                if not mod_exts:
-                    raise ImportError("Module doesn't define any extension")
+    #         try:
+    #             m = importlib.import_module(module_name)
+    #             mod_exts = getattr(m, '__arroyo_extensions__', [])
+    #             if not mod_exts:
+    #                 raise ImportError("Module doesn't define any extension")
 
-                for (ext_point, ext_name, ext_cls) in mod_exts:
-                    self.register(ext_point, ext_name, ext_cls)
-                    if issubclass(ext_cls, exts.Service):
-                        if ext_name in self._services:
-                            msg = ("Service '{name}' already registered by "
-                                   "'{cls}'")
-                            msg = msg.format(
-                                name=ext_name,
-                                cls=type(self._services[ext_name]))
-                            self.logger.critical(msg)
-                        else:
-                            try:
-                                self._services[ext_name] = ext_cls(self)
-                            except arroyo.exc.ArgumentError as e:
-                                self.logger.critical(str(e))
+    #             for (ext_point, ext_name, ext_cls) in mod_exts:
+    #                 self.register(ext_point, ext_name, ext_cls)
+    #                 if issubclass(ext_cls, exts.Service):
+    #                     if ext_name in self._services:
+    #                         msg = ("Service '{name}' already registered by "
+    #                                "'{cls}'")
+    #                         msg = msg.format(
+    #                             name=ext_name,
+    #                             cls=type(self._services[ext_name]))
+    #                         self.logger.critical(msg)
+    #                     else:
+    #                         try:
+    #                             self._services[ext_name] = ext_cls(self)
+    #                         except arroyo.exc.ArgumentError as e:
+    #                             self.logger.critical(str(e))
 
-                self._extensions.add(name)
+    #             self._extensions.add(name)
 
-            except ImportError as e:
-                msg = "Extension '{name}' missing or invalid: {msg}"
-                self.logger.warning(msg.format(name=name, msg=str(e)))
-                continue
+    #         except ImportError as e:
+    #             msg = "Extension '{name}' missing or invalid: {msg}"
+    #             self.logger.warning(msg.format(name=name, msg=str(e)))
+    #             continue
 
-    def register(self, extension_point, extension_name, extension_class):
-        if extension_point not in self._registry:
-            self._registry[extension_point] = {}
+    # def register(self, extension_point, extension_name, extension_class):
+    #     if extension_point not in self._registry:
+    #         self._registry[extension_point] = {}
 
-        if extension_name in self._registry[extension_point]:
-            msg = "Extension '{name}' already registered, skipping"
-            msg = msg.format(name=extension_name)
-            raise ImportError(msg)
+    #     if extension_name in self._registry[extension_point]:
+    #         msg = "Extension '{name}' already registered, skipping"
+    #         msg = msg.format(name=extension_name)
+    #         raise ImportError(msg)
 
-        self._registry[extension_point][extension_name] = extension_class
+    #     self._registry[extension_point][extension_name] = extension_class
 
     def run_from_args(self, command_line_arguments=sys.argv[1:]):
         # Build full argument parser

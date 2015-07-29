@@ -16,8 +16,8 @@ class Downloads:
     """
     def __init__(self, app):
         app.signals.register('source-state-change')
-        app.register('crontask', 'download-sync', DownloadSyncCronTask)
-        app.register('crontask', 'download-queries', DownloadQueriesCronTask)
+        app.register_extension('crontask', 'download-sync', DownloadSyncCronTask)
+        app.register_extension('crontask', 'download-queries', DownloadQueriesCronTask)
 
         self.app = app
         self.logger = app.logger.getChild('downloads')
