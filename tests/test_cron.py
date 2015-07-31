@@ -12,6 +12,11 @@ from arroyo import exts
 import testapp
 
 
+class NoopCommand(exts.Command):
+    def run(self, arguments):
+        pass
+
+
 class TestZeroTask(exts.CronTask):
     NAME = 'zero'
     INTERVAL = 0
@@ -88,6 +93,18 @@ class CronTest(unittest.TestCase):
 
         self.app.cron.run('minute', force=True)
         self.assertEqual(getattr(self.app, 'minute', None), 1)
+
+    # def test_auto_cron(self):
+    #     app = testapp.TestApp({
+    #         'auto-cron': True
+    #     })
+    #     app.register('crontask', 'zero', TestZeroTask)
+    #     app.register('command', 'noop', NoopCommand)
+
+    #     self.assertFalse(hasattr(self.app, 'zero'))
+    #     app.run_from_args(['noop'])
+    #     self.assertEqual(getattr(self.app, 'zero', None), 0)
+
 
 if __name__ == '__main__':
     unittest.main()

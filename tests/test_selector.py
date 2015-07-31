@@ -11,9 +11,10 @@ import testapp
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
         app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.movie.enabled': True,
-
+            'plugins': [
+                'queries.source',
+                'queries.movie'
+            ],
             'query.test1.name-glob': '*x*',
             'query.test2.kind': 'movie',
             'query.test2.title': 'foo',
@@ -27,11 +28,14 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_queries_with_defaults(self):
         app = testapp.TestApp({
+            'plugins': [
+                'queries.source',
+                'queries.movie'
+            ],
+
             'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.language': 'eng-us',
             'selector.query-movie-defaults.quality': '720p',
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.movie.enabled': True,
 
             'query.test1.name': 'foo',
 
@@ -54,8 +58,9 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_query_from_user_spec(self):
         app = testapp.TestApp({
+            'plugins.queries.source.enabled': True,
             'selector.query-defaults.since': 1234567890,
-            'extensions.queries.source.enabled': True,
+            'selector.query-defaults.since': 1234567890,
         })
 
         user_spec = exts.QuerySpec('test', name_glob='*foo*')
@@ -77,8 +82,8 @@ class SelectorTestCase(unittest.TestCase):
 class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.filters.sourcefields.enabled': True
+            'plugins.queries.source.enabled': True,
+            'plugins.filters.sourcefields.enabled': True
         })
 
     def test_not_everything(self):
@@ -145,9 +150,9 @@ class SourceSelectorTest(SelectorTestCase):
 class QualityFilterTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.quality.enabled': True
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.quality.enabled': True
         })
 
     def test_quality(self):
@@ -176,11 +181,11 @@ class QualityFilterTest(SelectorTestCase):
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.sourcefields.enabled': True,
-            'extensions.filters.episodefields.enabled': True,
-            'extensions.filters.quality.enabled': True,
-            'extensions.sorters.basic.enabled': True
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.quality.enabled': True,
+            'plugins.sorters.basic.enabled': True
         })
 
     def test_series(self):
@@ -286,11 +291,11 @@ class EpisodeSelectorTest(SelectorTestCase):
         ]
         spec = exts.QuerySpec('test', kind='episode', series='true detective', quality='720p', language='eng-us')
         app = testapp.TestApp({
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.sourcefields.enabled': True,
-            'extensions.filters.episodefields.enabled': True,
-            'extensions.filters.quality.enabled': True,
-            'extensions.sorters.basic': True
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.quality.enabled': True,
+            'plugins.sorters.basic': True
         })
         app.insert_sources(*srcs)
         matches = app.selector.matches(spec)

@@ -19,7 +19,6 @@ class TestApp(core.Arroyo):
             'downloader': 'mock',
             'log-format': '%(message)s',
             'log-level': 'WARNING',
-            'extensions.downloaders.mock.enabled': True
         }
         settings.update(d)
         settings = core.ArroyoStore(settings)

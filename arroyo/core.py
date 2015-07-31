@@ -29,6 +29,7 @@ from arroyo import (
 # Default values for config
 #
 _defaults = {
+    'plugins': [],
     'db-uri': 'sqlite:///' +
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
@@ -45,6 +46,7 @@ _defaults = {
 }
 
 _defaults_types = {
+    'plugins': list,
     'db-uri': str,
     'downloader': str,
     'auto-cron': bool,
@@ -58,7 +60,7 @@ _defaults_types = {
 }
 
 #
-# Default extensions
+# Default plugins
 #
 _plugins = {
     'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
@@ -75,6 +77,11 @@ _plugins = chain.from_iterable([
 _plugins = [x for x in _plugins]
 _defaults.update({'plugins.{}.enabled'.format(x): True
                   for x in _plugins})
+
+# _plugins = list(chain.from_iterable([
+#     [ns+'.'+ext for ext in _plugins[ns]]
+#     for ns in _plugins]))
+# _defaults.update({'plugins': _plugins})
 
 
 def build_argument_parser():
@@ -152,10 +159,10 @@ def build_basic_settings(arguments=[]):
     # a) Plugins must be merged
     for ext in args.plugins:
         store.set('plugins.{}.enabled'.format(ext), True)
-    try:
-        delattr(args, 'plugins')
-    except AttributeError:
-        pass
+    delattr(args, 'plugins')
+
+    # store.set('plugins', _plugins + args.plugins)
+    # delattr(args, 'plugins')
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
@@ -300,11 +307,8 @@ class Arroyo:
             plugin = k[8:-8]
             self.load_plugin(plugin)
 
-        # exts = [["{}.{}".format(kind, ext) for ext in
-        #         self.settings.get_tree('extensions.{}'.format(kind))]
-        #         for kind in self.settings.get_tree('extensions')]
-        # for ext in chain.from_iterable(exts):
-        #     self.load_extension(ext)
+        # for plugin in self.settings.get('plugins'):
+        #     self.load_plugin(plugin)
 
         # Run cron tasks
         if self.settings.get('auto-cron'):
@@ -362,55 +366,7 @@ class Arroyo:
 
         return impls[name](self, *args, **kwargs)
 
-    # def load_extension(self, *names):
-    #     for name in names:
-    #         if name in self._extensions:
-    #             msg = "Extension '{name}' was already loaded"
-    #             self.logger.warning(msg.format(name=name))
-    #             continue
 
-    #         # Load module
-    #         module_name = 'arroyo.exts.' + name
-
-    #         try:
-    #             m = importlib.import_module(module_name)
-    #             mod_exts = getattr(m, '__arroyo_extensions__', [])
-    #             if not mod_exts:
-    #                 raise ImportError("Module doesn't define any extension")
-
-    #             for (ext_point, ext_name, ext_cls) in mod_exts:
-    #                 self.register(ext_point, ext_name, ext_cls)
-    #                 if issubclass(ext_cls, exts.Service):
-    #                     if ext_name in self._services:
-    #                         msg = ("Service '{name}' already registered by "
-    #                                "'{cls}'")
-    #                         msg = msg.format(
-    #                             name=ext_name,
-    #                             cls=type(self._services[ext_name]))
-    #                         self.logger.critical(msg)
-    #                     else:
-    #                         try:
-    #                             self._services[ext_name] = ext_cls(self)
-    #                         except arroyo.exc.ArgumentError as e:
-    #                             self.logger.critical(str(e))
-
-    #             self._extensions.add(name)
-
-    #         except ImportError as e:
-    #             msg = "Extension '{name}' missing or invalid: {msg}"
-    #             self.logger.warning(msg.format(name=name, msg=str(e)))
-    #             continue
-
-    # def register(self, extension_point, extension_name, extension_class):
-    #     if extension_point not in self._registry:
-    #         self._registry[extension_point] = {}
-
-    #     if extension_name in self._registry[extension_point]:
-    #         msg = "Extension '{name}' already registered, skipping"
-    #         msg = msg.format(name=extension_name)
-    #         raise ImportError(msg)
-
-    #     self._registry[extension_point][extension_name] = extension_class
 
     def run_from_args(self, command_line_arguments=sys.argv[1:]):
         # Build full argument parser
