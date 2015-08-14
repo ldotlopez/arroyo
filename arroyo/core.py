@@ -118,11 +118,13 @@ def build_argument_parser():
 
         parser.add_argument(
             '--auto-import',
+            default=None,
             action='store_true',
             dest='auto-import')
 
         parser.add_argument(
             '--auto-cron',
+            default=None,
             action='store_true',
             dest='auto-cron')
 
@@ -174,7 +176,7 @@ def build_basic_settings(arguments=[]):
 
     # Clean up args before merging with store
     delattr(args, 'help')
-    for attr in ['downloader', 'db-uri']:
+    for attr in ['downloader', 'db-uri', 'auto-cron', 'auto-import']:
         if getattr(args, attr, None) is None:
             delattr(args, attr)
 
