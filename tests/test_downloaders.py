@@ -5,12 +5,8 @@
 import unittest
 import time
 
-import testapp
+from testapp import TestApp, mock_source
 from arroyo import models
-
-
-def src(name, **kwsrc):
-    return models.Source.from_data(name, **kwsrc)
 
 
 class BaseTest:
@@ -24,7 +20,7 @@ class BaseTest:
         settings = {'plugin.' + k + '.enabled': True for k in self.plugins}
         # settings['log-level'] = 'CRITICAL'
         settings['downloader'] = self.downloader
-        self.app = testapp.TestApp(settings)
+        self.app = TestApp(settings)
 
     def tearDown(self):
         for src in self.app.downloads.list():
@@ -32,7 +28,7 @@ class BaseTest:
         self.wait()
 
     def test_add(self):
-        src1 = src('foo')
+        src1 = mock_source('foo')
         self.app.insert_sources(src1)
 
         self.app.downloads.add(src1)
@@ -43,8 +39,8 @@ class BaseTest:
             set([src1]))
 
     def test_remove(self):
-        src1 = src('foo')
-        src2 = src('bar')
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
         self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
@@ -63,8 +59,8 @@ class BaseTest:
             set([src2]))
 
     def test_fail_remove(self):
-        src1 = src('foo')
-        src2 = src('bar')
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
         self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
@@ -73,7 +69,7 @@ class BaseTest:
         self.app.downloads.remove(src2)
 
     def test_duplicates(self):
-        src1 = src('foo')
+        src1 = mock_source('foo')
         self.app.insert_sources(src1)
 
         self.app.downloads.add(src1)
@@ -85,8 +81,8 @@ class BaseTest:
             set([src1]))
 
     def test_unexpected_add(self):
-        src1 = src('foo')
-        src2 = src('bar')
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
 
         # Important: src2 is not added because it should
         # be really unexpected. Adding a known source is another test
@@ -101,8 +97,8 @@ class BaseTest:
             set([src1]))
 
     def test_unexpected_remove(self):
-        src1 = src('foo')
-        src2 = src('bar')
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
         self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
@@ -118,8 +114,8 @@ class BaseTest:
             set([src1]))
 
     def test_archive_after_manual_remove(self):
-        src1 = src('foo')
-        src2 = src('bar')
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
         self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
