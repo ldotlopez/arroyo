@@ -5,7 +5,8 @@
 import unittest
 import time
 
-from arroyo import core, models
+import testapp
+from arroyo import models
 
 
 def src(name, **kwsrc):
@@ -20,32 +21,19 @@ class BaseTest:
             time.sleep(self.slowdown)
 
     def setUp(self):
-        settings = core.build_basic_settings()
-
-        settings.set('mediainfo', False)
-        settings.set('log-level', 'CRITICAL')
-        settings.set('db-uri', 'sqlite:///:memory:')
-        settings.set('downloader', self.backend)
-
-        app = core.Arroyo(settings)
-        self.app = app
+        settings = {'plugin.' + k + '.enabled': True for k in self.plugins}
+        # settings['log-level'] = 'CRITICAL'
+        settings['downloader'] = self.downloader
+        self.app = testapp.TestApp(settings)
 
     def tearDown(self):
         for src in self.app.downloads.list():
             self.app.downloads.remove(src)
         self.wait()
 
-    def init_db(self, srcs):
-        for src in srcs:
-            self.app.db.session.add(src)
-            if src.type:
-                self.app.mediainfo.process(src)
-
-        self.app.db.session.commit()
-
     def test_add(self):
         src1 = src('foo')
-        self.init_db([src1])
+        self.app.insert_sources(src1)
 
         self.app.downloads.add(src1)
 
@@ -57,7 +45,7 @@ class BaseTest:
     def test_remove(self):
         src1 = src('foo')
         src2 = src('bar')
-        self.init_db([src1, src2])
+        self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
         self.app.downloads.add(src2)
@@ -77,7 +65,7 @@ class BaseTest:
     def test_fail_remove(self):
         src1 = src('foo')
         src2 = src('bar')
-        self.init_db([src1, src2])
+        self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
 
@@ -86,7 +74,7 @@ class BaseTest:
 
     def test_duplicates(self):
         src1 = src('foo')
-        self.init_db([src1])
+        self.app.insert_sources(src1)
 
         self.app.downloads.add(src1)
         self.app.downloads.add(src1)
@@ -102,7 +90,7 @@ class BaseTest:
 
         # Important: src2 is not added because it should
         # be really unexpected. Adding a known source is another test
-        self.init_db([src1])
+        self.app.insert_sources(src1)
 
         self.app.downloads.add(src1)
         self.app.downloads.backend.add(src2)
@@ -115,7 +103,7 @@ class BaseTest:
     def test_unexpected_remove(self):
         src1 = src('foo')
         src2 = src('bar')
-        self.init_db([src1, src2])
+        self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
         self.app.downloads.add(src2)
@@ -132,7 +120,7 @@ class BaseTest:
     def test_archive_after_manual_remove(self):
         src1 = src('foo')
         src2 = src('bar')
-        self.init_db([src1, src2])
+        self.app.insert_sources(src1, src2)
 
         self.app.downloads.add(src1)
         self.app.downloads.add(src2)
@@ -151,11 +139,13 @@ class BaseTest:
 
 
 class MockDownloaderTest(BaseTest, unittest.TestCase):
-    backend = 'mock'
+    plugins = ['mockdownloader']
+    downloader = 'mock'
 
 
 class TransmissionDownloaderTest(BaseTest, unittest.TestCase):
-    backend = 'transmission'
+    plugins = ['transmission']
+    downloader = 'transmission'
     slowdown = 0.5
 
 if __name__ == '__main__':
