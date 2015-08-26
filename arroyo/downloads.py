@@ -3,10 +3,7 @@ import binascii
 import re
 from urllib import parse
 
-from arroyo import (
-    exts,
-    models
-)
+from arroyo import models, extension, cron
 
 
 class Downloads:
@@ -16,8 +13,8 @@ class Downloads:
     """
     def __init__(self, app):
         app.signals.register('source-state-change')
-        app.register_extension('crontask', 'download-sync', DownloadSyncCronTask)
-        app.register_extension('crontask', 'download-queries', DownloadQueriesCronTask)
+        app.register_extension('download-sync', DownloadSyncCronTask)
+        app.register_extension('download-queries', DownloadQueriesCronTask)
 
         self.app = app
         self.logger = app.logger.getChild('downloads')
@@ -27,7 +24,7 @@ class Downloads:
     def backend(self):
         if self._backend is None:
             name = self.app.settings.get('downloader')
-            self._backend = self.app.get_extension('downloader', name)
+            self._backend = self.app.get_extension(Downloader, name)
 
         return self._backend
 
@@ -130,7 +127,24 @@ class Downloads:
         }
 
 
-class DownloadSyncCronTask(exts.CronTask):
+class Downloader(extension.Extension):
+    def add(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def remove(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def list(self, **kwargs):
+        raise NotImplementedError()
+
+    def get_state(self, source, **kwargs):
+        raise NotImplementedError()
+
+    def translate_item(self, backend_obj):
+        raise NotImplementedError()
+
+
+class DownloadSyncCronTask(cron.CronTask):
     NAME = 'download-sync'
     INTERVAL = '5M'
 
@@ -139,7 +153,7 @@ class DownloadSyncCronTask(exts.CronTask):
         super().run()
 
 
-class DownloadQueriesCronTask(exts.CronTask):
+class DownloadQueriesCronTask(cron.CronTask):
     NAME = 'download-queries'
     INTERVAL = '3H'
 
@@ -183,9 +197,6 @@ def calculate_urns(urn):
         ':'.join([prefix, algo, urn_sha1]),
         ':'.join([prefix, algo, urn_base32])
     )
-
-
-
 
 
 def is_sha1_urn(urn):

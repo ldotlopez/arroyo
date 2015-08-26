@@ -19,7 +19,7 @@ from arroyo import (
     cron,
     db,
     downloads,
-    exts,
+    extension,
     mediainfo,
     models,
     selector,
@@ -72,9 +72,32 @@ _plugins = {
 }
 
 _plugins = chain.from_iterable([
-    [ns+'.'+ext for ext in _plugins[ns]]
+    [ns + '.' + ext for ext in _plugins[ns]]
     for ns in _plugins])
 _plugins = [x for x in _plugins]
+_plugins = [
+    # Commands
+    'cron', 'db', 'downloads', 'import', 'mediainfo', 'search',
+
+    # Downloaders
+    'mockdownloader', 'transmission',
+
+    # Filters
+    'sourcefilters', 'episodefilters', 'moviefilters', 'qualityfilter',
+
+    # Origins
+    'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
+
+    # Services
+    'twitter',
+
+    # Sorters
+    'basicsorter',
+
+    # Queries
+    'sourcequery', 'episodequery', 'moviequery'
+    ]
+
 _defaults.update({'plugins.{}.enabled'.format(x): True
                   for x in _plugins})
 
@@ -316,7 +339,7 @@ class Arroyo:
 
     def load_plugin(self, name):
         # Load module
-        module_name = 'arroyo.exts.' + name
+        module_name = 'arroyo.plugins.' + name
 
         try:
             m = importlib.import_module(module_name)
@@ -330,7 +353,19 @@ class Arroyo:
             msg = "Extension '{name}' missing or invalid: {msg}"
             self.logger.warning(msg.format(name=name, msg=str(e)))
 
-    def register_extension(self, typ, name, cls):
+    def register_extension(self, name, cls):
+        # Check extension type
+        typ = None
+        for x in extension.Extension.__subclasses__():
+            if issubclass(cls, x):
+                typ = x
+                break
+
+        if not typ:
+            msg = "Extension '{name}' has invalid type"
+            msg = msg.format(name=name)
+            raise ImportError(msg)
+
         if typ not in self._registry:
             self._registry[typ] = {}
 
@@ -341,7 +376,7 @@ class Arroyo:
 
         self._registry[typ][name] = cls
 
-        if issubclass(cls, exts.Service):
+        if issubclass(cls, extension.Service):
             if name in self._services:
                 msg = ("Service '{name}' already registered by "
                        "'{cls}'")
@@ -356,17 +391,21 @@ class Arroyo:
                     self.logger.critical(str(e))
 
     def get_implementations(self, extension_point):
+        if isinstance(extension_point, str):
+            raise Exception(extension_point)
+
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
 
     def get_extension(self, extension_point, name, *args, **kwargs):
+        if isinstance(extension_point, str):
+            raise Exception(extension_point)
+
         impls = self._registry.get(extension_point, {})
         if name not in impls:
             raise arroyo.exc.NoImplementationError(extension_point, name)
 
         return impls[name](self, *args, **kwargs)
-
-
 
     def run_from_args(self, command_line_arguments=sys.argv[1:]):
         # Build full argument parser
@@ -377,7 +416,7 @@ class Arroyo:
             description='valid subcommands',
             help='additional help')
 
-        for (name, cmd) in self.get_implementations('command').items():
+        for (name, cmd) in self.get_implementations(extension.Command).items():
             command_parser = subparser.add_parser(name, help=cmd.help)
             for argument in cmd.arguments:
                 args, kwargs = argument()
@@ -390,9 +429,9 @@ class Arroyo:
             return
 
         # Get extension instances and extract its argument names
-        extension = self.get_extension('command', args.subcommand)
+        ext = self.get_extension(extension.Command, args.subcommand)
         try:
-            extension.run(args)
+            ext.run(args)
         except (arroyo.exc.BackendError,
                 arroyo.exc.NoImplementationError) as e:
             self.logger.critical(e)

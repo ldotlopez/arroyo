@@ -1,8 +1,12 @@
 import itertools
 import sys
 
-from arroyo import exts
+
+from ldotcommons import utils
+
+
 import arroyo.exc
+from arroyo import extension
 
 
 class Selector:
@@ -10,7 +14,7 @@ class Selector:
         self.app = app
 
     def get_queries_specs(self):
-        return [exts.QuerySpec(x, **params) for (x, params) in
+        return [QuerySpec(x, **params) for (x, params) in
                 self.app.settings.get_tree('query', {}).items()]
 
     def get_queries(self):
@@ -24,9 +28,9 @@ class Selector:
 
         base.update(specific)
         base.update(spec)
-        spec = exts.QuerySpec(spec.name, **base)
+        spec = QuerySpec(spec.name, **base)
 
-        return self.app.get_extension('query', spec.get('kind'), spec=spec)
+        return self.app.get_extension(Query, spec.get('kind'), spec=spec)
 
     def _auto_import(self, query):
         if self.app.settings.get('auto-import'):
@@ -74,7 +78,7 @@ class Selector:
     def get_filters(self, models, params):
         table = {}
 
-        for filtercls in self.app.get_implementations('filter').values():
+        for filtercls in self.app.get_implementations(Filter).values():
             if filtercls.APPLIES_TO not in models:
                 continue
 
@@ -103,7 +107,7 @@ class Selector:
 
         sql_aware = {True: [], False: []}
         for f in filters.values():
-            test = f.__class__.alter_query != exts.Filter.alter_query
+            test = f.__class__.alter_query != Filter.alter_query
             sql_aware[test].append(f)
 
         for f in sql_aware.get(True, []):
@@ -120,3 +124,78 @@ class Selector:
             items = f.apply(items)
 
         return items, missing
+
+
+class Query(extension.Extension):
+    def __init__(self, app, spec):
+        super().__init__(app)
+        self._spec = spec
+        self.params = utils.InmutableDict(spec.exclude('kind'))
+
+    @property
+    def name(self):
+        return self.spec.name
+
+    @property
+    def spec(self):
+        return self._spec
+
+    def matches(self, include_all=False):
+        raise NotImplementedError()
+
+
+class QuerySpec(utils.InmutableDict):
+    def __init__(self, query_name, **kwargs):
+        def _normalize_key(key):
+            for x in [' ', '_']:
+                key = key.replace(x, '-')
+            return key
+
+        kwargs = {_normalize_key(k): v for (k, v) in kwargs.items()}
+        kwargs['kind'] = kwargs.get('kind', 'source')
+
+        if 'language' in kwargs:
+            kwargs['language'] = kwargs['language'].lower()
+
+        if 'type' in kwargs:
+            kwargs['type'] = kwargs['type'].lower()
+
+        super().__init__(**kwargs)
+        self._name = query_name
+
+    @property
+    def name(self):
+        return self._name
+
+
+class Filter(extension.Extension):
+    HANDLES = ()
+
+    @classmethod
+    def compatible(cls, model, key):
+        return model == cls.APPLIES_TO and key in cls.HANDLES
+
+    def __init__(self, app, key, value):
+        super().__init__(app)
+        self.key = key
+        self.value = value
+
+    def filter(self, x):
+        raise NotImplementedError()
+
+    def apply(self, iterable):
+        return filter(self.filter, iterable)
+
+    def alter_query(self, qs):
+        raise NotImplementedError()
+
+
+class Sorter(extension.Extension):
+    def sort(self, sources):
+        return sources
+
+    # def selection(self, matches):
+    #     try:
+    #         return matches[0]
+    #     except IndexError:
+    #         return None
