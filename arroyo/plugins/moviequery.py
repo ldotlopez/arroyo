@@ -1,5 +1,9 @@
-from arroyo.plugin import querytools
-from arroyo import models
+# -*- coding: utf-8 -*-
+
+from arroyo.plugin import (
+    models,
+    querytools
+)
 
 
 class Query(querytools.HighLevelQuery):

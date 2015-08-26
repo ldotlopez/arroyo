@@ -1,8 +1,10 @@
-import arroyo.exc
-from arroyo import models, plugin
+# -*- coding: utf-8 -*-
+
+from arroyo import plugin
+models = plugin.models
 
 
-class DbCommand(plugin.Command):
+class Command(plugin.Command):
     help = 'manage database'
 
     arguments = (
@@ -83,12 +85,12 @@ class DbCommand(plugin.Command):
             source = self.app.db.get(models.Source, id=source_id)
             if not source:
                 msg = "No source with ID={id}".format(id=source_id)
-                raise exc.ArgumentError(msg)
+                raise plugin.exc.ArgumentError(msg)
 
             source.state = state
             self.app.db.session.commit()
 
 
 __arroyo_extensions__ = [
-    ('db', DbCommand)
+    ('db', Command)
 ]

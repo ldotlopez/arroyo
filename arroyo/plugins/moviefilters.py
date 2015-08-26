@@ -1,9 +1,11 @@
-import functools
-
+# -*- coding: utf-8 -*-
 
 from arroyo import plugin
-from arroyo import models
 from arroyo.plugin import filtertools
+models = plugin.models
+
+
+import functools
 
 
 class Filter(plugin.Filter):

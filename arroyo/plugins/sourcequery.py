@@ -1,5 +1,7 @@
+# -*- coding: utf-8 -*-
+
 from arroyo import plugin
-from arroyo import models
+models = plugin.models
 
 
 class Query(plugin.Query):

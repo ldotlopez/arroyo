@@ -1,13 +1,14 @@
+# -*- coding: utf-8 -*-
+
+from arroyo import plugin
+from arroyo.plugin import filtertools
+models = plugin.models
+
+
 import functools
 
 
 from ldotcommons import utils
-
-
-from arroyo import plugin
-from arroyo.plugin import filtertools
-from arroyo import models
-import arroyo.exc
 
 
 class Filter(plugin.Filter):
@@ -28,7 +29,7 @@ class Filter(plugin.Filter):
             try:
                 self.value = func(self.value)
             except ValueError as e:
-                raise arroyo.exc.SettingError(self.key, self.value, e)
+                raise plugin.exc.SettingError(self.key, self.value, e)
 
         def _warn():
             msg = "Ignoring invalid setting '{key}': '{value}'"

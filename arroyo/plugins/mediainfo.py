@@ -1,4 +1,7 @@
-from arroyo import models, plugin
+# -*- coding: utf-8 -*-
+
+from arroyo import plugin
+models = plugin.models
 
 
 class MediainfoCommand(plugin.Command):

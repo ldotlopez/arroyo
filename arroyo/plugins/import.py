@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from arroyo import plugin
 
 
@@ -59,6 +61,7 @@ class ImportCommand(plugin.Command):
                     getattr(arguments, k))
 
         self.app.importer.run()
+
 
 __arroyo_extensions__ = [
     ('import', ImportCommand)

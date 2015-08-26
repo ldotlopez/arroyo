@@ -1,7 +1,10 @@
-from ldotcommons import utils
+# -*- coding: utf-8 -*-
 
-import arroyo.exc
-from arroyo import models, plugin
+from arroyo import plugin
+models = plugin.models
+
+
+from ldotcommons import utils
 
 
 class DownloadCommand(plugin.Command):
@@ -61,7 +64,7 @@ class DownloadCommand(plugin.Command):
 
         if sum([1 for x in (show, add, remove, from_queries) if x]) > 1:
             msg = 'Only one action at time is supported'
-            raise arroyo.exc.ArgumentError(msg)
+            raise plugin.exc.ArgumentError(msg)
 
         if show:
             for src in self.app.downloads.list():

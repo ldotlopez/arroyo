@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
-# [SublimeLinter pep8-max-line-length:119]
-# vim: set fileencoding=utf-8 :
+
+from arroyo import plugin
+
 
 import re
 from urllib import parse
 
-import bs4
 
-from arroyo import plugin
+import bs4
 
 
 class Eztv(plugin.Origin):
@@ -95,6 +95,7 @@ class Eztv(plugin.Origin):
 
         soup = bs4.BeautifulSoup(buff, "html.parser")
         return map(parse_row, soup.select('tr'))
+
 
 __arroyo_extensions__ = [
     ('eztv', Eztv)

@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
-# [SublimeLinter pep8-max-line-length:119]
-# vim: set fileencoding=utf-8 :
 
-from arroyo import models, plugin
+from arroyo import plugin
+models = plugin.models
 
 
 class MockDownloader(plugin.Downloader):
@@ -43,6 +42,7 @@ class MockDownloader(plugin.Downloader):
 
     def _update_state(self, source, state):
         self.app.variables.set(self.get_source_key(source), state)
+
 
 __arroyo_extensions__ = [
     ('mock', MockDownloader)

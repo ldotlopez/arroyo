@@ -1,16 +1,16 @@
 # -*- coding: utf-8 -*-
-# [SublimeLinter pep8-max-line-length:119]
-# vim: set fileencoding=utf-8 :
+
+from arroyo import plugin
+
 
 import random
 import re
 import time
 
+
 import bs4
 import feedparser
 from ldotcommons import utils
-
-from arroyo import plugin
 
 
 class Tpb(plugin.Origin):
@@ -122,6 +122,7 @@ class TpbRss(plugin.Origin):
             }
 
         return map(_build_source, feedparser.parse(buff)['entries'])
+
 
 __arroyo_extensions__ = [
     ('tpb', Tpb),

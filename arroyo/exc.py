@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class SettingError(Exception):
     def __init__(self, key, value, original=None):
         msg = "Invalid setting '{key}': '{value}'"

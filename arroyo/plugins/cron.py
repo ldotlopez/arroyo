@@ -1,6 +1,9 @@
-from ldotcommons import utils
+# -*- coding: utf-8 -*-
 
 from arroyo import plugin
+
+
+from ldotcommons import utils
 
 
 class CronCommand(plugin.Command):

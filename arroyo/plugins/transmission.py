@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
-# [SublimeLinter pep8-max-line-length:119]
-# vim: set fileencoding=utf-8 :
+
+from arroyo import plugin
+from arroyo.plugin import downloadstools
+models = plugin.models
 
 from urllib import parse
 
@@ -8,10 +10,8 @@ from sqlalchemy import orm
 import transmissionrpc
 from ldotcommons import store
 
-from arroyo import models, plugin
 
-
-_SETTINGS_NS = 'extensions.downloaders.transmission'
+_SETTINGS_NS = 'plugin.transmission'
 
 
 def settings_validator(key, value):
@@ -62,7 +62,7 @@ class TransmissionDownloader(plugin.Downloader):
             raise plugin.exc.BackendError(msg)
 
     def add(self, source, **kwargs):
-        sha1_urn = plugin.downloads.calculate_urns(source.urn)[0]
+        sha1_urn = downloadstools.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
             self._logger.warning('Avoid duplicate')
@@ -105,7 +105,7 @@ class TransmissionDownloader(plugin.Downloader):
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloads.calculate_urns(urn)
+        urns = downloadstools.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None
@@ -124,7 +124,7 @@ class TransmissionDownloader(plugin.Downloader):
 
                 # There shouldn't be multiple results !!
                 # Trying to do my best
-                by_state = q.filter(models.Source.is_active == True)
+                by_state = q.filter(models.Source.is_active is True)
                 if by_state.count() == 1:
                     msg = ("Exception saved using state property but this is "
                            "a bug")

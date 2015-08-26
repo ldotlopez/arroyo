@@ -1,11 +1,13 @@
+# -*- coding: utf-8 -*-
+
+from arroyo import plugin
+
+
 import itertools
 import re
 
 
 from ldotcommons import utils
-
-
-from arroyo import plugin
 
 
 def fmt_src(src):

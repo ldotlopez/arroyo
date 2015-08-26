@@ -1,11 +1,14 @@
+# -*- coding: utf-8 -*-
+
+from arroyo import plugin
+
+
 import pprint
+
 
 from ldotcommons import messaging
 from ldotcommons.messaging import twitter as ldottwitter
 import twitter
-
-
-from arroyo import plugin
 
 
 _SETTINGS_NS = "plugin.twitter"
@@ -164,6 +167,7 @@ class TwitterNotifierService(plugin.Service):
             self._api.send(msg)
         except messaging.NotifierError as e:
             self.app.logger.warning(pprint.pformat(e.args))
+
 
 __arroyo_extensions__ = [
     ('twitter', TwitterNotifierService),

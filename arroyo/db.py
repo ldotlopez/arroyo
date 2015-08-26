@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from ldotcommons import sqlalchemy as ldotsa
 
 import arroyo.exc

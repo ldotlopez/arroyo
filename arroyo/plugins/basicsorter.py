@@ -1,8 +1,10 @@
-import functools
-import itertools
-
+# -*- coding: utf-8 -*-
 
 from arroyo import plugin
+
+
+import functools
+import itertools
 
 
 class Sorter(plugin.Sorter):

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# [SublimeLinter pep8-max-line-length:119]
-# vim: set fileencoding=utf-8 :
+
+from arroyo import plugin
+
 
 import re
 from urllib import parse
 
+
 import bs4
 from ldotcommons import utils
-
-from arroyo import plugin
 
 
 class KickAss(plugin.Origin):

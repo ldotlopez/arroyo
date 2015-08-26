@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
-# vim: set fileencoding=utf-8 :
+
+from arroyo import plugin
 
 
 import re
 import time
 from urllib import parse
 
-import bs4
 
-from arroyo import plugin
+import bs4
 
 
 class Spanishtracker(plugin.Origin):
