@@ -4,7 +4,6 @@ import argparse
 import configparser
 import importlib
 import logging
-from itertools import chain
 import sys
 import warnings
 
@@ -31,7 +30,6 @@ from arroyo import (
 # Default values for config
 #
 _defaults = {
-    'plugins': [],
     'db-uri': 'sqlite:///' +
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
@@ -48,7 +46,6 @@ _defaults = {
 }
 
 _defaults_types = {
-    'plugins': list,
     'db-uri': str,
     'downloader': str,
     'auto-cron': bool,
@@ -64,19 +61,6 @@ _defaults_types = {
 #
 # Default plugins
 #
-_plugins = {
-    'commands': ('cron', 'db', 'downloads', 'import', 'mediainfo', 'search'),
-    'downloaders': ('mock', 'transmission'),
-    'origins': ('eztv', 'kickass', 'spanishtracker', 'thepiratebay'),
-    'filters': ('sourcefields', 'episodefields', 'moviefields', 'quality'),
-    'sorters': ('basic',),
-    'queries': ('episode', 'movie', 'source')
-}
-
-_plugins = chain.from_iterable([
-    [ns + '.' + ext for ext in _plugins[ns]]
-    for ns in _plugins])
-_plugins = [x for x in _plugins]
 _plugins = [
     # Commands
     'cron', 'db', 'downloads', 'import', 'mediainfo', 'search',
@@ -90,9 +74,6 @@ _plugins = [
     # Origins
     'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
 
-    # Services
-    'twitter',
-
     # Sorters
     'basicsorter',
 
@@ -100,13 +81,8 @@ _plugins = [
     'sourcequery', 'episodequery', 'moviequery'
     ]
 
-_defaults.update({'plugins.{}.enabled'.format(x): True
+_defaults.update({'plugin.{}.enabled'.format(x): True
                   for x in _plugins})
-
-# _plugins = list(chain.from_iterable([
-#     [ns+'.'+ext for ext in _plugins[ns]]
-#     for ns in _plugins]))
-# _defaults.update({'plugins': _plugins})
 
 
 def build_argument_parser():
@@ -183,11 +159,8 @@ def build_basic_settings(arguments=[]):
 
     # a) Plugins must be merged
     for ext in args.plugins:
-        store.set('plugins.{}.enabled'.format(ext), True)
+        store.set('plugin.{}.enabled'.format(ext), True)
     delattr(args, 'plugins')
-
-    # store.set('plugins', _plugins + args.plugins)
-    # delattr(args, 'plugins')
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
@@ -248,7 +221,7 @@ class ArroyoStore(store.Store):
                 if key == 'log-level' and value not in _log_lvls:
                     raise ValueError(value)
 
-                if key.startswith('plugins.') and key.endswith('.enabled'):
+                if key.startswith('plugin.') and key.endswith('.enabled'):
                     return store.cast_value(value, bool)
 
                 return _type_validator(key, value)
@@ -280,7 +253,6 @@ class Arroyo:
         self.settings = settings or build_basic_settings([])
 
         # Support structures for plugins
-        # self._extensions = set()
         self._services = {}
         self._registry = {}
 
@@ -326,14 +298,15 @@ class Arroyo:
 
         # Load plugins
         # FIXME: Search for enabled plugins thru the keys of settings is a
-        # temporal solution. This must be changed as soon as the "exts" folder
-        # get flatten
-        for k in [x for x in self.settings if x.startswith('plugins.')]:
-            plugin = k[8:-8]
-            self.load_plugin(plugin)
+        # temporal solution.
+        plugins = filter(lambda x: x.startswith('plugin.'), self.settings)
+        plugins = map(lambda x: x.split('.'), plugins)
+        plugins = filter(lambda x: len(x) >= 2, plugins)
+        plugins = map(lambda x: x[1], plugins)
 
-        # for plugin in self.settings.get('plugins'):
-        #     self.load_plugin(plugin)
+        for p in set(plugins):
+            if self.settings.get('plugin.' + p + '.enabled', True):
+                self.load_plugin(p)
 
         # Run cron tasks
         if self.settings.get('auto-cron'):
