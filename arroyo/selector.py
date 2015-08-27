@@ -50,7 +50,7 @@ class Selector:
 
     def sort(self, items):
         sorter = self.app.get_extension(
-            'sorter',
+            Sorter,
             self.app.settings.get('selector.sorter', 'basic'))
 
         groups = itertools.groupby(items, lambda src: src.superitem)
@@ -63,7 +63,7 @@ class Selector:
 
     def select(self, spec):
         sorter = self.app.get_extension(
-            'sorter',
+            Sorter,
             self.app.settings.get('selector.sorter', 'basic'))
 
         query = self.matches(spec, everything=False)
