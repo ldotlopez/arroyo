@@ -11,12 +11,13 @@ from ldotcommons.messaging import twitter as ldottwitter
 class TwitterTest(unittest.TestCase):
     def setUp(self):
         self.app = TestApp({
-            'plugins.services.twitter.enabled': True,
-            'plugins.services.twitter.consumer-key': 'x',
-            'plugins.services.twitter.consumer-secret': 'x',
-            'plugins.services.twitter.token': 'x',
-            'plugins.services.twitter.token-secret': 'x',
-            'plugins.services.twitter.notify-on': 'source-state-change=done'
+            'plugin.mockdownloader.enabled': True,
+            'plugin.twitter.enabled': True,
+            'plugin.twitter.consumer-key': 'x',
+            'plugin.twitter.consumer-secret': 'x',
+            'plugin.twitter.token': 'x',
+            'plugin.twitter.token-secret': 'x',
+            'plugin.twitter.notify-on': 'source-state-change=done'
         })
 
     def test_raw_state_change(self):
