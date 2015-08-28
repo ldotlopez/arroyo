@@ -80,7 +80,9 @@ class KickAss(plugin.Origin):
                 name = None
 
             try:
-                uri = row.select('a.imagnet')[0].attrs['href']
+                hrefs = (x.attrs.get('href') for x in row.select('a'))
+                magnets = filter(lambda x: x.startswith('magnet:?'), hrefs)
+                uri = list(magnets)[0]
             except (IndexError, AttributeError):
                 uri = None
 
