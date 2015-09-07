@@ -12,7 +12,7 @@ import bs4
 
 
 class Spanishtracker(plugin.Origin):
-    BASE_URL = 'http://www.spanishtracker.com/torrents.php'
+    BASE_URL = 'http://www.spanishtracker.com/torrents.php?page=0'
     PROVIDER_NAME = 'spanishtracker'
 
     _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
