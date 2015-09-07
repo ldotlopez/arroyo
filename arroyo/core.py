@@ -372,7 +372,7 @@ class Arroyo:
         return {k: v for (k, v) in
                 self._registry.get(extension_point, {}).items()}
 
-    def get_extension(self, extension_point, name, *args, **kwargs):
+    def get_implementation(self, extension_point, name):
         if isinstance(extension_point, str):
             raise Exception(extension_point)
 
@@ -380,7 +380,11 @@ class Arroyo:
         if name not in impls:
             raise arroyo.exc.NoImplementationError(extension_point, name)
 
-        return impls[name](self, *args, **kwargs)
+        return impls[name]
+
+    def get_extension(self, extension_point, name, *args, **kwargs):
+        impl = self.get_implementation(extension_point, name)
+        return impl(self, *args, **kwargs)
 
     def run_from_args(self, command_line_arguments=sys.argv[1:]):
         # Build full argument parser
