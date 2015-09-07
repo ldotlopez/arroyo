@@ -442,20 +442,28 @@ class Origin(extension.Extension):
         return list(ret)
 
     def paginate_by_query_param(self, url, key, default=1):
+        def alter_param(k, v):
+            if k == key:
+                try:
+                    v = int(v) + 1
+                except ValueError:
+                    v = default
+
+                v = str(v)
+
+            return k, v
+
+        yield url
+
         parsed = parse.urlparse(url)
-        parsed_qs = parse.parse_qs(parsed.query)
-        try:
-            page = int(parsed_qs.pop(key, [str(default)])[0])
-        except ValueError:
-            page = 1
+        qsl = parse.parse_qsl(parsed.query)
 
         while True:
-            parsed_qs[key] = str(page)
+            qsl = [alter_param(*x) for x in qsl]
             yield parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path,
                                     parsed.params,
-                                    parse.urlencode(parsed_qs, doseq=True),
+                                    parse.urlencode(qsl, doseq=True),
                                     parsed.fragment))
-            page += 1
 
     def __repr__(self):
         return "<%s (%s)>" % (
