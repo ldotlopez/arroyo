@@ -7,6 +7,8 @@
 # Arroyo instances and sqlalchemy sessions are hold.
 # This implementation tries to mimic blinked as much as possible
 
+import warnings
+
 
 class Signaler:
     def __init__(self):
@@ -26,10 +28,18 @@ class Signaler:
 
         self._signals[name] = []
 
-    def connect(self, name, callback):
+    def connect(self, name, callback, *args, **kwargs):
+        if args or kwargs:
+            msg = "Code is using deprecated blinker.connect API"
+            warnings.warn(msg)
+
         self.get_signal(name).append(callback)
 
-    def disconnect(self, name, callback):
+    def disconnect(self, name, callback, *args, **kwargs):
+        if args or kwargs:
+            msg = "Code is using deprecated blinker.connect API"
+            warnings.warn(msg)
+
         self.get_signal(name).remove(callback)
 
     def send(self, name, *args, **kwargs):
