@@ -1,108 +1,195 @@
+# -*- coding: utf-8 -*-
+
 import unittest
+import warnings
 
-import os
+from arroyo import plugin
+import testapp
 
-from arroyo import core, importer
 
+class TestOrigin:
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        warnings.warn("TestOrigin doesn't validate keys")
 
-class BaseTest:
     def setUp(self):
-        basedir = os.path.dirname(__file__)
-        mock_fetcher_basedir = os.path.join(basedir, 'www-samples')
+        settings = {}
+        settings.update(
+            {'plugin.' + x + '.enabled': True
+             for x in self.PLUGINS}
+        )
+        self.app = testapp.TestApp(settings)
 
-        settings = core.build_basic_settings()
-        settings.delete('fetcher')
-        settings.set('fetcher', 'mock')
-        settings.set('fetcher.mock.basedir', mock_fetcher_basedir)
-        settings.set('db-uri', 'sqlite:///:memory:')
+    def test_implementation(self):
+        impl = self.app.get_implementation(plugin.Origin, self.BACKEND)
+        self.assertTrue(
+            hasattr(impl, 'paginate'),
+            msg='No paginate() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'process'),
+            msg='No process() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'BASE_URL'),
+            msg='No BASE_URL in {}'.format(impl))
 
-        self.app = core.Arroyo(settings)
-
-    def _test_process(self, backend, url, n_sources_expected):
-        spec = importer.OriginSpec(name='test', backend=backend, url=url)
+    def test_initial_seed(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
         origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-        # url_ = next(origin.get_urls())
-        # self.assertEqual(url, url_)
+        g = origin.paginate(origin.BASE_URL)
+        self.assertEqual(next(g), origin.BASE_URL)
 
-        buff = self.app.fetcher.fetch(url)
-        srcs = origin.process(buff)
-        self.assertEqual(len(srcs), n_sources_expected)
-
-    def _test_get_urls(self, backend, seed_url, urls):
-        spec = importer.OriginSpec(
-            name='test', backend=backend, url=seed_url, iterations=len(urls))
+    def test_pagination(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
         origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-        generated = []
+        for (start, expected) in self.PAGINATIONS.items():
+            start = start or origin.BASE_URL
+            g = origin.paginate(start)
+            collected = []
 
-        g = origin.get_urls()
-        for idx in range(len(urls)):
-            try:
-                generated.append(next(g))
-            except StopIteration:
-                break
+            while len(collected) < len(expected):
+                try:
+                    collected.append(next(g))
+                except StopIteration:
+                    collected.append(None)
 
-        self.assertEqual(urls, generated)
+            self.assertEqual(collected, expected)
 
+    def test_processors(self):
+        for (url, n_expected) in self.URL_TESTS:
+            spec = plugin.OriginSpec(
+                name='foo', backend=self.BACKEND, url=url)
 
-class EztvTest(BaseTest, unittest.TestCase):
-    def test_process_recent_page(self):
-        self._test_process(
-            'eztv', 'http://eztv.ch/page_0', 41)
-
-    def test_get_urls(self):
-        self._test_get_urls(
-            'eztv',
-            'http://eztv.ch/page_0',
-            ['http://eztv.ch/page_0',
-             'http://eztv.ch/page_1'])
-
-    def test_get_urls_from_none(self):
-        self._test_get_urls(
-            'eztv',
-            None,
-            ['https://eztv.ch/page_0',
-             'https://eztv.ch/page_1'])
-
-    def test_get_urls_from_n(self):
-        self._test_get_urls(
-            'eztv',
-            'http://eztv.ch/page_3',
-            ['http://eztv.ch/page_3',
-             'http://eztv.ch/page_4'])
-
-    def test_get_urls_without_page(self):
-        self._test_get_urls(
-            'eztv',
-            'http://eztv.ch/',
-            ['http://eztv.ch/page_0',
-             'http://eztv.ch/page_1'])
+            srcs = self.app.importer.import_origin_spec(spec)
+            srcs = srcs['added-sources'] + srcs['updated-sources']
+            self.assertEqual(
+                len(srcs), n_expected,
+                msg='From {}'.format(url))
 
 
-class TpbTest(BaseTest, unittest.TestCase):
-    def test_process_recent_page(self):
-        self._test_process(
-            'tpb', 'https://thepiratebay.am/recent', 30)
+class TestEztv(TestOrigin, unittest.TestCase):
+    PLUGINS = ['eztv']
+    BACKEND = 'eztv'
+    KEYS = ['language', 'name', 'timestamp', 'type', 'uri']
+    PAGINATIONS = {
+        # Default
+        None: ['https://eztv.ch/page_{}'.format(i) for i in [0, 1, 2]],
 
-    def test_process_search_page(self):
-        self._test_process(
-            'tpb', 'https://thepiratebay.am/search/a/0/99/0', 30)
+        # TV Show page
+        'http://eztv.it/shows/123/show-title/':
+            ['http://eztv.it/shows/123/show-title/', None],
 
-    def test_get_urls(self):
-        self._test_get_urls(
-            'tpb',
-            'https://thepiratebay.am/recent',
-            ['https://thepiratebay.am/recent'])
+        # TDL change and start at page 3
+        'https://eztv.xx/page_2':
+            ['https://eztv.xx/page_{}'.format(i) for i in [2, 3]]
+
+    }
+    URL_TESTS = [
+        ('http://eztv.ch/page/0', 41)
+    ]
 
 
-class KickassTest(BaseTest, unittest.TestCase):
-    def test_process(self):
-        self._test_process(
-            'kickass', 'http://kat.cr/usearch/category%3Atv%200sec/', 25)
+class TestKickass(TestOrigin, unittest.TestCase):
+    PLUGINS = ['kickass']
+    BACKEND = 'kickass'
+    KEYS = []
+    PAGINATIONS = {
+        # Default
+        None: ['http://kat.cr/new/?page=1'],
 
-    def test_get_urls(self):
-        pass
+        # Index at 7
+        'http://kat.cr/usearch?foo=bar&page=8&lol=wow':
+            ['http://kat.cr/usearch?foo=bar&page={}&lol=wow'.format(i)
+             for i in range(8, 17)]
+    }
+    URL_TESTS = [
+        (r'http://kat.cr/usearch/category%3Atv%200sec/', 25)
+    ]
+
+
+class TestSpanishTracker(TestOrigin, unittest.TestCase):
+    PLUGINS = ['spanishtracker']
+    BACKEND = 'spanishtracker'
+    KEYS = [
+        'language', 'leechers', 'name', 'seeds', 'size', 'timestamp',
+        'type', 'uri'
+    ]
+    PAGINATIONS = {
+        'http://spanishtracker.com/torrents.php?aaa=bbb&foo=bar&page=3':
+            ['http://spanishtracker.com/torrents.php?aaa=bbb&foo=bar&page={}'.format(i)
+             for i in [3, 4, 5]]
+    }
+    URL_TESTS = []
+
+
+class TestTpb(TestOrigin, unittest.TestCase):
+    PLUGINS = ['thepiratebay']
+    BACKEND = 'tpb'
+    KEYS = ['leechers', 'name', 'seeds', 'size', 'timestamp', 'uri']
+    PAGINATIONS = {
+        'http://thepiratebay.com/recent/0/':
+            ['http://thepiratebay.com/recent/{}/'.format(i)
+             for i in range(2)],
+
+        'http://thepiratebay.com/recent/45/':
+            ['http://thepiratebay.com/recent/{}/'.format(i)
+             for i in [45, 46]],
+
+        'http://thepiratebay.com/recent/8/b/':
+            ['http://thepiratebay.com/recent/{}/b/'.format(i)
+             for i in [8, 9]]
+    }
+    URL_TESTS = [
+        ('https://thepiratebay.am/recent', 30),
+        ('https://thepiratebay.am/search/a/0/99/0', 30)
+    ]
+
+
+class TestTpbRss(TestOrigin, unittest.TestCase):
+    PLUGINS = ['thepiratebay']
+    BACKEND = 'tpbrss'
+    KEYS = ['name', 'size', 'timestamp', 'uri']
+    PAGINATIONS = {}
+    URL_TESTS = []
+
+
+#     def test_processing(self):
+
+#         tests = (
+#             (eztv, 'eztv_main.html', 50, eztv_keys),
+#             (eztv, 'eztv_show.html', 84, eztv_keys),
+
+#             (tpb, 'tpb_main.html', 30, tpb_keys),
+#             (tpb, 'tpb_user.html', 30, tpb_keys),
+
+#             (tpbrss, 'tpbrss_main.html', 60, tpbrss_keys),
+
+#             (spanishtracker, 'spanishtracker_main.html', 30,
+#              spanishtracker_keys)
+#         )
+
+#         for (mod, sample, nelements, keys) in tests:
+#             sample = path(__file__).dirname() / "samples" / sample
+#             fh = open(sample)
+#             res = mod.process(fh.read())
+#             fh.close()
+
+#             self.assertEqual(len(res), nelements,
+#                              msg="wrong processing on {}".format(sample))
+
+#             for r in res:
+#                 language = r.get('language', None)
+#                 if language:
+#                     self.assertIsNotNone(
+#                         re.match(r'^[a-z]{2}(-[a-z]{2,3})?$', language),
+#                         msg='Language {} invalid in {}'.format(language, mod))
+
+#                 self.assertEqual(
+#                     sorted(r.keys()),
+#                     sorted(keys),
+#                     msg="Results from {} doesn't matches keys".format(mod))
+
 
 if __name__ == '__main__':
     unittest.main()
