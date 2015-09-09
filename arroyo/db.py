@@ -1,18 +1,30 @@
 # -*- coding: utf-8 -*-
 
 from ldotcommons import sqlalchemy as ldotsa
-
 import arroyo.exc
 from arroyo import models
 
 
 class Db:
     def __init__(self, db_uri='sqlite:////:memory:'):
+
+        # sqlalchemy scoped session mode
+
+        # engine = sqlalchemy.create_engine(db_uri)
+        # session_factory = sqlalchemy.orm.sessionmaker(bind=engine)
+        # self._sess = sqlalchemy.orm.scoped_session(session_factory)()
+        # models.Base.metadata.create_all(engine)
+
+        # sqlalchemy session maker mode
+
         # engine = sqlalchemy.create_engine(db_uri)
         # sessmaker = orm.sessionmaker()
         # sessmaker.configure(bind=engine)
         # models.Base.metadata.create_all(engine)
         # self._sess = sessmaker()
+
+        # ldotcommons.sqlalchemy mode
+
         # FIXME: ldotcommons.sqlalchemy.create_session it's not totally safe,
         # review this.
         self._sess = ldotsa.create_session(db_uri)

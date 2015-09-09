@@ -136,7 +136,7 @@ class Mediainfo:
                 model = models.Movie
                 arguments = {
                     'title': info['title'],
-                    'year': info.get('year', None)
+                    'year': int(info.get('year', '0')) or None
                 }
             except KeyError:
                 raise ValueError('info data for movie source is incomplete')
@@ -146,9 +146,9 @@ class Mediainfo:
                 model = models.Episode
                 arguments = {
                     'series': info['series'],
-                    'season': info.get('season', -1),
-                    'number': info['episodeNumber'],
-                    'year': info.get('year', None)
+                    'season': int(info.get('season', '0') or None),
+                    'number': int(info['episodeNumber']),
+                    'year': int(info.get('year', '0')) or None
                 }
             except KeyError:
                 raise ValueError('info data for episode source is incomplete')
@@ -156,7 +156,8 @@ class Mediainfo:
         else:
             raise ValueError('invalid type in info data: ' + info['type'])
 
-        return self._app.db.get_or_create(model, **arguments)
+        ret, created = self._app.db.get_or_create(model, **arguments)
+        return ret
 
     def process(self, *sources):
         for src in sources:
@@ -209,11 +210,11 @@ class Mediainfo:
 
                 src.tags.append(models.SourceTag('mediainfo.'+k, v))
 
-            # Create specilized model
+            # Get or create specilized model. There is no need to check if it
+            # gets created, will be added to session when it gets linked to its
+            # source
             try:
-                specilized_source, created = self._get_specilized_source(info)
-                if created:
-                    self._app.db.session.add(specilized_source)
+                specilized_source = self._get_specilized_source(info)
             except ValueError as e:
                 msg = "unable to get specilized data for '{source}': {reason}"
                 self._logger.warning(msg.format(source=src, reason=e))
