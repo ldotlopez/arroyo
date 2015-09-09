@@ -63,10 +63,6 @@ class ProcessException(Exception):
         self.kwargs = kwargs
 
 
-class UnknowSignal(Exception):
-    pass
-
-
 class ArgumentError(Exception):
     def __init__(self, msg, *args, tip=True, **kwargs):
         if not msg.endswith('.'):

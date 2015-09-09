@@ -2,10 +2,8 @@
 feedparser
 beautifulsoup4
 sqlalchemy
-path.py
 transmissionrpc
 guessit
-blinker
 ipdb
 
 # ldotcommons
