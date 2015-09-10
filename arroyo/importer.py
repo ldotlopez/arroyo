@@ -111,7 +111,7 @@ class Importer:
         Returned origins are configured with one iteration.
         """
 
-        impls = self.app.get_implementations('origin')
+        impls = self.app.get_implementations(Origin)
         if not impls:
             msg = ("There are no origin implementations available or none of "
                    "them is enabled, check your configuration")
