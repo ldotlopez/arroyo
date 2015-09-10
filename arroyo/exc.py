@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 class SettingError(Exception):
     def __init__(self, key, value, original=None):
         msg = "Invalid setting '{key}': '{value}'"
@@ -59,10 +61,6 @@ class ProcessException(Exception):
         super(ProcessException, self).__init__()
         self.args = args
         self.kwargs = kwargs
-
-
-class UnknowSignal(Exception):
-    pass
 
 
 class ArgumentError(Exception):

@@ -4,15 +4,18 @@
 
 import unittest
 
-from arroyo import exts, models
+from arroyo import (
+    models,
+    selector
+)
 import testapp
 
 
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
         app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.movie.enabled': True,
+            'plugin.sourcequery.enabled': True,
+            'plugin.moviequery.enabled': True,
 
             'query.test1.name-glob': '*x*',
             'query.test2.kind': 'movie',
@@ -27,11 +30,12 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_queries_with_defaults(self):
         app = testapp.TestApp({
+            'plugin.sourcequery.enabled': True,
+            'plugin.moviequery.enabled': True,
+
             'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.language': 'eng-us',
             'selector.query-movie-defaults.quality': '720p',
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.movie.enabled': True,
 
             'query.test1.name': 'foo',
 
@@ -54,11 +58,13 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_query_from_user_spec(self):
         app = testapp.TestApp({
+            'plugin.sourcequery.enabled': True,
+
             'selector.query-defaults.since': 1234567890,
-            'extensions.queries.source.enabled': True,
+            'selector.query-defaults.since': 1234567890,
         })
 
-        user_spec = exts.QuerySpec('test', name_glob='*foo*')
+        user_spec = selector.QuerySpec('test', name_glob='*foo*')
         query = app.selector.get_query_for_spec(user_spec)
 
         self.assertTrue('since' in query.spec)
@@ -66,7 +72,7 @@ class SelectorInterfaceTest(unittest.TestCase):
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
-        spec = exts.QuerySpec('test', **params)
+        spec = selector.QuerySpec('test', **params)
         res = self.app.selector.matches(spec, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
@@ -77,8 +83,8 @@ class SelectorTestCase(unittest.TestCase):
 class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.filters.sourcefields.enabled': True
+            'plugin.sourcequery.enabled': True,
+            'plugin.sourcefilters.enabled': True
         })
 
     def test_not_everything(self):
@@ -145,9 +151,9 @@ class SourceSelectorTest(SelectorTestCase):
 class QualityFilterTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.source.enabled': True,
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.quality.enabled': True
+            'plugin.sourcequery.enabled': True,
+            'plugin.episodequery.enabled': True,
+            'plugin.qualityfilter.enabled': True
         })
 
     def test_quality(self):
@@ -176,11 +182,11 @@ class QualityFilterTest(SelectorTestCase):
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.sourcefields.enabled': True,
-            'extensions.filters.episodefields.enabled': True,
-            'extensions.filters.quality.enabled': True,
-            'extensions.sorters.basic.enabled': True
+            'plugin.episodequery.enabled': True,
+            'plugin.sourcefilters.enabled': True,
+            'plugin.episodefilters.enabled': True,
+            'plugin.qualityfilter.enabled': True,
+            'plugin.basicsorter.enabled': True
         })
 
     def test_series(self):
@@ -250,7 +256,7 @@ class EpisodeSelectorTest(SelectorTestCase):
         # Revert src states and link episodes with sources
         for src in srcs:
             src.state = models.Source.State.NONE
-        spec = exts.QuerySpec('test', kind='episode', series='game of thrones', quality='hdtv')
+        spec = selector.QuerySpec('test', kind='episode', series='game of thrones', quality='hdtv')
         for src in self.app.selector.select(spec):
             src.episode.selection = models.EpisodeSelection(source=src)
 
@@ -284,13 +290,13 @@ class EpisodeSelectorTest(SelectorTestCase):
             s('True Detective S02E04 HDTV x264-ASAP', type='episode', language='eng-us'),
             s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
         ]
-        spec = exts.QuerySpec('test', kind='episode', series='true detective', quality='720p', language='eng-us')
+        spec = selector.QuerySpec('test', kind='episode', series='true detective', quality='720p', language='eng-us')
         app = testapp.TestApp({
-            'extensions.queries.episode.enabled': True,
-            'extensions.filters.sourcefields.enabled': True,
-            'extensions.filters.episodefields.enabled': True,
-            'extensions.filters.quality.enabled': True,
-            'extensions.sorters.basic': True
+            'plugin.episodequery.enabled': True,
+            'plugin.sourcefilters.enabled': True,
+            'plugin.episodefilters.enabled': True,
+            'plugin.qualityfilter.enabled': True,
+            'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
         matches = app.selector.matches(spec)
