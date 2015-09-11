@@ -202,10 +202,6 @@ class QuerySpec(utils.InmutableDict):
 class Filter(extension.Extension):
     HANDLES = ()
 
-    @classmethod
-    def compatible(cls, model, key):
-        return model == cls.APPLIES_TO and key in cls.HANDLES
-
     def __init__(self, app, key, value):
         super().__init__(app)
         self.key = key
@@ -224,9 +220,3 @@ class Filter(extension.Extension):
 class Sorter(extension.Extension):
     def sort(self, sources):
         return sources
-
-    # def selection(self, matches):
-    #     try:
-    #         return matches[0]
-    #     except IndexError:
-    #         return None
