@@ -94,17 +94,17 @@ class Sorter(plugin.Sorter):
         m = {}
 
         for item in items:
-            if item.superitem not in m:
-                m[item.superitem] = []
+            if item.entity not in m:
+                m[item.entity] = []
 
-            m[item.superitem].append(item)
+            m[item.entity].append(item)
 
-        for superitem in m:
-            if superitem is None:
+        for entity in m:
+            if entity is None:
                 continue
 
-            m[superitem] = sorted(
-                m[superitem],
+            m[entity] = sorted(
+                m[entity],
                 key=functools.cmp_to_key(self.cmp_source_health))
 
         return itertools.chain.from_iterable((m[k] for k in m))
