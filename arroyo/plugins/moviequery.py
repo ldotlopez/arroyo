@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from arroyo.plugin import (
-    models,
-    querytools
-)
+from arroyo import plugin
+from arroyo.plugin.tools import query
 
 
-class Query(querytools.HighLevelQuery):
-    HIGH_LEVEL_MODEL = models.Movie
+class Query(query.HighLevelQuery):
+    HIGH_LEVEL_MODEL = plugin.models.Movie
     HIGH_LEVEL_ATTR = 'movie'
-    SELECTION_MODEL = models.MovieSelection
+    SELECTION_MODEL = plugin.models.MovieSelection
 
 
 __arroyo_extensions__ = [
