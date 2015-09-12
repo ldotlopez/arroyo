@@ -5,8 +5,8 @@ from arroyo.plugin.tools import query
 
 
 class Query(query.HighLevelQuery):
-    HIGH_LEVEL_MODEL = plugin.models.Movie
-    HIGH_LEVEL_ATTR = 'movie'
+    ENTITY_MODEL = plugin.models.Movie
+    ENTITY_ATTR = 'movie'
     SELECTION_MODEL = plugin.models.MovieSelection
 
 

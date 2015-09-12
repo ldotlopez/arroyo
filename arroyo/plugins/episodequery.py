@@ -5,8 +5,8 @@ from arroyo.plugin.tools import query
 
 
 class Query(query.HighLevelQuery):
-    HIGH_LEVEL_MODEL = plugin.models.Episode
-    HIGH_LEVEL_ATTR = 'episode'
+    ENTITY_MODEL = plugin.models.Episode
+    ENTITY_ATTR = 'episode'
     SELECTION_MODEL = plugin.models.EpisodeSelection
 
 
