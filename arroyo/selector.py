@@ -50,17 +50,17 @@ class Selector:
         return sorted(
             ret,
             key=lambda x: -sys.maxsize
-            if x.superitem is None else x.superitem.id)
+            if x.entity is None else x.entity.id)
 
     def sort(self, items):
         sorter = self.app.get_extension(
             Sorter,
             self.app.settings.get('selector.sorter', 'basic'))
 
-        groups = itertools.groupby(items, lambda src: src.superitem)
+        groups = itertools.groupby(items, lambda src: src.entity)
 
         ret = []
-        for (superitem, group) in groups:
+        for (entity, group) in groups:
             ret += list(sorter.sort(group))
 
         return ret
@@ -72,10 +72,10 @@ class Selector:
 
         query = self.matches(spec, everything=False)
 
-        groups = itertools.groupby(query, lambda src: src.superitem)
+        groups = itertools.groupby(query, lambda src: src.entity)
 
         ret = []
-        for (superitem, group) in groups:
+        for (entity, group) in groups:
             r = iter(sorter.sort(group))
             ret.append(next(r))
 

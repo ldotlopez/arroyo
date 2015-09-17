@@ -116,7 +116,7 @@ class Source(Base):
         return ret
 
     @hybrid_property
-    def superitem(self):
+    def entity(self):
         return (
             self.episode or
             self.movie

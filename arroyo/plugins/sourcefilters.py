@@ -1,8 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import plugin
-from arroyo.plugin import filtertools
-models = plugin.models
+from arroyo.plugin.tools import filter
 
 
 import functools
@@ -21,7 +20,7 @@ class Filter(plugin.Filter):
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    APPLIES_TO = models.Source
+    APPLIES_TO = plugin.models.Source
     HANDLES = _strs + _nums + ['since']
 
     def alter_query(self, q):
@@ -49,8 +48,8 @@ class Filter(plugin.Filter):
         elif self.key in self._nums:
             _convert_value(float)
 
-        return filtertools.alter_query_for_model_attr(
-            q, models.Source, self.key, self.value)
+        return filter.alter_query_for_model_attr(
+            q, plugin.models.Source, self.key, self.value)
 
 
 __arroyo_extensions__ = [

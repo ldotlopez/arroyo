@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from arroyo.plugin import (
-    models,
-    querytools
-)
+from arroyo import plugin
+from arroyo.plugin.tools import query
 
 
-class Query(querytools.HighLevelQuery):
-    HIGH_LEVEL_MODEL = models.Episode
-    HIGH_LEVEL_ATTR = 'episode'
-    SELECTION_MODEL = models.EpisodeSelection
+class Query(query.HighLevelQuery):
+    ENTITY_MODEL = plugin.models.Episode
+    ENTITY_ATTR = 'episode'
+    SELECTION_MODEL = plugin.models.EpisodeSelection
 
 
 __arroyo_extensions__ = [

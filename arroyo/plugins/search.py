@@ -88,9 +88,9 @@ class SearchCommand(plugin.Command):
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=spec.name, n_results=len(matches)))
 
-            grouper = itertools.groupby(matches, lambda src: src.superitem)
-            for (superitem, group) in grouper:
-                print('+ {}'.format(superitem or 'Ungroupped'))
+            grouper = itertools.groupby(matches, lambda src: src.entity)
+            for (entity, group) in grouper:
+                print('+ {}'.format(entity or 'Ungroupped'))
                 print(fmt_grp('|-', (x.__str__(fmt=src_fmt) for x in group)))
 
 
