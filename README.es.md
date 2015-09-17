@@ -41,12 +41,12 @@ El comando 'import' acepta las siguientes opciones:
 
 El comando 'import' puede usar el archivo de configuracion para obtener los parámetros anteriores. Para ello se pueden definir una o varias secciones siguendo el siguiente esquema. (Únicamente el parámetro 'backend' es obligatorio)
 
-<pre>
+```
 [source.nombre]
 backend = kickass
 url = http://kat.cr/usearch/category:tv
 type = episode
-</pre>
+```
 
 Para que el comando 'import' importe todas las páginas especificadas en las secciones 'source' del archivo de configuración se ha de usar la siguiente linea de comandos:
 
@@ -65,9 +65,9 @@ En este ejemplo hemos buscado todo el material cuyo nombre contenga la palabra "
 
 El comando 'search' necesita uno o varios parametros '-f' que definen que filtros se utilzan en la búsqueda. Tras aplicar todos los filtros sumistrados sobre la base de datos mostrará los resultados.
 
-<pre>
+```
 [Insertar output]
-</pre>
+```
 
 Uniendo varios filtros podemos definir nuestras búsquedas automáticas:
 
@@ -98,13 +98,13 @@ Pasaría a ser:
 
 Del mismo modo que el comando 'import' puede usar el archivo de configuración, el comando 'download' puede usar una o varias consultas definidas en el archivo de configuración usando el siguiente esquema de sección:
 
-<pre>
+```
 [query.the big bang (es) 720]
 kind = episode
 series = the big bang theory
 quality = 720p
 language = es-ES
-</pre>
+```
 
 Para que el comando 'download' aplique estas consultas y comience a descargar el material correspondiente se ha de usar la siguiente linea de comandos:
 
