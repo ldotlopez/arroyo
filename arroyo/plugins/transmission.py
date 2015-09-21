@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import plugin
-from arroyo.plugin import downloadstools
+from arroyo.plugin.tools import downloads
 models = plugin.models
 
 from urllib import parse
