@@ -62,7 +62,7 @@ class TransmissionDownloader(plugin.Downloader):
             raise plugin.exc.BackendError(msg)
 
     def add(self, source, **kwargs):
-        sha1_urn = downloadstools.calculate_urns(source.urn)[0]
+        sha1_urn = downloads.calculate_urns(source.urn)[0]
 
         if sha1_urn in self._shield:
             self._logger.warning('Avoid duplicate')
@@ -105,7 +105,7 @@ class TransmissionDownloader(plugin.Downloader):
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-        urns = downloadstools.calculate_urns(urn)
+        urns = downloads.calculate_urns(urn)
 
         # Try to match urn in any form
         ret = None
