@@ -31,15 +31,27 @@ def json_filter(d):
 
 
 class SearchView(MethodView):
-    def get(self, offset=0, limit=100):
+    def get(self):
         d = request.args.to_dict()
+
+        try:
+            limit = int(d.pop('limit', 10))
+        except ValueError:
+            limit = 10
+
+        try:
+            page = int(d.pop('page', 0))
+        except ValueError:
+            page = 0
+
         if not d:
             return []
 
-        qspec = selector.QuerySpec('foo', **request.args.to_dict())
+        start = limit * page
+        stop = start + limit
 
-        res = g.app.selector.select(qspec)
-        res = itertools.islice(res, offset, offset + limit)
+        res = g.app.selector.matches(selector.QuerySpec('foo', **d), sort=True)
+        res = itertools.islice(res, start, stop)
         res = [json_filter(x.as_dict()) for x in res]
 
         return res
