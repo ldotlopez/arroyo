@@ -1,62 +1,49 @@
-import os
-from werkzeug.contrib.fixers import ProxyFix
+from arroyo import plugin
 
-from flask import redirect, url_for, g
-from flask.ext.api import FlaskAPI
-
-from arroyo import (
-    exts
-)
-
-from . import blueprints
+from flask import g
+from . import webapp
 
 
-def create_app(api, **kwargs):
-    app = FlaskAPI(__name__)
-
-    with app.app_context():
-        # app.config.update(**_config)
-        app.register_blueprint(blueprints.search,
-                               url_prefix='/api/search')
-
-        # app.register_blueprint(blueprints.persons,
-        #                        url_prefix='/api/persons')
-        # app.register_blueprint(blueprints.sections,
-        #                        url_prefix='/api/sections')
-        # app.register_blueprint(blueprints.activities,
-        #                        url_prefix='/api/activities')
-
-    app.wsgi_app = ProxyFix(app.wsgi_app)
-    app.static_folder = os.path.join(os.path.dirname(__file__), 'statics')
-    app.route('/')(lambda: redirect(url_for('static', filename='index.html')))
-
-    return app
-
-
-class WebUICommand(exts.Command):
-    help = 'WebUI'
+class Command(plugin.Command):
     arguments = (
-        exts.argument(
+        plugin.argument(
             '-i', '--interface',
             dest='host',
             default='127.0.0.1',
             help=('App host')
         ),
-        exts.argument(
+        plugin.argument(
             '-p', '--port',
             dest='port',
             default=5000,
             help=('App port')
+        ),
+        plugin.argument(
+            '--debug',
+            dest='debug',
+            default=False,
+            help=('Enabled debug')
         )
     )
 
-    def run(self):
-        server = create_app(self)
+    def run(self, arguments):
+        # Should we patch app's sqlalchemy session?
+        # Session is located at self.app.db._sess
+        # URL is at self.app.db._sess.connection().engine.url
+        # Patch will add the check_same_thread=False parameter to the URL and
+        # replace Arroyo.db._sess object
+
+        server = webapp.WebApp()
 
         @server.before_request
         def before_request():
             g.app = self.app
 
-        server.run(host=self.app.arguments.host,
-                   port=self.app.arguments.port,
-                   debug=True)
+        # @server.after_request
+        # def shutdown_session(response):
+        #     g.app.db.remove()
+        #     return response
+
+        server.run(host=arguments.host,
+                   port=arguments.port,
+                   debug=arguments.debug)

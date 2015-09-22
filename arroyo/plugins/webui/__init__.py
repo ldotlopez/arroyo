@@ -1,5 +1,7 @@
-from .command import WebUICommand
+# -*- coding: utf-8 -*-
+
+from . import command
 
 __arroyo_extensions__ = [
-    ('command', 'webui', WebUICommand)
+    ('webui', command.Command),
 ]
