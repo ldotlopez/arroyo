@@ -1,6 +1,8 @@
+# -*- coding: utf-8 -*-
+
 from arroyo import plugin
 
-from flask import g
+
 from . import webapp
 
 
@@ -33,17 +35,7 @@ class Command(plugin.Command):
         # Patch will add the check_same_thread=False parameter to the URL and
         # replace Arroyo.db._sess object
 
-        server = webapp.WebApp()
-
-        @server.before_request
-        def before_request():
-            g.app = self.app
-
-        # @server.after_request
-        # def shutdown_session(response):
-        #     g.app.db.remove()
-        #     return response
-
+        server = webapp.WebApp(self.app)
         server.run(host=arguments.host,
                    port=arguments.port,
                    debug=arguments.debug)
