@@ -138,7 +138,7 @@ class Source(Base):
 
     @hybrid_property
     def is_active(self):
-        return ~self.state.in_((Source.State.NONE, Source.State.ARCHIVED))
+        return self.state not in [Source.State.NONE, Source.State.ARCHIVED]
 
     #
     # Type property
