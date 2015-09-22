@@ -38,7 +38,7 @@ class Selector:
         if self.app.settings.get('auto-import'):
             self.app.importer.import_query_spec(query.spec)
 
-    def matches(self, spec, everything=False):
+    def matches(self, spec, everything=False, sort=False):
         msg = "Search matches for spec: {spec}"
         msg = msg.format(spec=str(spec))
         self.app.logger.debug(msg)
@@ -47,10 +47,13 @@ class Selector:
         self._auto_import(query)
         ret = query.matches(everything)
 
-        return sorted(
-            ret,
-            key=lambda x: -sys.maxsize
-            if x.entity is None else x.entity.id)
+        if sort:
+            return sorted(
+                ret,
+                key=lambda x: -sys.maxsize
+                if x.entity is None else x.entity.id)
+        else:
+            return ret
 
     def sort(self, items):
         sorter = self.app.get_extension(

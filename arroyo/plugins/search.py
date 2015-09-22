@@ -83,7 +83,8 @@ class SearchCommand(plugin.Command):
 
         for spec in specs:
             matches = list(self.app.selector.matches(spec,
-                                                     everything=all_states))
+                                                     everything=all_states,
+                                                     sort=True))
 
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=spec.name, n_results=len(matches)))
