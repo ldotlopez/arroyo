@@ -188,13 +188,17 @@ class Source(Base):
             name=self.name)
 
     def __iter__(self):
-        keys = (
-            'id name uri type language created last_seen seeds leechers size '
-            'provider state state_name state_symbol share_ratio').split(' ')
-        keys += [k for k in vars(self) if k[0] != '_']
+        keys = ('age created entity episode episode_id id is_active ' +
+                'language last_seen leechers movie movie_id name provider  ' +
+                'seeds share_ratio size state state_symbol tags type type ' +
+                'uri urn').split()
 
-        for k in set(keys):
+        for k in keys:
             yield (k, getattr(self, k))
+
+        # if self.entity:
+        #     yield ('entity', self.entity.__class__.__name__.lower())
+        #     yield ('entity_id', self.entity.id)
 
     def __lt__(self, other):
         return self.id.__lt__(other.id)
