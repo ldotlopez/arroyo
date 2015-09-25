@@ -224,6 +224,38 @@ class Source(Base):
         return self._SYMBOL_TABLE.get(self.state, ' ')
 
 
+class Selection(Base):
+    __tablename__ = 'selection'
+
+    id = Column(Integer, primary_key=True)
+    type = Column(String(50))
+
+    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
+                       nullable=False)
+    source = relationship("Source")
+
+
+class EpisodeSelection(Selection):
+    episode_id = Column(Integer,
+                        ForeignKey('episode.id', ondelete="CASCADE"),
+                        nullable=True)
+    episode = relationship("Episode",
+                           backref=backref("selection",
+                                           cascade="all, delete",
+                                           uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'episode'
+    }
+
+    def __repr__(self):
+        fmt = '<EpisodeSelection {id} episode:{episode} <-> source:{source}'
+        return fmt.format(
+            id=self.id,
+            episode=self.episode.__repr__(),
+            source=self.source.__repr__())
+
+
 class Episode(Base):
     __tablename__ = 'episode'
     __table_args__ = (
@@ -239,6 +271,8 @@ class Episode(Base):
     # guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
     number = Column(Integer, nullable=False)
+
+    SELECTION_MODEL = EpisodeSelection
 
     @staticmethod
     def from_data(series, season, number, **kwargs):
@@ -286,6 +320,27 @@ class Episode(Base):
         return {k: v for (k, v) in self}
 
 
+class MovieSelection(Selection):
+    movie_id = Column(Integer,
+                      ForeignKey('movie.id', ondelete="CASCADE"),
+                      nullable=True)
+    movie = relationship("Movie",
+                         backref=backref("selection",
+                                         cascade="all, delete",
+                                         uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'movie'
+    }
+
+    def __repr__(self):
+        fmt = '<MovieSelection {id} movie:{movie} <-> source:{source}'
+        return fmt.format(
+            id=self.id,
+            movie=self.movie.__repr__(),
+            source=self.source.__repr__())
+
+
 class Movie(Base):
     __tablename__ = 'movie'
     __table_args__ = (
@@ -296,6 +351,8 @@ class Movie(Base):
 
     title = Column(String, nullable=False)
     year = Column(Integer, nullable=True)
+
+    SELECTION_MODEL = MovieSelection
 
     @staticmethod
     def from_data(title, **kwargs):
@@ -337,59 +394,6 @@ class Movie(Base):
 
     def as_dict(self):
         return {k: v for (k, v) in self}
-
-
-class Selection(Base):
-    __tablename__ = 'selection'
-
-    id = Column(Integer, primary_key=True)
-    type = Column(String(50))
-
-    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
-                       nullable=False)
-    source = relationship("Source")
-
-
-class EpisodeSelection(Selection):
-    episode_id = Column(Integer,
-                        ForeignKey('episode.id', ondelete="CASCADE"),
-                        nullable=True)
-    episode = relationship("Episode",
-                           backref=backref("selection",
-                                           cascade="all, delete",
-                                           uselist=False))
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'episode'
-    }
-
-    def __repr__(self):
-        fmt = '<EpisodeSelection {id} episode:{episode} <-> source:{source}'
-        return fmt.format(
-            id=self.id,
-            episode=self.episode.__repr__(),
-            source=self.source.__repr__())
-
-
-class MovieSelection(Selection):
-    movie_id = Column(Integer,
-                      ForeignKey('movie.id', ondelete="CASCADE"),
-                      nullable=True)
-    movie = relationship("Movie",
-                         backref=backref("selection",
-                                         cascade="all, delete",
-                                         uselist=False))
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'movie'
-    }
-
-    def __repr__(self):
-        fmt = '<MovieSelection {id} movie:{movie} <-> source:{source}'
-        return fmt.format(
-            id=self.id,
-            movie=self.movie.__repr__(),
-            source=self.source.__repr__())
 
 
 def _check_language(lang):

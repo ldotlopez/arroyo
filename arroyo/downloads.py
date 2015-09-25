@@ -41,6 +41,14 @@ class Downloads:
             self.backend.add(src)
             src.state = models.Source.State.INITIALIZING
 
+            if src.entity:
+
+                if src.entity.selection:
+                    self.app.db.session.delete(src.entity.selection)
+
+                src.entity.selection = \
+                    src.entity.SELECTION_MODEL(source=src)
+
         self.app.db.session.commit()
         for src in sources:
             self.app.signals.send('source-state-change', source=src)
