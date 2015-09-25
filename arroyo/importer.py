@@ -376,7 +376,7 @@ class Origin(extension.Extension):
         """
         now = utils.now_timestamp()
 
-        deprecated_warn = False
+        deprecated_warn = True
 
         def fix_data(psrc):
             nonlocal deprecated_warn
@@ -439,7 +439,7 @@ class Origin(extension.Extension):
         ret = map(fix_data, ret)
         ret = filter(filter_incomplete, ret)
 
-        return list(ret)
+        return ret
 
     def paginate_by_query_param(self, url, key, default=1):
         def alter_param(k, v):
