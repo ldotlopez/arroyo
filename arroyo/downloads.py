@@ -72,8 +72,9 @@ class Downloads:
                 continue
 
     def get_translations(self):
-        """Build a dict with bidirectional mapping between
-        know sources and backend objects.
+        """
+        Build a dict with bidirectional mapping between
+        known sources and backend objects.
         """
         table = {}
         for dler_item in self.backend.list():
