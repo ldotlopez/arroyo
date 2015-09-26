@@ -439,7 +439,7 @@ class Origin(extension.Extension):
         ret = map(fix_data, ret)
         ret = filter(filter_incomplete, ret)
 
-        return ret
+        return list(ret)
 
     def paginate_by_query_param(self, url, key, default=1):
         def alter_param(k, v):
