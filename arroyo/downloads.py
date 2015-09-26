@@ -84,7 +84,7 @@ class Downloads:
             if not source:
                 msg = "Unrelated item found: '{item}'"
                 msg = msg.format(item=dler_item)
-                self.logger.warning(msg)
+                self.logger.debug(msg)
                 continue
 
             assert source not in table
