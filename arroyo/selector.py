@@ -34,55 +34,50 @@ class Selector:
 
         return self.app.get_extension(Query, spec.get('kind'), spec=spec)
 
-    def _auto_import(self, query):
-        if self.app.settings.get('auto-import'):
-            self.app.importer.import_query_spec(query.spec)
+    def matches(self, spec, everything=False):
+        """
+        Returns an iterable with sources matching QuerySpec spec
+        TODO: explain everything argument
+        """
+        if not isinstance(spec, QuerySpec):
+            raise TypeError('spec is not a QuerySpec')
 
-    def matches(self, spec, everything=False, sort=False):
         msg = "Search matches for spec: {spec}"
         msg = msg.format(spec=str(spec))
         self.app.logger.debug(msg)
 
         query = self.get_query_for_spec(spec)
         self._auto_import(query)
-        ret = query.matches(everything)
 
-        if sort:
-            return sorted(
-                ret,
-                key=lambda x: -sys.maxsize
-                if x.entity is None else x.entity.id)
-        else:
-            return ret
+        yield from query.matches(everything=everything)
 
-    def sort(self, items):
+    def sort(self, matches):
         sorter = self.app.get_extension(
             Sorter,
             self.app.settings.get('selector.sorter', 'basic'))
 
-        groups = itertools.groupby(items, lambda src: src.entity)
+        return sorter.sort(matches)
 
-        ret = []
+    def select_single(self, matches):
+        return next(self.sort(matches))
+
+    def select(self, matches):
+        # Sort matches by entity
+        matches = sorted(
+            matches,
+            key=lambda x: -sys.maxsize
+            if x.entity is None else x.entity.id)
+
+        groups = itertools.groupby(matches, lambda src: src.entity)
         for (entity, group) in groups:
-            ret += list(sorter.sort(group))
+            if entity is None:
+                yield from group
+            else:
+                yield self.select_single(group)
 
-        return ret
-
-    def select(self, spec):
-        sorter = self.app.get_extension(
-            Sorter,
-            self.app.settings.get('selector.sorter', 'basic'))
-
-        query = self.matches(spec, everything=False)
-
-        groups = itertools.groupby(query, lambda src: src.entity)
-
-        ret = []
-        for (entity, group) in groups:
-            r = iter(sorter.sort(group))
-            ret.append(next(r))
-
-        return ret
+    def _auto_import(self, query):
+        if self.app.settings.get('auto-import'):
+            self.app.importer.import_query_spec(query.spec)
 
     def get_filters(self, models, params):
         table = {}

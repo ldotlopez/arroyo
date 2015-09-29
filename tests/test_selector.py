@@ -257,7 +257,9 @@ class EpisodeSelectorTest(SelectorTestCase):
         for src in srcs:
             src.state = models.Source.State.NONE
         spec = selector.QuerySpec('test', kind='episode', series='game of thrones', quality='hdtv')
-        for src in self.app.selector.select(spec):
+        matches = self.app.selector.matches(spec)
+        srcs = self.app.selector.select(matches)
+        for src in self.app.selector.select(srcs):
             src.episode.selection = models.EpisodeSelection(source=src)
 
         # Check or queryspec again
@@ -299,7 +301,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
-        matches = app.selector.matches(spec)
+        matches = list(app.selector.matches(spec))
         self.assertEqual(len(matches), 4)
 
         sort = app.selector.sort(matches)

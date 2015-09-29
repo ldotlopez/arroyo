@@ -5,6 +5,7 @@ from arroyo import plugin
 
 import itertools
 import re
+import sys
 
 
 from ldotcommons import utils
@@ -55,8 +56,8 @@ class SearchCommand(plugin.Command):
         keywords = args.keywords
 
         if all([filters, keywords]):
-            raise plugin.exc.ArgumentError('Filters and keywords are mutually '
-                                    'exclusive')
+            msg = 'Filters and keywords are mutually exclusive'
+            raise plugin.exc.ArgumentError(msg)
 
         if keywords:
             self.app.settings.delete('query')
@@ -82,15 +83,34 @@ class SearchCommand(plugin.Command):
                    "{name}")
 
         for spec in specs:
-            matches = list(self.app.selector.matches(spec,
-                                                     everything=all_states,
-                                                     sort=True))
+            # Get matches
+            matches = self.app.selector.matches(spec,
+                                                everything=all_states)
 
+            # Sort matches by entity ID
+            matches = sorted(
+                matches,
+                key=lambda x: -sys.maxsize
+                if x.entity is None else x.entity.id)
+
+            # Group by entity
+            groups = itertools.groupby(
+                matches,
+                lambda x: x.entity)
+
+            # Unfold groups
+            groups = ((grp, list(srcs)) for (grp, srcs) in groups)
+
+            # Order by entity str
+            groups = sorted(
+                groups,
+                key=lambda x: str(x[0]).lower() if x[0] else '')
+
+            # Finally print
             msg = "== Search '{label}: {n_results} result(s)'"
             print(msg.format(label=spec.name, n_results=len(matches)))
 
-            grouper = itertools.groupby(matches, lambda src: src.entity)
-            for (entity, group) in grouper:
+            for (entity, group) in groups:
                 print('+ {}'.format(entity or 'Ungroupped'))
                 print(fmt_grp('|-', (x.__str__(fmt=src_fmt) for x in group)))
 

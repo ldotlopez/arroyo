@@ -92,7 +92,8 @@ class DownloadCommand(plugin.Command):
 
         elif query:
             spec = plugin.QuerySpec('command-line', **query)
-            srcs = self.app.selector.select(spec)
+            matches = self.app.selector.matches(spec)
+            srcs = self.app.selector.select(matches)
             for src in srcs:
                 if not dry_run:
                     self.app.downloads.add(src)
@@ -102,7 +103,8 @@ class DownloadCommand(plugin.Command):
         elif from_queries:
             specs = self.app.selector.get_queries_specs()
             for spec in specs:
-                srcs = self.app.selector.select(spec)
+                matches = self.app.selector.matches(spec)
+                srcs = self.app.selector.select(matches)
                 if srcs is None:
                     msg = "No selection for {query}"
                     msg = msg.format(query=query)
