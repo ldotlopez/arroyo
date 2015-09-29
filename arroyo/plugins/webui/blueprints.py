@@ -50,7 +50,8 @@ class SearchView(MethodView):
         start = limit * page
         stop = start + limit
 
-        res = g.app.selector.matches(selector.QuerySpec('foo', **d), sort=True)
+        res = g.app.selector.matches(selector.QuerySpec('foo', **d))
+        res = sorted(res, key=lambda x: x.id)
         res = itertools.islice(res, start, stop)
         res = [json_filter(x.as_dict()) for x in res]
 
