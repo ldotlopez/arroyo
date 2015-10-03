@@ -134,7 +134,7 @@ class Tpb(plugin.Origin):
                 'name': row.findAll('a')[2].text,
                 'uri': row.findAll('a')[3]['href'],
                 'size': size,
-                'created': utils.now_timestamp(),
+                'created': created,  # utils.now_timestamp(),
                 'seeds': int(row.findAll('td')[-2].text),
                 'leechers': int(row.findAll('td')[-1].text)
             }
