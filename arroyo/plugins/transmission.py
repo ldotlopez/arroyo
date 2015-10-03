@@ -131,6 +131,10 @@ class TransmissionDownloader(plugin.Downloader):
                     self._logger.error(msg)
                     ret = by_state.first()
                     break
+                else:
+                    msg = ("Unable to rescue invalid state. Multiple sources "
+                           "found, fix this.")
+                    self._logger.error(msg)
 
             except orm.exc.NoResultFound:
                 pass
