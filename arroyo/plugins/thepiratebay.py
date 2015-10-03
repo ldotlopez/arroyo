@@ -11,6 +11,7 @@ import time
 
 import bs4
 import feedparser
+import humanfriendly
 from ldotcommons import utils
 
 
@@ -19,8 +20,6 @@ class Tpb(plugin.Origin):
 
     TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
     BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=TLD)
-
-    _SIZE_TABLE = {'K': 10 ** 3, 'M': 10 ** 6, 'G': 10 ** 9}
 
     def paginate(self, url):
         if not url.endswith('/'):
@@ -119,10 +118,10 @@ class Tpb(plugin.Origin):
         def parse_row(row):
             details = row.select('font.detDesc')[0].text
 
-            (amount, suffix) = re.findall(r'([0-9\.]+)\s([GMK])iB',
-                                          details,
-                                          re.IGNORECASE)[0]
-            size = int(float(amount) * self._SIZE_TABLE[suffix])
+            size = re.findall(r'([0-9\.]+\s*[GMK]i?B)',
+                              details,
+                              re.IGNORECASE)[0]
+            size = humanfriendly.parse_size(size)
 
             try:
                 desc = row.select('.detDesc')[0].text

@@ -8,6 +8,7 @@ from urllib import parse
 
 
 import bs4
+import humanfriendly
 from ldotcommons import utils
 
 
@@ -15,13 +16,6 @@ class KickAss(plugin.Origin):
     _BASE_DOMAIN = 'kat.cr'
     BASE_URL = 'http://{}/new/?page=1'.format(_BASE_DOMAIN)
     PROVIDER_NAME = 'kickass'
-
-    _SIZE_TABLE = {
-        'KB': 10 ** 3,
-        'MB': 10 ** 6,
-        'GB': 10 ** 9,
-        'TB': 10 ** 12
-    }
 
     _TYPES = {
         'movies': 'movie',
@@ -88,13 +82,8 @@ class KickAss(plugin.Origin):
 
             try:
                 size = row.select('td')[1].text.replace(' ', '')
-                size = re.search(
-                    r'([0-9\.]+)\s*([a-z]*)',
-                    size,
-                    re.IGNORECASE)
-                amount = float(size.group(1))
-                mod = self._SIZE_TABLE.get(size.group(2).upper(), 1)
-                size = int(amount * mod)
+                size = humanfriendly.parse_size(size)
+
             except (IndexError, ValueError):
                 size = None
 
