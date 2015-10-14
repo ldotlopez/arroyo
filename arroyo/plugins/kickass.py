@@ -67,7 +67,6 @@ class KickAss(plugin.Origin):
         if not q:
             return
 
-        import ipdb; ipdb.set_trace(); pass
         return ('http://{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
                     domain=self._BASE_DOMAIN,
