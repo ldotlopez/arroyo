@@ -171,7 +171,9 @@ class DownloadQueriesCronTask(cron.CronTask):
     def run(self):
         specs = self.app.selector.get_queries_specs()
         for spec in specs:
-            srcs = self.app.selector.select(spec)
+            matches = self.app.selector.matches(spec)
+            srcs = self.app.selector.select(matches)
+
             if srcs is None:
                 continue
 
