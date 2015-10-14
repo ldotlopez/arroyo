@@ -33,14 +33,30 @@ class KickAss(plugin.Origin):
 
     def get_query_url(self, query):
         selector = query.get('kind')
+
         if selector == 'episode':
-            catstr = '%20category:tv'
-            q = query.get('series', '')
+            series = query.get('series')
+            if not series:
+                return
+
+            q = '{} category:tv'.format(series)
+
+            season = query.get('season')
+            if season:
+                q += ' season:{}'.format(season)
+
+            episode = query.get('episode')
+            if episode:
+                q += ' episode:{}'.format(episode)
+
         elif selector == 'movie':
-            catstr = '%20category:movies'
-            q = query.get('title', '')
+            title = query.get('title', '')
+            if not title:
+                return
+
+            q = '{} category:movies'.format(title)
+
         else:
-            catstr = ''
             q = query.get('name') or \
                 query.get('name-glob') or \
                 query.get('name-like') or \
@@ -51,11 +67,11 @@ class KickAss(plugin.Origin):
         if not q:
             return
 
-        return ('http://{domain}/usearch/{q}{catstr}/?'
+        import ipdb; ipdb.set_trace(); pass
+        return ('http://{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
                     domain=self._BASE_DOMAIN,
-                    q=parse.quote(q),
-                    catstr=catstr)
+                    q=parse.quote(q))
 
     def process_buffer(self, buff):
         """
