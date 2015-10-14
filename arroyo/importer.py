@@ -457,6 +457,8 @@ class Origin(extension.Extension):
 
         parsed = parse.urlparse(url)
         qsl = parse.parse_qsl(parsed.query)
+        if key not in [x[0] for x in qsl]:
+            qsl = qsl + [(key, default)]
 
         while True:
             qsl = [alter_param(*x) for x in qsl]

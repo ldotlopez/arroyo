@@ -101,7 +101,11 @@ class TestKickass(TestOrigin, unittest.TestCase):
         # Index at 7
         'http://kat.cr/usearch?foo=bar&page=8&lol=wow':
             ['http://kat.cr/usearch?foo=bar&page={}&lol=wow'.format(i)
-             for i in range(8, 17)]
+             for i in range(8, 17)],
+
+        'http://kat.cr/usearch/category%3Atv%200sec/?page=1':
+            ['http://kat.cr/usearch/category%3Atv%200sec/?page={}'.format(i)
+             for i in range(1, 5)]
     }
     URL_TESTS = [
         (r'http://kat.cr/usearch/category%3Atv%200sec/', 25)
