@@ -6,7 +6,7 @@ Arroyo is an automatic multimedia-multilingual download manager.
 How does it work
 =============
 
-Arroyo draws the magnet links found in a set of user-defined URLs, analyzing and extracting information from them, and stores them in a database.
+Arroyo extracts the magnet links found in a set of user-defined URLs, analyzing and extracting information from them, and stores them in a database.
 
 Subsequently, based on a set of criteria defined by the user and selects the corresponding links and downloads them.
 
