@@ -69,7 +69,7 @@ _plugins = [
     'mockdownloader', 'transmission',
 
     # Filters
-    'sourcefilters', 'episodefilters', 'moviefilters', 'qualityfilter',
+    'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
     # Origins
     'eztv', 'kickass', 'spanishtracker', 'thepiratebay',

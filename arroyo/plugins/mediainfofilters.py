@@ -31,7 +31,7 @@ GuessIt found: {
 """
 
 
-class Filter(plugin.Filter):
+class QualityFilter(plugin.Filter):
     APPLIES_TO = models.Source
     HANDLES = ('quality',)
 
@@ -66,6 +66,20 @@ class Filter(plugin.Filter):
 
         return is_match
 
+
+class CodecFilter(plugin.Filter):
+    APPLIES_TO = models.Source
+    HANDLES = ('codec',)
+
+    def __init__(self, app, key, value):
+        super().__init__(app, key, value.lower())
+
+    def filter(self, item):
+        return \
+            self.value == item.tag_dict.get('mediainfo.videoCodec', '').lower()
+
+
 __arroyo_extensions__ = [
-    ('quality', Filter)
+    ('quality', QualityFilter),
+    ('codec', CodecFilter)
 ]

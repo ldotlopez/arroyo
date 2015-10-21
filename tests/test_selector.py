@@ -148,12 +148,12 @@ class SourceSelectorTest(SelectorTestCase):
             name_glob='*game.of.thrones*', language='esp-es')
 
 
-class QualityFilterTest(SelectorTestCase):
+class MediainfoFiltersTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
             'plugin.sourcequery.enabled': True,
             'plugin.episodequery.enabled': True,
-            'plugin.qualityfilter.enabled': True
+            'plugin.mediainfofilters.enabled': True
         })
 
     def test_quality(self):
@@ -178,6 +178,29 @@ class QualityFilterTest(SelectorTestCase):
             hdtv,
             quality='hdtv')
 
+    def test_codec(self):
+        xvid = [
+            testapp.mock_source('The.Big.Bang.Theory.S09E05.HDTV.XviD-FUM[ettv]', type='episode')
+        ]
+        x264 = [
+            testapp.mock_source('The.Last.Man.On.Earth.S02E04.HDTV.x264-KILLERS[ettv]', type='episode')
+        ]
+        srcs = xvid + x264
+        self.app.insert_sources(*srcs)
+        self.app.mediainfo.process(*srcs)  # Force mediainfo processing
+
+        self.assertQuery(
+            [],
+            codec='foo')
+
+        self.assertQuery(
+            xvid,
+            codec='xvid')
+
+        self.assertQuery(
+            x264,
+            codec='h264')
+
 
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
@@ -185,7 +208,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.episodequery.enabled': True,
             'plugin.sourcefilters.enabled': True,
             'plugin.episodefilters.enabled': True,
-            'plugin.qualityfilter.enabled': True,
+            'plugin.mediainfofilters.enabled': True,
             'plugin.basicsorter.enabled': True
         })
 
@@ -297,7 +320,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.episodequery.enabled': True,
             'plugin.sourcefilters.enabled': True,
             'plugin.episodefilters.enabled': True,
-            'plugin.qualityfilter.enabled': True,
+            'plugin.mediainfofilters.enabled': True,
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
