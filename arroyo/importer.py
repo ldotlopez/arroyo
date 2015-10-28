@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
+import asyncio
 from urllib import parse
 
-
+import aiohttp
 from ldotcommons import fetchers, utils
-
 
 import arroyo.exc
 from arroyo import cron, extension, models
@@ -152,6 +152,20 @@ class Importer:
 
         sources = []
         errors = {}
+
+        tasks = list(origin.get_tasks())
+        loop = asyncio.get_event_loop()
+        done, pending = loop.run_until_complete(asyncio.wait(tasks))
+        assert len(pending) == 0
+
+        import ipdb; ipdb.set_trace(); pass
+        return
+
+        # Collect protosources from origins
+        for psrc in origin.get_data():
+            print(repr(psrc))
+
+        return
 
         for url in origin.get_urls():
             msg = "{name} {iteration}/{iterations}: {url}"
@@ -332,8 +346,6 @@ class Origin(extension.Extension):
             msg = 'origin_spec and query_spec are mutually exclusive'
             raise ValueError(msg)
 
-        self._iteration = 0
-
         if origin_spec:
             self._name = origin_spec['name']
             self._url = origin_spec['url'] or self.BASE_URL
@@ -350,10 +362,6 @@ class Origin(extension.Extension):
             self._overrides = {}
 
     @property
-    def iteration(self):
-        return self._iteration
-
-    @property
     def iterations(self):
         return self._iterations
 
@@ -361,14 +369,28 @@ class Origin(extension.Extension):
         if not self._url:
             return
 
-        iterations = max(1, self._iterations)
+        iters = max(1, self._iterations)
+
         g = self.paginate(self._url)
-        while self._iteration < iterations:
-            self._iteration += 1
-            yield next(g)
+        return (next(g) for x in range(iters))
 
     def get_query_url(self, query):
         return
+
+    @asyncio.coroutine
+    def fetch(self, url):
+        print("Fetch", url, "in async mode")
+
+        headers = self.app.settings.get_tree('async-fetcher.headers')
+        with aiohttp.ClientSession(headers=headers) as client:
+            resp = yield from client.get(url)
+            text = yield from resp.text()
+
+        return text
+
+    def get_tasks(self):
+        return (asyncio.Task(self.process_buffer(self.fetch(url)))
+                for url in self.get_urls())
 
     def process(self, buff):
         """

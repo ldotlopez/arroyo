@@ -41,6 +41,8 @@ _defaults = {
     'user-agent':
         'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
     'fetcher': 'urllib',
+    'async-fetcher.headers.User-Agent':
+        'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
     'fetcher.urllib.cache': True,
     'fetcher.urllib.cache-delta': 60 * 20
 }
