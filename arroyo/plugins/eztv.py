@@ -72,7 +72,7 @@ class Eztv(plugin.Origin):
         except (StopIteration, KeyError):
             return None
 
-    def process_buffer(self, buff):
+    def parse(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos

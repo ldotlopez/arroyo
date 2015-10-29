@@ -63,7 +63,7 @@ class Tpb(plugin.Origin):
                    tld=self.TLD,
                    q=q)
 
-    def process_buffer(self, buff):
+    def parse(self, buff):
         now = utils.now_timestamp()
         now_dt = datetime.now()
         now_dt = dict(

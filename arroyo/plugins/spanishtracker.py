@@ -66,7 +66,7 @@ class Spanishtracker(plugin.Origin):
             category=catstr,
             q=q)
 
-    def process_buffer(self, buff):
+    def parse(self, buff):
         def parse_row(row):
             fields = row.findChildren('td')
 

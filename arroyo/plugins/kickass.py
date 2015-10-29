@@ -72,7 +72,7 @@ class KickAss(plugin.Origin):
                     domain=self._BASE_DOMAIN,
                     q=parse.quote(q))
 
-    def process_buffer(self, buff):
+    def parse(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos

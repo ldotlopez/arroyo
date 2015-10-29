@@ -41,10 +41,12 @@ _defaults = {
     'user-agent':
         'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
     'fetcher': 'urllib',
+    'fetcher.urllib.cache': True,
+    'fetcher.urllib.cache-delta': 60 * 20,
     'async-fetcher.headers.User-Agent':
         'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
-    'fetcher.urllib.cache': True,
-    'fetcher.urllib.cache-delta': 60 * 20
+    'async-max-concurrency': 5,
+    'async-timeout': 10
 }
 
 _defaults_types = {
@@ -57,7 +59,9 @@ _defaults_types = {
     'user-agent': str,
     'fetcher': str,
     'fetcher.urllib.cache': bool,
-    'fetcher.urllib.cache-delta': int
+    'fetcher.urllib.cache-delta': int,
+    'async-max-concurrency': int,
+    'async-timeout': int
 }
 
 #

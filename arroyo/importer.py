@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import asyncio
+from itertools import chain
 from urllib import parse
 
 import aiohttp
@@ -150,22 +151,100 @@ class Importer:
         - 'sources-updated-batch',
         """
 
+        def chunks(it, size):
+            """
+            Generator function.
+            Yields slices with "size"  elements from it iterable.
+            Last slice could have less elements.
+            """
+            while True:
+                ret = []
+                for x in range(size):
+                    try:
+                        ret.append(next(it))
+                    except StopIteration:
+                        if ret:
+                            yield ret
+                        return
+
+                yield ret
+
+        # First collect all tasks from origin.
+        # Tasks are run in small chunks (async-max-concurrency setting) to
+        # avoid remote server saturation.
+        # Tasks have a timeout (async-timeout setting), after which they are
+        # canceled.
+        # TODO: collect all tasks from *all* origins?
+
+        max_tasks = self.app.settings.get('async-max-concurrency')
+        timeout = self.app.settings.get('async-timeout')
+
+        tasks = list(origin.get_tasks())
+        n_tasks = len(tasks)
+
+        loop = asyncio.get_event_loop()
+
+        done = []
+
+        for itr, chunk in enumerate(chunks(iter(tasks), max_tasks)):
+            msg = "Running tasks from {start}-{end}/{total}"
+            msg = msg.format(
+                start=(itr * max_tasks) + 1,
+                end=min((itr + 1) * max_tasks, n_tasks),
+                total=n_tasks)
+            self.app.logger.info(msg)
+
+            future = asyncio.wait(chunk, timeout=timeout)
+            tmp, pending = loop.run_until_complete(future)
+
+            for task in pending:
+                task.cancel()
+
+            done += tmp
+
+        # With all tasks done or canceled we collect results into a big
+        # chain object, while  errors are displayed thru logger
+
+        results = []
+        for task in done:
+            if not task.done():
+                msg = "{task} is not done"
+                msg = msg.format(task=str(task))
+                self.app.logger.warning(msg)
+                continue
+
+            try:
+                url, tmp = task.result()
+                results.append(tmp)
+            except Exception as e:
+                self.app.logger.error(str(e))
+
+        results = chain.from_iterable(results)
+
+        # Now comes the real deal.
+        # We must check which data corresponds to new sources and which to
+        # updated sources.
+
+        # Rearrange data into a dict (urn->list[data])
+        tmp = {}
+        for r in results:
+            urn = r['urn']
+            if urn in tmp:
+                tmp[urn].append(r)
+            else:
+                tmp[urn] = [r]
+
+        results = tmp
+        import ipdb; ipdb.set_trace(); pass
+        return
+
         sources = []
         errors = {}
 
-        tasks = list(origin.get_tasks())
-        loop = asyncio.get_event_loop()
-        done, pending = loop.run_until_complete(asyncio.wait(tasks))
-        assert len(pending) == 0
-
-        import ipdb; ipdb.set_trace(); pass
-        return
 
         # Collect protosources from origins
         for psrc in origin.get_data():
             print(repr(psrc))
-
-        return
 
         for url in origin.get_urls():
             msg = "{name} {iteration}/{iterations}: {url}"
@@ -336,7 +415,7 @@ class Origin(extension.Extension):
         implements
 
     This class also contains some helper methods for child classes, check docs
-    or code for more information
+    or code for more information.
     """
 
     def __init__(self, app, origin_spec=None, query_spec=None):
@@ -365,7 +444,18 @@ class Origin(extension.Extension):
     def iterations(self):
         return self._iterations
 
+    def get_tasks(self):
+        """
+        Returns the list of async tasks needed.
+        In almost every case tasks represent an async fetch from some URL
+        """
+        return (asyncio.Task(self.process(url))
+                for url in self.get_urls())
+
     def get_urls(self):
+        """
+        Generator that provides URLs from origin
+        """
         if not self._url:
             return
 
@@ -374,12 +464,43 @@ class Origin(extension.Extension):
         g = self.paginate(self._url)
         return (next(g) for x in range(iters))
 
+    def paginate_by_query_param(self, url, key, default=1):
+        """
+        Utility generator for easy pagination
+        """
+        def alter_param(k, v):
+            if k == key:
+                try:
+                    v = int(v) + 1
+                except ValueError:
+                    v = default
+
+                v = str(v)
+
+            return k, v
+
+        yield url
+
+        parsed = parse.urlparse(url)
+        qsl = parse.parse_qsl(parsed.query)
+        if key not in [x[0] for x in qsl]:
+            qsl = qsl + [(key, default)]
+
+        while True:
+            qsl = [alter_param(*x) for x in qsl]
+            yield parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path,
+                                    parsed.params,
+                                    parse.urlencode(qsl, doseq=True),
+                                    parsed.fragment))
+
     def get_query_url(self, query):
         return
 
     @asyncio.coroutine
     def fetch(self, url):
-        print("Fetch", url, "in async mode")
+        msg = "Fetching {url}…"
+        msg = msg.format(url=url)
+        self.app.logger.debug(msg)
 
         headers = self.app.settings.get_tree('async-fetcher.headers')
         with aiohttp.ClientSession(headers=headers) as client:
@@ -388,11 +509,26 @@ class Origin(extension.Extension):
 
         return text
 
-    def get_tasks(self):
-        return (asyncio.Task(self.process_buffer(self.fetch(url)))
-                for url in self.get_urls())
+    @asyncio.coroutine
+    def process(self, url):
+        """
+        Coroutine that fetches and parses an URL
+        """
+        buff = yield from self.fetch(url)
+        ret = self.parse(buff)
 
-    def process(self, buff):
+        # import ipdb; ipdb.set_trace(); pass
+
+        # TODO: Fix and normalize data
+
+        ret = self._normalize_source_data(ret)
+        ret = filter(lambda x: x is not None, ret)
+        return ret
+
+    def _normalize_source_data(self, data):
+        return data
+
+    def __parse(self, buff):
         """
         Get protosources from origin. Integrity of collected data is guaranteed
         """
@@ -462,32 +598,6 @@ class Origin(extension.Extension):
         ret = filter(filter_incomplete, ret)
 
         return list(ret)
-
-    def paginate_by_query_param(self, url, key, default=1):
-        def alter_param(k, v):
-            if k == key:
-                try:
-                    v = int(v) + 1
-                except ValueError:
-                    v = default
-
-                v = str(v)
-
-            return k, v
-
-        yield url
-
-        parsed = parse.urlparse(url)
-        qsl = parse.parse_qsl(parsed.query)
-        if key not in [x[0] for x in qsl]:
-            qsl = qsl + [(key, default)]
-
-        while True:
-            qsl = [alter_param(*x) for x in qsl]
-            yield parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path,
-                                    parsed.params,
-                                    parse.urlencode(qsl, doseq=True),
-                                    parsed.fragment))
 
     def __repr__(self):
         return "<%s (%s)>" % (
