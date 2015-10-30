@@ -5,9 +5,8 @@ from itertools import chain
 from urllib import parse
 
 import aiohttp
-from ldotcommons import fetchers, utils
+from ldotcommons import utils
 
-import arroyo.exc
 from arroyo import downloads, cron, extension, models
 
 
@@ -151,24 +150,6 @@ class Importer:
         - 'sources-updated-batch',
         """
 
-        def chunks(it, size):
-            """
-            Generator function.
-            Yields slices with "size"  elements from it iterable.
-            Last slice could have less elements.
-            """
-            while True:
-                ret = []
-                for x in range(size):
-                    try:
-                        ret.append(next(it))
-                    except StopIteration:
-                        if ret:
-                            yield ret
-                        return
-
-                yield ret
-
         # First collect all tasks from origin.
         # Tasks are run in small chunks (async-max-concurrency setting) to
         # avoid remote server saturation.
@@ -179,14 +160,14 @@ class Importer:
         max_tasks = self.app.settings.get('async-max-concurrency')
         timeout = self.app.settings.get('async-timeout')
 
-        tasks = list(origin.get_tasks())
+        tasks = list(origin.prepare_async_processes())
         n_tasks = len(tasks)
 
         loop = asyncio.get_event_loop()
 
         done = []
 
-        for itr, chunk in enumerate(chunks(iter(tasks), max_tasks)):
+        for itr, chunk in enumerate(utils.ichunks(iter(tasks), max_tasks)):
             msg = "Running tasks from {start}-{end}/{total}"
             msg = msg.format(
                 start=(itr * max_tasks) + 1,
@@ -304,98 +285,6 @@ class Importer:
         self.app.db.session.commit()
         return ret
 
-        sources = []
-        errors = {}
-
-        # Collect protosources from origins
-        for psrc in origin.get_data():
-            print(repr(psrc))
-
-        for url in origin.get_urls():
-            msg = "{name} {iteration}/{iterations}: {url}"
-            self._logger.debug(msg.format(
-                name=origin.PROVIDER_NAME,
-                iteration=origin.iteration,
-                iterations=origin.iterations,
-                url=url))
-            errors[url] = None
-
-            try:
-                buff = self.app.fetcher.fetch(url)
-            except fetchers.FetchError as e:
-                msg = 'Unable to retrieve {url}: {msg}'
-                msg = msg.format(url=url, msg=e)
-                self._logger.warning(msg)
-                errors[url] = e
-                continue
-
-            try:
-                srcs = origin.process(buff)
-            except arroyo.exc.ProcessException as e:
-                msg = "Unable to process '{url}': {error}"
-                msg = msg.format(url=url, error=e)
-                self._logger.error(msg)
-                errors[url] = e
-                continue
-
-            if not srcs:
-                msg = "No sources found in '{url}'"
-                msg = msg.format(url=url)
-                self._logger.warning(msg)
-                continue
-
-            msg = "Found {n} source(s) in '{url}'"
-            msg = msg.format(n=len(srcs), url=url)
-            self._logger.info(msg)
-
-            sources += srcs
-
-        ret = {
-            'added-sources': [],
-            'updated-sources': [],
-            'errors': errors
-        }
-
-        now = utils.now_timestamp()
-
-        for src in sources:
-            obj, created = self.app.db.get_or_create(models.Source,
-                                                     urn=src['urn'])
-
-            # Override obj's properties with src properties
-            for key in src:
-                # …except for 'created'
-                # Some origins report created timestamps from heuristics,
-                # variable or fuzzy data that is degraded over time.
-                # For these reason we keep the first 'created' data as the most
-                # fiable
-                if key == 'created' and \
-                   obj.created is not None and \
-                   obj.created < src['created']:
-                    continue
-
-                setattr(obj, key, src[key])
-
-            obj.last_seen = now
-
-            if created:
-                self.app.db.session.add(obj)
-
-            signal_name = 'source-added' if created else 'source-updated'
-            self.app.signals.send(signal_name, source=obj)
-
-            batch_key = 'added-sources' if created else 'updated-sources'
-            ret[batch_key].append(obj)
-
-        self.app.signals.send('sources-added-batch',
-                              sources=ret['added-sources'])
-        self.app.signals.send('sources-updated-batch',
-                              sources=ret['updated-sources'])
-
-        self.app.db.session.commit()
-
-        return ret
-
     def import_origin_spec(self, origin_spec):
         origin = self.get_origin_for_origin_spec(origin_spec)
         return self.import_origin(origin)
@@ -509,12 +398,12 @@ class Origin(extension.Extension):
     def iterations(self):
         return self._iterations
 
-    def get_tasks(self):
+    def prepare_async_processes(self):
         """
         Returns the list of async tasks needed.
         In almost every case tasks represent an async fetch from some URL
         """
-        return (asyncio.Task(self.process(url))
+        return (self.process(url)
                 for url in self.get_urls())
 
     def get_urls(self):
@@ -579,6 +468,10 @@ class Origin(extension.Extension):
         """
         Coroutine that fetches and parses an URL
         """
+        msg = "Fetching «{url}»"
+        msg = msg.format(url=url)
+        self.app.logger.info(msg)
+
         buff = yield from self.fetch(url)
         srcs_data = self.parse(buff)
 
@@ -589,6 +482,7 @@ class Origin(extension.Extension):
         msg = "Found {n_srcs_data} sources in {url}"
         msg = msg.format(n_srcs_data=len(ret), url=url)
         self.app.logger.info(msg)
+
         return ret
 
     def _normalize_source_data(self, data):
@@ -670,77 +564,6 @@ class Origin(extension.Extension):
 
         # Normalize data structure
         return filter(lambda x: x is not None, map(_normalize, data))
-
-    def __parse(self, buff):
-        """
-        Get protosources from origin. Integrity of collected data is guaranteed
-        """
-        now = utils.now_timestamp()
-
-        deprecated_warn = True
-
-        def fix_data(psrc):
-            nonlocal deprecated_warn
-
-            if not isinstance(psrc, dict):
-                return None
-
-            # Apply overrides
-            psrc.update(self._overrides)
-
-            # Trim-down protosrc
-            if 'timestamp' in psrc and not deprecated_warn:
-                msg = ("Provider {provider} is using deprecated field "
-                       "«timestamp»")
-                msg = msg.format(provider=self.PROVIDER_NAME)
-                self.app.logger.warning(msg)
-                deprecated_warn = True
-
-            psrc = {k: psrc.get(k, None) for k in [
-                'name', 'uri', 'created', 'size', 'seeds', 'leechers',
-                'language', 'type'
-            ]}
-
-            # Calculate URN
-            try:
-                psrc['urn'] = parse.parse_qs(
-                    parse.urlparse(psrc['uri']).query)['xt'][-1]
-            except (IndexError, KeyError):
-                return None
-
-            # Check strings fields
-            for k in ['urn', 'name', 'uri']:
-                if not isinstance(psrc[k], str):
-                    return None
-
-            # Fix and check integer fields
-            for k in ['created', 'size', 'seeds', 'leechers']:
-                if not isinstance(psrc[k], int):
-                    try:
-                        psrc[k] = int(psrc[k])
-                    except (TypeError, ValueError):
-                        psrc[k] = None
-
-            # Fix created
-            psrc['created'] = psrc.get('created', None) or now
-
-            psrc['provider'] = self.PROVIDER_NAME
-
-            # All done
-            return psrc
-
-        def filter_incomplete(psrc):
-            if not isinstance(psrc, dict):
-                return False
-
-            needed = ['name', 'uri', 'urn']
-            return all((isinstance(psrc.get(x, None), str) for x in needed))
-
-        ret = self.process_buffer(buff)
-        ret = map(fix_data, ret)
-        ret = filter(filter_incomplete, ret)
-
-        return list(ret)
 
     def __repr__(self):
         return "<%s (%s)>" % (
