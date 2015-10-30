@@ -8,7 +8,7 @@ import aiohttp
 from ldotcommons import fetchers, utils
 
 import arroyo.exc
-from arroyo import cron, extension, models
+from arroyo import downloads, cron, extension, models
 
 
 class Importer:
@@ -213,34 +213,99 @@ class Importer:
                 self.app.logger.warning(msg)
                 continue
 
-            try:
-                url, tmp = task.result()
-                results.append(tmp)
-            except Exception as e:
-                self.app.logger.error(str(e))
+            results.append(task.result())
+
+            # try:
+            #     url, tmp = task.result()
+            #     results.append(tmp)
+            # except Exception as e:
+            #     self.app.logger.error(str(e))
 
         results = chain.from_iterable(results)
 
-        # Now comes the real deal.
-        # We must check which data corresponds to new sources and which to
-        # updated sources.
+        # We handling multiple origins some source-data structures can share
+        # the same URN. This situation isn't easy to solver, for now we assume
+        # that the most recent data is the most accurate.
+        # At the same time we can transform results into a dict for easiest
+        # handling
+        tmp = dict()
+        for src_data in results:
+            k = src_data['urn']
 
-        # Rearrange data into a dict (urn->list[data])
-        tmp = {}
-        for r in results:
-            urn = r['urn']
-            if urn in tmp:
-                tmp[urn].append(r)
-            else:
-                tmp[urn] = [r]
+            if k in tmp and (src_data['created'] < tmp[k]['created']):
+                continue
+
+            tmp[k] = src_data
 
         results = tmp
-        import ipdb; ipdb.set_trace(); pass
-        return
+
+        # Check which sources are created and which ones are updated from data
+        #
+        urns = list(results.keys())
+
+        # Handle existing sources updating properties
+        q = self.app.db.session.query(models.Source)
+        q = q.filter(models.Source.urn.in_(urns))
+        existing_srcs = q.all()
+
+        for src in existing_srcs:
+            src_data = results[src.urn]
+
+            # Override srcs's properties with src_data properties
+            for key in src_data:
+                # …except for 'created'
+                # Some origins report created timestamps from heuristics,
+                # variable or fuzzy data that is degraded over time.
+                # For these reason we keep the first 'created' data as the most
+                # fiable
+                if key == 'created' and \
+                   src.created is not None and \
+                   src.created < src_data['created']:
+                    continue
+
+                setattr(src, key, src_data[key])
+
+        # Handle newly created sources
+        missing_urns = set(urns) - set((x.urn for x in existing_srcs))
+        created_srcs = [models.Source.from_data(**results[urn])
+                        for urn in missing_urns]
+
+        all_srcs = chain(
+            ((x, False) for x in existing_srcs),
+            ((x, True) for x in created_srcs)
+        )
+
+        now = utils.now_timestamp()
+        ret = {
+            'added-sources': [],
+            'updated-sources': [],
+        }
+
+        for src, created in all_srcs:
+            src.last_seen = now
+
+            if created:
+                self.app.db.session.add(src)
+                signal_name = 'source-added'
+                batch_key = 'added-sources'
+            else:
+                signal_name = 'source-updated'
+                batch_key = 'updated-sources'
+
+            self.app.signals.send(signal_name, source=src)
+
+            ret[batch_key].append(src)
+
+        self.app.signals.send('sources-added-batch',
+                              sources=ret['added-sources'])
+        self.app.signals.send('sources-updated-batch',
+                              sources=ret['updated-sources'])
+
+        self.app.db.session.commit()
+        return ret
 
         sources = []
         errors = {}
-
 
         # Collect protosources from origins
         for psrc in origin.get_data():
@@ -515,18 +580,96 @@ class Origin(extension.Extension):
         Coroutine that fetches and parses an URL
         """
         buff = yield from self.fetch(url)
-        ret = self.parse(buff)
+        srcs_data = self.parse(buff)
 
-        # import ipdb; ipdb.set_trace(); pass
+        ret = self._normalize_source_data(srcs_data)
+        if not isinstance(ret, list):
+            ret = list(ret)
 
-        # TODO: Fix and normalize data
-
-        ret = self._normalize_source_data(ret)
-        ret = filter(lambda x: x is not None, ret)
+        msg = "Found {n_srcs_data} sources in {url}"
+        msg = msg.format(n_srcs_data=len(ret), url=url)
+        self.app.logger.info(msg)
         return ret
 
     def _normalize_source_data(self, data):
-        return data
+        now = utils.now_timestamp()
+
+        def _normalize(psrc):
+            if not isinstance(psrc, dict):
+                msg = "Origin «{name}» emits invalid data type: {datatype}"
+                msg = msg.format(name=self.PROVIDER_NAME,
+                                 datatype=str(type(psrc)))
+                self.app.logger.error(msg)
+                return None
+
+            # Insert provider name
+            psrc['provider'] = self.PROVIDER_NAME
+
+            # Apply overrides
+            psrc.update(self._overrides)
+
+            # Check required keys
+            required_keys = set(['provider', 'uri', 'name'])
+            missing_keys = required_keys - set(psrc.keys())
+            if missing_keys:
+                msg = ("Origin «{name}» doesn't provide the required "
+                       "following keys: {missing_keys}")
+                msg = msg.format(name=self.PROVIDER_NAME,
+                                 missing_keys=missing_keys)
+                self.app.logg.error(msg)
+                return None
+
+            # Only those keys are allowed
+            allowed_keys = required_keys.union(set([
+                'created', 'size', 'seeds', 'leechers', 'language', 'type'
+            ]))
+
+            forbiden_keys = [k for k in psrc if k not in allowed_keys]
+            if forbiden_keys:
+                msg = ("Origin «{name}» emits the following invalid "
+                       "properties for its sources: {forbiden_keys}")
+                msg = msg.format(name=psrc['provider'],
+                                 forbiden_keys=forbiden_keys)
+                self.app.logger.warning(msg)
+
+            psrc = {k: psrc.get(k, None) for k in allowed_keys}
+
+            # Check strings fields
+            for k in ['name', 'uri']:
+                if not isinstance(psrc[k], str):
+                    msg = "Origin «{name}» emits invalid {key} value"
+                    msg.format(name=self.PROVIDER_NAME, key=k)
+                    self.app.logger.error(msg)
+                    return None
+
+            # Fix and check integer fields
+            for k in ['created', 'size', 'seeds', 'leechers']:
+                if not isinstance(psrc[k], int):
+                    try:
+                        psrc[k] = int(psrc[k])
+                    except (TypeError, ValueError):
+                        msg = "Origin «{name}» emits invalid {key} value"
+                        msg.format(name=self.PROVIDER_NAME, key=k)
+                        self.app.logger.warning(msg)
+                        psrc[k] = None
+
+            # Calculate URN.
+            # IMPORTANT: URN is **lowercased** and **sha1-encoded**
+            try:
+                qs = parse.urlparse(psrc['uri']).query
+                urn = parse.parse_qs(qs)['xt'][-1]
+                urn = urn.lower()
+                sha1urn, b64urn = downloads.calculate_urns(urn.lower())
+                psrc['urn'] = sha1urn
+            except (IndexError, KeyError):
+                return None
+
+            # Fix created
+            psrc['created'] = psrc.get('created', None) or now
+            return psrc
+
+        # Normalize data structure
+        return filter(lambda x: x is not None, map(_normalize, data))
 
     def __parse(self, buff):
         """
