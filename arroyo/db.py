@@ -24,9 +24,18 @@ class Db:
         # self._sess = sessmaker()
 
         # ldotcommons.sqlalchemy mode
+        # self._sess = ldotsa.create_session(db_uri)
 
         # FIXME: ldotcommons.sqlalchemy.create_session it's not totally safe,
         # review this.
+
+        # Add check_same_thread=False to db_uri.
+        # This is a _hack_ required by the webui plugin.
+        if '?' in db_uri:
+            db_uri += '&check_same_thread=False'
+        else:
+            db_uri += '?check_same_thread=False'
+
         self._sess = ldotsa.create_session(db_uri)
 
     @property
