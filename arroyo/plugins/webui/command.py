@@ -23,6 +23,7 @@ class Command(plugin.Command):
         plugin.argument(
             '--debug',
             dest='debug',
+            action='store_true',
             default=False,
             help=('Enabled debug')
         )
