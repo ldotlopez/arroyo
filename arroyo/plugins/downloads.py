@@ -98,7 +98,7 @@ class DownloadCommand(plugin.Command):
                 if not dry_run:
                     self.app.downloads.add(src)
 
-                self.app.logger.info(str(src))
+                print(str(src))
 
         elif from_queries:
             specs = self.app.selector.get_queries_specs()
@@ -111,7 +111,7 @@ class DownloadCommand(plugin.Command):
                     self.app.logger.warning(msg)
                     continue
 
-                self.app.logger.info(query)
+                print(query)
 
                 for src in srcs:
                     if not dry_run:
