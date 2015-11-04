@@ -44,8 +44,9 @@ class Mediainfo:
         else:
             info = guessit.guess_file_info(source.name)
 
-        # The spanish scene is SO bad doing releases. For this reason we need
-        # to trick guessit to get correct info.
+        # The spanish scene is terrible at naming releases. For this reason we
+        # need to trick guessit to get correct info.
+        #
         # See this:
         #
         # ipdb> pp(guessit.guess_file_info(
