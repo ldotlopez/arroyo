@@ -234,7 +234,8 @@ class Importer:
 
         # Handle existing sources updating properties
         q = self.app.db.session.query(models.Source)
-        q = q.filter(models.Source.urn.in_(urns))
+        if urns:
+            q = q.filter(models.Source.urn.in_(urns))
         existing_srcs = q.all()
 
         for src in existing_srcs:
