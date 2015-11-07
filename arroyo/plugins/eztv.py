@@ -94,7 +94,10 @@ class Eztv(plugin.Origin):
                 return None
 
         soup = bs4.BeautifulSoup(buff, "html.parser")
-        return map(parse_row, soup.select('tr'))
+        ret = map(parse_row, soup.select('tr'))
+        ret = filter(lambda x: x is not None, ret)
+
+        return ret
 
 
 __arroyo_extensions__ = [

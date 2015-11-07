@@ -131,7 +131,7 @@ class Importer:
             Origin, backend,
             origin_spec=origin_spec)
 
-    def import_origin(self, origin):
+    def process(self, *origins):
         """Core function for importer.Importer.
 
         1. Iterate over the URLs produced by origin
@@ -160,7 +160,15 @@ class Importer:
         max_tasks = self.app.settings.get('async-max-concurrency')
         timeout = self.app.settings.get('async-timeout')
 
-        tasks = list(origin.prepare_async_processes())
+        tasks = list(chain.from_iterable(
+            # Addig provider_name to this generator will allow arroyo to select
+            # multiple chunks from multiple providers to allow better
+            # paralelization
+            # [(origin.PROVIDER_NAME, origin.prepare_async_processes())
+            (origin.prepare_async_processes()
+             for origin in origins)
+        ))
+
         n_tasks = len(tasks)
 
         loop = asyncio.get_event_loop()
@@ -204,8 +212,8 @@ class Importer:
 
         results = chain.from_iterable(results)
 
-        # We handling multiple origins some source-data structures can share
-        # the same URN. This situation isn't easy to solver, for now we assume
+        # When handling multiple origins some source-data structures can share
+        # the same URN. This situation isn't easy to solve, for now we assume
         # that the most recent data is the most accurate.
         # At the same time we can transform results into a dict for easiest
         # handling
@@ -285,19 +293,18 @@ class Importer:
         self.app.db.session.commit()
         return ret
 
-    def import_origin_spec(self, origin_spec):
-        origin = self.get_origin_for_origin_spec(origin_spec)
-        return self.import_origin(origin)
+    def process_spec(self, origin_spec):
+        return self.process(
+            self.get_origin_for_origin_spec(origin_spec)
+        )
 
-    def import_query_spec(self, query_spec):
-        origins = self.get_origins_for_query_spec(query_spec)
-        for origin in origins:
-
-            self.import_origin(origin)
+    def process_query(self, query_spec):
+        return self.process(
+            *self.get_origins_for_query_spec(query_spec)
+        )
 
     def run(self):
-        for origin in self.get_origins():
-            self.import_origin(origin)
+        return self.process(*self.get_origins())
 
 
 class OriginSpec(utils.InmutableDict):
@@ -452,10 +459,6 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def fetch(self, url):
-        msg = "Fetching {url}…"
-        msg = msg.format(url=url)
-        self.app.logger.debug(msg)
-
         headers = self.app.settings.get_tree('async-fetcher.headers')
         with aiohttp.ClientSession(headers=headers) as client:
             resp = yield from client.get(url)
@@ -528,24 +531,28 @@ class Origin(extension.Extension):
 
             psrc = {k: psrc.get(k, None) for k in allowed_keys}
 
-            # Check strings fields
-            for k in ['name', 'uri']:
-                if not isinstance(psrc[k], str):
-                    msg = "Origin «{name}» emits invalid {key} value"
-                    msg.format(name=self.PROVIDER_NAME, key=k)
-                    self.app.logger.error(msg)
-                    return None
-
-            # Fix and check integer fields
-            for k in ['created', 'size', 'seeds', 'leechers']:
-                if not isinstance(psrc[k], int):
+            # Check value types
+            checks = [
+                ('name', str),
+                ('uri', str),
+                ('created', int),
+                ('size', int),
+                ('seeds', int),
+                ('leechers', int)
+            ]
+            for k, kt in checks:
+                if (psrc[k] is not None) and (not isinstance(psrc[k], kt)):
                     try:
-                        psrc[k] = int(psrc[k])
+                        psrc[k] = kt(psrc[k])
                     except (TypeError, ValueError):
-                        msg = "Origin «{name}» emits invalid {key} value"
-                        msg.format(name=self.PROVIDER_NAME, key=k)
-                        self.app.logger.warning(msg)
-                        psrc[k] = None
+                        msg = ("Origin «{name}» emits invalid «{key}» value. "
+                               "Expected {expectedtype} (or compatible), got "
+                               "{currtype}")
+                        msg = msg.format(
+                            name=self.PROVIDER_NAME, key=k,
+                            expectedtype=kt, currtype=str(type(psrc[k])))
+                        self.app.logger.error(msg)
+                        return None
 
             # Calculate URN.
             # IMPORTANT: URN is **lowercased** and **sha1-encoded**
