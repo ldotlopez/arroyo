@@ -2,9 +2,11 @@
 
 import base64
 import binascii
+import hashlib
 import re
 from urllib import parse
 
+import bencodepy
 from arroyo import models, extension, cron
 
 
@@ -224,6 +226,43 @@ def is_base32_urn(urn):
     """
 
     return re.match('^urn:(.+?):[A-Z2-7]{32}$', urn, re.IGNORECASE) is not None
+
+
+def magnet_from_torrent_data(torrent_data):
+
+    def flatten(x):
+        if isinstance(x, list):
+            for y in x:
+                yield from flatten(y)
+        else:
+            yield x
+
+    metadata = bencodepy.decode(torrent_data)
+
+    hash_contents = bencodepy.encode(metadata[b'info'])
+    digest = hashlib.sha1(hash_contents).digest()
+    b32hash = base64.b32encode(digest)
+
+    info = {
+        'b32hash':  b32hash.decode('utf-8'),
+        'tr': [x.decode('utf-8') for x in
+               flatten(metadata.get(b'announce-list', []) or
+                       [metadata[b'announce']])],
+        'dn': metadata.get(b'info', {}).get(b'name', b'').decode('utf-8'),
+        'xl': metadata.get(b'info', {}).get(b'length', b'').decode('utf-8')
+    }
+
+    magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(
+        b32hash=info.pop('b32hash'),
+        params=parse.urlencode(info)
+    )
+
+    return magnet
+
+
+def magnet_from_torrent_file(torrent_file):
+    with open(torrent_file, 'rb') as fh:
+        return magnet_from_torrent_data(fh.read())
 
 
 def parse_magnet(magnet_url):
