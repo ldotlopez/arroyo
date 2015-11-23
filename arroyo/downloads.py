@@ -249,8 +249,13 @@ def magnet_from_torrent_data(torrent_data):
                flatten(metadata.get(b'announce-list', []) or
                        [metadata[b'announce']])],
         'dn': metadata.get(b'info', {}).get(b'name', b'').decode('utf-8'),
-        'xl': metadata.get(b'info', {}).get(b'length', b'').decode('utf-8')
+        'xl': metadata.get(b'info', {}).get(b'length')
     }
+    try:
+        info['xl'] = int(info['xl'])
+    except ValueError:
+        del info['xl']
+
 
     magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(
         b32hash=info.pop('b32hash'),
