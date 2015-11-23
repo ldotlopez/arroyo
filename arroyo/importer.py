@@ -370,6 +370,9 @@ class Origin(extension.Extension):
     def get_query_url(self, query):
         return
 
+    def paginate(self, url):
+        yield url
+
     def process(self, buff):
         """
         Get protosources from origin. Integrity of collected data is guaranteed
