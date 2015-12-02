@@ -14,17 +14,17 @@ class AsyncRunner:
         self._running = 0
         self._results = []
         self._exhausted = False
-        # self._loop.set_exception_handler(self.exception_handler)
+        self._loop.set_exception_handler(self.exception_handler)
 
     @property
     def results(self):
         return self._results
 
-    # def exception_handler(self, loop, context):
-    #     e = context['exception']
-    #     print(" ! Got exception:", type(e), e)
-    #     self._running -= 1
-    #     self._feeder()
+    def exception_handler(self, loop, context):
+        e = context['exception']
+        print(" ! Got exception:", type(e), e)
+        self._running -= 1
+        self._feeder()
 
     # Overridable by subclasses
     def handle_result(self, result):
@@ -34,27 +34,23 @@ class AsyncRunner:
     @asyncio.coroutine
     def _coro_wrapper(self, coro):
         # # With an exception handler installed use this:
-        # res = yield from coro
-        # self.handle_result(res)
+        res = yield from coro
+        self.handle_result(res)
+        self._running -= 1
+        self._feeder()
 
-        # But without it use this:
-        try:
-            res = yield from coro
-            self.handle_result(res)
-        except Exception as e:
-            print(" ! Got exception:", type(e), e)
-        finally:
+    def _cancel_future(self, future):
+        if not future.done():
+            print(" ! Cancel")
+            future.cancel()
             self._running -= 1
             self._feeder()
 
-    def _future_cancel(self, future):
-        if not future.done():
-            future.cancel()
-
     def _feeder(self):
+        print(" = ", self._running, self._exhausted)
         while not self._exhausted and (self._running < self._n_tasks):
             try:
-                coro = next(coros)
+                coro = next(self._coros)
                 self._running += 1
                 wrapped_coro = self._coro_wrapper(coro)
                 future = self._loop.create_task(wrapped_coro)
@@ -63,7 +59,7 @@ class AsyncRunner:
 
                 if self._timeout:
                     self._loop.call_later(self._timeout,
-                                          self._future_cancel,
+                                          self._cancel_future,
                                           future)
 
             except StopIteration:
@@ -100,7 +96,7 @@ if __name__ == '__main__':
             else:
                 return '{}:{}'.format(self.name, ret)
 
-    coros = (W(n, fail_prob=0.2).foo() for n in ['A', 'B', 'C', 'D', 'E'])
-    runner = Runner(coros, n_tasks=5, timeout=0.8)
+    coros = (W(n, fail_prob=0.5).foo() for n in ['A', 'B', 'C', 'D', 'E'])
+    runner = AsyncRunner(coros, n_tasks=3, timeout=0.6)
     runner.run()
     print(runner.results)
