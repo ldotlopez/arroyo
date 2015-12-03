@@ -1,117 +1,134 @@
 import asyncio
 import random
+from ldotcommons import logging
 
 
 class AsyncRunner:
-    def __init__(self, coros, timeout=-1, n_tasks=5, loop=None):
+    def __init__(self, coros,
+                 maxtasks=5, timeout=-1,  loop=None,
+                 log_name='async-runner', log_level=logging.logging.CRITICAL):
+
+        self._logger = logging.get_logger(log_name)
+        self._logger.setLevel(log_level)
+
+        self._coros = coros
+        self._maxtasks = maxtasks
+
         if loop is None:
             loop = asyncio.get_event_loop()
+        self._loop = loop
+        self._loop.set_exception_handler(self.exception_handler)
 
         self._timeout = timeout
-        self._coros = coros
-        self._n_tasks = n_tasks
-        self._loop = loop
-        self._running = 0
+
         self._results = []
         self._exhausted = False
-        self._loop.set_exception_handler(self.exception_handler)
+
+    def active_tasks(self):
+        def _is_active(x):
+            return not x.done() and not x.cancelled()
+
+        return [x for x in asyncio.Task.all_tasks(loop=self._loop)
+                if _is_active(x)]
 
     @property
     def results(self):
+        """
+        Contains results from coroutines if a subclass overrides the
+        handle_result method throws a NotImplementedError exception.
+        """
+        if self.__class__.handle_result != AsyncRunner.handle_result:
+            msg = ("{clsname} is subclassing AsyncRunner. "
+                   "{clsname}.result property is disabled")
+            msg = msg.format(clsname=self.__class__.__name__)
+            raise TypeError(msg)
         return self._results
 
+    # Overridable by subclasses
     def exception_handler(self, loop, context):
+        """
+        Exception handling.
+        AsyncRunner.sched_coros must be called before returning.
+        """
         e = context['exception']
-        print(" ! Got exception:", type(e), e)
-        self._running -= 1
-        self._feeder()
+        self._logger.debug(" ! Got exception:", type(e), e)
+        self.sched_coros()
 
     # Overridable by subclasses
     def handle_result(self, result):
-        print(" < Got result:", result)
+        """
+        Handle results from coroutines. If it is overided the results property
+        is disabled.
+        """
+        self._logger.debug(
+            " < Got result: {}".format(result)
+        )
         self._results.append(result)
+
+    def sched_coros(self):
+        """
+        Schedules coroutines to be run in loop
+        """
+        self._loop.call_soon(self._sched_coros)
 
     @asyncio.coroutine
     def _coro_wrapper(self, coro):
         res = yield from coro
         self.handle_result(res)
-        self._running -= 1
         self._feeder()
 
     def _cancel_future(self, future):
         if not future.done():
-            print(" ! Cancel task")
+            self._logger.debug(
+                " ! Cancel task, running: {}".format(len(self.active_tasks()))
+            )
             future.cancel()
-            self._running -= 1
+            self._break = True
             self._feeder()
 
-    def _feeder(self):
-        print(" = ", self._running, self._exhausted)
-        while not self._exhausted and (self._running < self._n_tasks):
+    def _sched_coros(self):
+        self._logger.debug(
+            " = {} {} ".format(len(self.active_tasks()), self._exhausted)
+        )
+
+        while (not self._exhausted and
+               (len(self.active_tasks()) < self._maxtasks)):
             try:
                 coro = next(self._coros)
-                self._running += 1
-                wrapped_coro = self._coro_wrapper(coro)
-                future = self._loop.create_task(wrapped_coro)
-
-                print(" . Feeding another task")
-
-                if self._timeout:
-                    self._loop.call_later(self._timeout,
-                                          self._cancel_future,
-                                          future)
-
             except StopIteration:
-                print(" . Task generator is exahusted")
+                self._logger.debug(
+                    " . Task generator is exahusted"
+                )
                 self._exhausted = True
+                break
 
-        if not self._running and self._exhausted:
+            wrapped_coro = self._coro_wrapper(coro)
+            future = self._loop.create_task(wrapped_coro)
+
+            self._logger.debug(
+                " . Feeding another task"
+            )
+
+            if self._timeout:
+                self._loop.call_later(self._timeout,
+                                      self._cancel_future,
+                                      future)
+
+        if not self.active_tasks() and self._exhausted:
             self._loop.stop()
 
     def run(self):
-        self._loop.call_soon(self._feeder)
+        self._loop.call_soon(self._sched_coros)
         self._loop.run_forever()
 
-if __name__ == '1__main__':
-    """
-    Check whatever or not Task.cancel() raises CancelledError in the coroutine
-    """
+    def stop(self):
+        self._loop.stop()
 
-    loop = asyncio.get_event_loop()
 
-    def exception_handler(loop, ctx):
-        print("Got", type(ctx['exception']))
+class CustomAsyncRunner(AsyncRunner):
+    def handle_result(self, x):
+        print(x)
 
-    @asyncio.coroutine
-    def sleep():
-        print("Sleeping...")
-        try:
-            yield from asyncio.sleep(0.5)
-        except asyncio.CancelledError:
-            print(":(")
-            return
-
-        print("Wake up!")
-        loop.stop()
-
-    @asyncio.coroutine
-    def cancel(fut):
-        yield from asyncio.sleep(0.1)
-        if fut.done():
-            print("Can't cancel a done future")
-        else:
-            print("Cancel!")
-            fut.cancel()
-
-        loop.stop()
-
-    def feed():
-        fut = loop.create_task(sleep())
-        loop.create_task(cancel(fut))
-
-    loop.set_exception_handler(exception_handler)
-    loop.call_soon(feed)
-    loop.run_forever()
 
 if __name__ == '__main__':
     class W:
@@ -137,8 +154,8 @@ if __name__ == '__main__':
             else:
                 return '{}:{}'.format(self.name, ret)
 
-    coros = (W(n, fail_prob=0.1).foo() for n in ['A', 'B', 'C', 'D', 'E'])
+    coros = (W(n, fail_prob=0.6).foo() for n in ['A', 'B', 'C', 'D', 'E'])
     # coros = iter([W('A', sleep=0.8).foo()])
-    runner = AsyncRunner(coros, n_tasks=3, timeout=0.7)
+    runner = AsyncRunner(coros, maxtasks=3, timeout=0.7)
     runner.run()
     print(runner.results)
