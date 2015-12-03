@@ -2,12 +2,23 @@
 
 import asyncio
 from itertools import chain
+import queue
 from urllib import parse
 
 import aiohttp
 from ldotcommons import utils
 
 from arroyo import downloads, cron, extension, models
+
+
+class IterableQueue(queue.Queue):
+    def __iter__(self):
+        while True:
+            try:
+                x = self.get_nowait()
+                yield x
+            except queue.Empty:
+                break
 
 
 class Importer:
@@ -22,6 +33,8 @@ class Importer:
             ns='origin')
 
         self._logger = app.logger.getChild('importer')
+        self._url_queue = IterableQueue()
+
         app.signals.register('source-added')
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')
@@ -131,6 +144,9 @@ class Importer:
             Origin, backend,
             origin_spec=origin_spec)
 
+    def enqueue_url(self, url):
+        self._url_queue.put(url)
+
     def process(self, *origins):
         """Core function for importer.Importer.
 
@@ -159,6 +175,31 @@ class Importer:
 
         max_tasks = self.app.settings.get('async-max-concurrency')
         timeout = self.app.settings.get('async-timeout')
+
+        def my_zip(*iters):
+            online = list(iters)
+
+            while online:
+                tmp = []
+                for i in iters:
+                    try:
+                        yield next(i)
+                        tmp.append(i)
+                    except StopIteration:
+                        pass
+
+                online = tmp
+
+        import pprint
+        self.url_queue = queue.Queue()
+        urls = [o.urls() for o in origins]
+        for u in my_zip(*urls):
+            self.enqueue_url(u)
+
+        import ipdb; ipdb.set_trace(); pass
+
+
+
 
         tasks = list(chain.from_iterable(
             # Addig provider_name to this generator will allow arroyo to select
@@ -412,9 +453,9 @@ class Origin(extension.Extension):
         In almost every case tasks represent an async fetch from some URL
         """
         return (self.process(url)
-                for url in self.get_urls())
+                for url in self.urls())
 
-    def get_urls(self):
+    def urls(self):
         """
         Generator that provides URLs from origin
         """

@@ -33,7 +33,6 @@ class AsyncRunner:
 
     @asyncio.coroutine
     def _coro_wrapper(self, coro):
-        # # With an exception handler installed use this:
         res = yield from coro
         self.handle_result(res)
         self._running -= 1
@@ -41,7 +40,7 @@ class AsyncRunner:
 
     def _cancel_future(self, future):
         if not future.done():
-            print(" ! Cancel")
+            print(" ! Cancel task")
             future.cancel()
             self._running -= 1
             self._feeder()
@@ -73,30 +72,73 @@ class AsyncRunner:
         self._loop.call_soon(self._feeder)
         self._loop.run_forever()
 
+if __name__ == '1__main__':
+    """
+    Check whatever or not Task.cancel() raises CancelledError in the coroutine
+    """
+
+    loop = asyncio.get_event_loop()
+
+    def exception_handler(loop, ctx):
+        print("Got", type(ctx['exception']))
+
+    @asyncio.coroutine
+    def sleep():
+        print("Sleeping...")
+        try:
+            yield from asyncio.sleep(0.5)
+        except asyncio.CancelledError:
+            print(":(")
+            return
+
+        print("Wake up!")
+        loop.stop()
+
+    @asyncio.coroutine
+    def cancel(fut):
+        yield from asyncio.sleep(0.1)
+        if fut.done():
+            print("Can't cancel a done future")
+        else:
+            print("Cancel!")
+            fut.cancel()
+
+        loop.stop()
+
+    def feed():
+        fut = loop.create_task(sleep())
+        loop.create_task(cancel(fut))
+
+    loop.set_exception_handler(exception_handler)
+    loop.call_soon(feed)
+    loop.run_forever()
+
 if __name__ == '__main__':
     class W:
-        def __init__(self, name, fail_prob=0.0):
+        def __init__(self, name, fail_prob=0.0, sleep=None):
             self.name = name
             self.fail_prob = fail_prob
+            self.sleep = sleep or random.randint(1, 10) / 10
 
         @asyncio.coroutine
-        def foo(self):
-            sleep = random.randint(1, 10) / 10
+        def foo(self, sleep=None):
+
             fail = self.fail_prob > (random.randint(1, 10) / 10)
             ret = random.randint(1, 10)
 
             msg = " > Async task {} return={}:{}, sleep={} will_fail={}"
-            msg = msg.format(self.name, self.name, ret, sleep, fail)
+            msg = msg.format(self.name, self.name, ret, self.sleep, fail)
             print(msg)
 
-            yield from asyncio.sleep(sleep)
+            yield from asyncio.sleep(self.sleep)
 
             if fail:
                 raise Exception(self.name)
             else:
                 return '{}:{}'.format(self.name, ret)
 
-    coros = (W(n, fail_prob=0.5).foo() for n in ['A', 'B', 'C', 'D', 'E'])
-    runner = AsyncRunner(coros, n_tasks=3, timeout=0.6)
+    coros = (W(n, fail_prob=0.1).foo() for n in ['A', 'B', 'C', 'D', 'E'])
+    # coros = iter([W('A', sleep=0.8).foo()])
+    runner = AsyncRunner(coros, n_tasks=3, timeout=0.7)
     runner.run()
     print(runner.results)
