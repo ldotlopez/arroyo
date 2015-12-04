@@ -2,23 +2,28 @@
 
 import asyncio
 from itertools import chain
-import queue
 from urllib import parse
 
 import aiohttp
 from ldotcommons import utils
 
+from arroyo import asyncrunner
 from arroyo import downloads, cron, extension, models
 
 
-class IterableQueue(queue.Queue):
-    def __iter__(self):
-        while True:
-            try:
-                x = self.get_nowait()
-                yield x
-            except queue.Empty:
-                break
+# class IterableQueue(queue.Queue):
+#     def __iter__(self):
+#         while True:
+#             try:
+#                 x = self.get_nowait()
+#                 yield x
+#             except queue.Empty:
+#                 break
+
+
+class ImporterRunner(asyncrunner.AsyncRunner):
+    def handle_result(self, result):
+        self.results.extend(result)
 
 
 class Importer:
@@ -33,7 +38,6 @@ class Importer:
             ns='origin')
 
         self._logger = app.logger.getChild('importer')
-        self._url_queue = IterableQueue()
 
         app.signals.register('source-added')
         app.signals.register('source-updated')
@@ -144,9 +148,6 @@ class Importer:
             Origin, backend,
             origin_spec=origin_spec)
 
-    def enqueue_url(self, url):
-        self._url_queue.put(url)
-
     def process(self, *origins):
         """Core function for importer.Importer.
 
@@ -166,100 +167,20 @@ class Importer:
         - 'sources-updated-batch',
         """
 
-        # First collect all tasks from origin.
-        # Tasks are run in small chunks (async-max-concurrency setting) to
-        # avoid remote server saturation.
-        # Tasks have a timeout (async-timeout setting), after which they are
-        # canceled.
         # TODO: collect all tasks from *all* origins?
 
-        max_tasks = self.app.settings.get('async-max-concurrency')
-        timeout = self.app.settings.get('async-timeout')
+        # FIXME: Figure out a more natural way to do this
+        runner = ImporterRunner(
+            maxtasks=5, timeout=10,
+            log_level=self._logger.getEffectiveLevel())
 
-        def my_zip(*iters):
-            online = list(iters)
+        for o in origins:
+            o.get_sources(runner=runner)
+        runner.run()
 
-            while online:
-                tmp = []
-                for i in iters:
-                    try:
-                        yield next(i)
-                        tmp.append(i)
-                    except StopIteration:
-                        pass
-
-                online = tmp
-
-        import pprint
-        self.url_queue = queue.Queue()
-        urls = [o.urls() for o in origins]
-        for u in my_zip(*urls):
-            self.enqueue_url(u)
-
-        import ipdb; ipdb.set_trace(); pass
-
-
-
-
-        tasks = list(chain.from_iterable(
-            # Addig provider_name to this generator will allow arroyo to select
-            # multiple chunks from multiple providers to allow better
-            # paralelization
-            # [(origin.PROVIDER_NAME, origin.prepare_async_processes())
-            (origin.prepare_async_processes()
-             for origin in origins)
-        ))
-
-        n_tasks = len(tasks)
-
-        loop = asyncio.get_event_loop()
-
-        done = []
-
-        for itr, chunk in enumerate(utils.ichunks(iter(tasks), max_tasks)):
-            msg = "Running tasks from {start}-{end}/{total}"
-            msg = msg.format(
-                start=(itr * max_tasks) + 1,
-                end=min((itr + 1) * max_tasks, n_tasks),
-                total=n_tasks)
-            self.app.logger.info(msg)
-
-            future = asyncio.wait(chunk, timeout=timeout)
-            tmp, pending = loop.run_until_complete(future)
-
-            for task in pending:
-                task.cancel()
-
-            done += tmp
-
-        # With all tasks done or canceled we collect results into a big
-        # chain object, while  errors are displayed thru logger
-
-        results = []
-        for task in done:
-            if not task.done():
-                msg = "{task} is not done"
-                msg = msg.format(task=str(task))
-                self.app.logger.warning(msg)
-                continue
-
-            results.append(task.result())
-
-            # try:
-            #     url, tmp = task.result()
-            #     results.append(tmp)
-            # except Exception as e:
-            #     self.app.logger.error(str(e))
-
-        results = chain.from_iterable(results)
-
-        # When handling multiple origins some source-data structures can share
-        # the same URN. This situation isn't easy to solve, for now we assume
-        # that the most recent data is the most accurate.
-        # At the same time we can transform results into a dict for easiest
-        # handling
+        # Remove duplicates
         tmp = dict()
-        for src_data in results:
+        for src_data in runner.results:
             k = src_data['urn']
 
             if k in tmp and (src_data['created'] < tmp[k]['created']):
@@ -421,6 +342,9 @@ class Origin(extension.Extension):
     or code for more information.
     """
 
+    _cls_attrs_initialized = False
+    _runner = None
+
     def __init__(self, app, origin_spec=None, query_spec=None):
         super(Origin, self).__init__(app)
 
@@ -443,17 +367,17 @@ class Origin(extension.Extension):
             self._iterations = 1
             self._overrides = {}
 
+        if not self.__class__._cls_attrs_initialized:
+            self.__class__._cls_attrs_initialized = False
+            self.__class__._runner = asyncrunner.AsyncRunner(
+                maxtasks=self.app.settings.get('async-max-concurrency'),
+                timeout=self.app.settings.get('async-timeout'))
+
+        self._runner = self.__class__._runner
+
     @property
     def iterations(self):
         return self._iterations
-
-    def prepare_async_processes(self):
-        """
-        Returns the list of async tasks needed.
-        In almost every case tasks represent an async fetch from some URL
-        """
-        return (self.process(url)
-                for url in self.urls())
 
     def urls(self):
         """
@@ -498,6 +422,10 @@ class Origin(extension.Extension):
 
     def get_query_url(self, query):
         return
+
+    def get_sources(self, runner):
+        for url in self.urls():
+            runner.sched(self.process(url))
 
     @asyncio.coroutine
     def fetch(self, url):

@@ -1,17 +1,18 @@
 import asyncio
 import random
+import queue
 from ldotcommons import logging
 
 
 class AsyncRunner:
-    def __init__(self, coros,
+    def __init__(self, *coros,
                  maxtasks=5, timeout=-1,  loop=None,
-                 log_name='async-runner', log_level=logging.logging.CRITICAL):
+                 log_name='async-runner', log_level=logging.logging.WARNING):
 
         self._logger = logging.get_logger(log_name)
         self._logger.setLevel(log_level)
 
-        self._coros = coros
+        self._q = queue.Queue()
         self._maxtasks = maxtasks
 
         if loop is None:
@@ -21,8 +22,22 @@ class AsyncRunner:
 
         self._timeout = timeout
 
-        self._results = []
         self._exhausted = False
+
+        self.results = []
+        self.sched(*coros)
+
+    def sched(self, *coros):
+        """
+        Use this method to add coros/task to the AsyncRunner.
+        """
+        for coro in coros:
+            if not asyncio.iscoroutine(coro):
+                msg = "{cls} -> {obj} is not a coroutine. Ignoring"
+                msg = msg.format(cls=type(coro), obj=coro)
+                self._logger.error(msg)
+            else:
+                self._q.put(coro)
 
     def active_tasks(self):
         def _is_active(x):
@@ -31,28 +46,17 @@ class AsyncRunner:
         return [x for x in asyncio.Task.all_tasks(loop=self._loop)
                 if _is_active(x)]
 
-    @property
-    def results(self):
-        """
-        Contains results from coroutines if a subclass overrides the
-        handle_result method throws a NotImplementedError exception.
-        """
-        if self.__class__.handle_result != AsyncRunner.handle_result:
-            msg = ("{clsname} is subclassing AsyncRunner. "
-                   "{clsname}.result property is disabled")
-            msg = msg.format(clsname=self.__class__.__name__)
-            raise TypeError(msg)
-        return self._results
-
     # Overridable by subclasses
     def exception_handler(self, loop, context):
         """
         Exception handling.
-        AsyncRunner.sched_coros must be called before returning.
+        AsyncRunner.feed must be called before returning.
         """
         e = context['exception']
-        self._logger.debug(" ! Got exception:", type(e), e)
-        self.sched_coros()
+        self._logger.warning(
+            " ! Got exception: {} {}".format(type(e), e)
+        )
+        self.feed()
 
     # Overridable by subclasses
     def handle_result(self, result):
@@ -63,19 +67,19 @@ class AsyncRunner:
         self._logger.debug(
             " < Got result: {}".format(result)
         )
-        self._results.append(result)
+        self.results.append(result)
 
-    def sched_coros(self):
+    def feed(self):
         """
         Schedules coroutines to be run in loop
         """
-        self._loop.call_soon(self._sched_coros)
+        self._loop.call_soon(self._feed)
 
     @asyncio.coroutine
     def _coro_wrapper(self, coro):
         res = yield from coro
         self.handle_result(res)
-        self._feeder()
+        self.feed()
 
     def _cancel_future(self, future):
         if not future.done():
@@ -84,9 +88,9 @@ class AsyncRunner:
             )
             future.cancel()
             self._break = True
-            self._feeder()
+            self.feed()
 
-    def _sched_coros(self):
+    def _feed(self):
         self._logger.debug(
             " = {} {} ".format(len(self.active_tasks()), self._exhausted)
         )
@@ -94,8 +98,8 @@ class AsyncRunner:
         while (not self._exhausted and
                (len(self.active_tasks()) < self._maxtasks)):
             try:
-                coro = next(self._coros)
-            except StopIteration:
+                coro = self._q.get_nowait()
+            except queue.Empty:
                 self._logger.debug(
                     " . Task generator is exahusted"
                 )
@@ -109,7 +113,7 @@ class AsyncRunner:
                 " . Feeding another task"
             )
 
-            if self._timeout:
+            if self._timeout > 0:
                 self._loop.call_later(self._timeout,
                                       self._cancel_future,
                                       future)
@@ -118,7 +122,7 @@ class AsyncRunner:
             self._loop.stop()
 
     def run(self):
-        self._loop.call_soon(self._sched_coros)
+        self._loop.call_soon(self._feed)
         self._loop.run_forever()
 
     def stop(self):
@@ -154,8 +158,11 @@ if __name__ == '__main__':
             else:
                 return '{}:{}'.format(self.name, ret)
 
-    coros = (W(n, fail_prob=0.6).foo() for n in ['A', 'B', 'C', 'D', 'E'])
-    # coros = iter([W('A', sleep=0.8).foo()])
-    runner = AsyncRunner(coros, maxtasks=3, timeout=0.7)
+    runner = AsyncRunner(maxtasks=3, timeout=0.7)
+    runner.sched(W('X', fail_prob=0.6).foo())
+    runner.sched(*[
+        W(n, fail_prob=0.6).foo() for n in ['A', 'B', 'C', 'D', 'E']
+    ])
+
     runner.run()
     print(runner.results)
