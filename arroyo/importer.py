@@ -198,7 +198,9 @@ class Importer:
         q = self.app.db.session.query(models.Source)
         if urns:
             q = q.filter(models.Source.urn.in_(urns))
-        existing_srcs = q.all()
+            existing_srcs = q.all()
+        else:
+            existing_srcs = []
 
         for src in existing_srcs:
             src_data = results[src.urn]
