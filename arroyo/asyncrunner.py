@@ -1,17 +1,19 @@
 import asyncio
 import random
 import queue
-from ldotcommons import logging
+
+from ldotcommons import utils
 
 
 class AsyncRunner:
     def __init__(self, *coros,
-                 maxtasks=5, timeout=-1,  loop=None,
-                 log_name='async-runner', log_level=logging.logging.WARNING):
+                 maxtasks=5, timeout=-1, loop=None,
+                 logger=None):
 
-        self._logger = logging.get_logger(log_name)
-        self._logger.setLevel(log_level)
+        if logger is None:
+            logger = utils.Null()
 
+        self._logger = logger
         self._q = queue.Queue()
         self._maxtasks = maxtasks
 
@@ -87,7 +89,6 @@ class AsyncRunner:
                 " ! Cancel task, running: {}".format(len(self.active_tasks()))
             )
             future.cancel()
-            self._break = True
             self.feed()
 
     def _feed(self):

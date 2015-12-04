@@ -4,26 +4,10 @@ import asyncio
 from itertools import chain
 from urllib import parse
 
-import aiohttp
-from ldotcommons import utils
+from ldotcommons import fetchers, utils
 
 from arroyo import asyncrunner
 from arroyo import downloads, cron, extension, models
-
-
-# class IterableQueue(queue.Queue):
-#     def __iter__(self):
-#         while True:
-#             try:
-#                 x = self.get_nowait()
-#                 yield x
-#             except queue.Empty:
-#                 break
-
-
-class ImporterRunner(asyncrunner.AsyncRunner):
-    def handle_result(self, result):
-        self.results.extend(result)
 
 
 class Importer:
@@ -172,7 +156,7 @@ class Importer:
         # FIXME: Figure out a more natural way to do this
         runner = ImporterRunner(
             maxtasks=5, timeout=10,
-            log_level=self._logger.getEffectiveLevel())
+            logger=self.app.logger.getChild('runner'))
 
         for o in origins:
             o.get_sources(runner=runner)
@@ -270,6 +254,20 @@ class Importer:
 
     def run(self):
         return self.process(*self.get_origins())
+
+
+class ImporterRunner(asyncrunner.AsyncRunner):
+    def handle_result(self, result):
+        self.results.extend(result)
+
+    def exception_handler(self, loop, context):
+        self.feed()
+
+        e = context['exception']
+        if isinstance(e, fetchers.aiohttp.ClientOSError):
+            self._logger.error(e)
+        else:
+            raise e
 
 
 class OriginSpec(utils.InmutableDict):
@@ -431,12 +429,13 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def fetch(self, url):
-        headers = self.app.settings.get_tree('async-fetcher.headers')
-        with aiohttp.ClientSession(headers=headers) as client:
-            resp = yield from client.get(url)
-            text = yield from resp.text()
+        fetcher = fetchers.AIOHttpFetcher(enable_cache=True)
+        buff = yield from fetcher.fetch(
+            url,
+            headers=self.app.settings.get_tree('async-fetcher.headers')
+        )
 
-        return text
+        return buff
 
     @asyncio.coroutine
     def process(self, url):
