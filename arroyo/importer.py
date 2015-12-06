@@ -6,7 +6,7 @@ from urllib import parse
 
 from ldotcommons import fetchers, utils
 
-from arroyo import asyncrunner
+from arroyo import asyncscheduler
 from arroyo import downloads, cron, extension, models
 
 
@@ -155,12 +155,16 @@ class Importer:
 
         # FIXME: Figure out a more natural way to do this
         runner = ImporterRunner(
-            maxtasks=5, timeout=10,
-            logger=self.app.logger.getChild('runner'))
+            self.app,
+            maxtasks=self.app.settings.get('async-max-concurrency'),
+            timeout=self.app.settings.get('async-timeout'))
 
         for o in origins:
-            o.get_sources(runner=runner)
+            runner.sched(*o.get_tasks())
+
         runner.run()
+
+        self.app.logger.info('{} results found'.format(len(runner.results)))
 
         # Remove duplicates
         tmp = dict()
@@ -256,18 +260,16 @@ class Importer:
         return self.process(*self.get_origins())
 
 
-class ImporterRunner(asyncrunner.AsyncRunner):
-    def handle_result(self, result):
+class ImporterRunner(asyncscheduler.AsyncScheduler):
+    # def __init__(self, app, *args, **kwargs):
+    #     kwargs['logger'] = app.logger.getChild('runner')
+    #     super().__init__(*args, **kwargs)
+
+    def result_handler(self, result):
         self.results.extend(result)
 
-    def exception_handler(self, loop, context):
-        self.feed()
-
-        e = context['exception']
-        if isinstance(e, fetchers.aiohttp.ClientOSError):
-            self._logger.error(e)
-        else:
-            raise e
+    # def exception_handler(self, loop, ctx):
+    #     self.feed()
 
 
 class OriginSpec(utils.InmutableDict):
@@ -342,9 +344,6 @@ class Origin(extension.Extension):
     or code for more information.
     """
 
-    _cls_attrs_initialized = False
-    _runner = None
-
     def __init__(self, app, origin_spec=None, query_spec=None):
         super(Origin, self).__init__(app)
 
@@ -366,14 +365,6 @@ class Origin(extension.Extension):
             self._url = self.get_query_url(query_spec)
             self._iterations = 1
             self._overrides = {}
-
-        if not self.__class__._cls_attrs_initialized:
-            self.__class__._cls_attrs_initialized = False
-            self.__class__._runner = asyncrunner.AsyncRunner(
-                maxtasks=self.app.settings.get('async-max-concurrency'),
-                timeout=self.app.settings.get('async-timeout'))
-
-        self._runner = self.__class__._runner
 
     @property
     def iterations(self):
@@ -423,16 +414,15 @@ class Origin(extension.Extension):
     def get_query_url(self, query):
         return
 
-    def get_sources(self, runner):
-        for url in self.urls():
-            runner.sched(self.process(url))
+    def get_tasks(self):
+        return [self.process(url) for url in self.urls()]
 
     @asyncio.coroutine
     def fetch(self, url):
         fetcher = fetchers.AIOHttpFetcher(enable_cache=True)
         buff = yield from fetcher.fetch(
             url,
-            headers=self.app.settings.get_tree('async-fetcher.headers')
+            headers=self.app.settings.get_tree('fetcher.options.headers', {})
         )
 
         return buff
