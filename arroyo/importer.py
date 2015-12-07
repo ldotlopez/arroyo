@@ -155,9 +155,9 @@ class Importer:
 
         # FIXME: Figure out a more natural way to do this
         runner = ImporterRunner(
-            self.app,
             maxtasks=self.app.settings.get('async-max-concurrency'),
-            timeout=self.app.settings.get('async-timeout'))
+            timeout=self.app.settings.get('async-timeout'),
+            logger=self.app.logger.getChild('asyncsched'))
 
         for o in origins:
             runner.sched(*o.get_tasks())
@@ -261,15 +261,19 @@ class Importer:
 
 
 class ImporterRunner(asyncscheduler.AsyncScheduler):
-    # def __init__(self, app, *args, **kwargs):
-    #     kwargs['logger'] = app.logger.getChild('runner')
-    #     super().__init__(*args, **kwargs)
-
     def result_handler(self, result):
         self.results.extend(result)
 
-    # def exception_handler(self, loop, ctx):
-    #     self.feed()
+    def exception_handler(self, loop, ctx):
+        msg = 'Exception raised'
+        e = ctx.get('exception')
+        if e:
+            msg += ' {exctype}: {excstr}'
+            msg = msg.format(exctype=type(e), excstr=e)
+
+        self._logger.error(msg)
+
+        self.feed()
 
 
 class OriginSpec(utils.InmutableDict):
