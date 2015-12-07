@@ -269,7 +269,9 @@ class ImporterRunner(asyncscheduler.AsyncScheduler):
         self.results.extend(result)
 
     def exception_handler(self, loop, ctx):
-        msg = 'Exception raised'
+        msg = 'Exception raised: {msg}'
+        msg = msg.format(msg=ctx['message'])
+
         e = ctx.get('exception')
         if e:
             msg += ' {exctype}: {excstr}'
