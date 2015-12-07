@@ -151,16 +151,14 @@ class Importer:
         - 'sources-updated-batch',
         """
 
-        # TODO: collect all tasks from *all* origins?
-
-        # FIXME: Figure out a more natural way to do this
+        # Get, sched and run all tasks from origins
         runner = ImporterRunner(
             maxtasks=self.app.settings.get('async-max-concurrency'),
             timeout=self.app.settings.get('async-timeout'),
             logger=self.app.logger.getChild('asyncsched'))
 
-        for o in origins:
-            runner.sched(*o.get_tasks())
+        for origin in origins:
+            runner.sched(*origin.get_tasks())
 
         runner.run()
 
@@ -423,10 +421,15 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def fetch(self, url):
-        fetcher = fetchers.AIOHttpFetcher(enable_cache=True)
+        s = self.app.settings
+
+        fetcher = fetchers.AIOHttpFetcher(
+            enable_cache=s.get('fetcher.options.enable-cache'),
+            cache_delta=s.get('fetcher.options.cache-delta')
+        )
         buff = yield from fetcher.fetch(
             url,
-            headers=self.app.settings.get_tree('fetcher.options.headers', {})
+            headers=s.get_tree('fetcher.options.headers', {})
         )
 
         return buff

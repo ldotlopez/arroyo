@@ -38,12 +38,10 @@ _defaults = {
     'legacy': False,
     'log-level': 'WARNING',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'user-agent':
-        'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
     'fetcher': 'urllib',
-    'fetcher.urllib.enable-cache': True,
-    'fetcher.urllib.cache-delta': 60 * 20,
-    'async-fetcher.headers.User-Agent':
+    'fetcher.options.enable-cache': True,
+    'fetcher.options.cache-delta': 60 * 20,
+    'fetcher.options.user-agent':
         'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
     'async-max-concurrency': 5,
     'async-timeout': 10
@@ -58,10 +56,11 @@ _defaults_types = {
     'log-format': str,
     'user-agent': str,
     'fetcher': str,
-    'fetcher.urllib.enable-cache': bool,
-    'fetcher.urllib.cache-delta': int,
+    'fetcher.options.enable-cache': bool,
+    'fetcher.options.cache-delta': int,
+    'fetcher.options.user-agent': str,
     'async-max-concurrency': int,
-    'async-timeout': int
+    'async-timeout': float
 }
 
 #
