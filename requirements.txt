@@ -2,25 +2,30 @@
 # Core
 #
 
--e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
-# -e git+https://github.com/ldotlopez/ldotcommons.git@46381be97cdea9f9ffe06fb3d3702b11ac8aa986#egg=ldotcommons
 aiohttp
+bencodepy
 blinker
-guessit
 humanfriendly
+guessit
 sqlalchemy
 
-# 
-# Plugins
+-e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
+# -e git+https://github.com/ldotlopez/ldotcommons.git@46381be97cdea9f9ffe06fb3d3702b11ac8aa986#egg=ldotcommons
+
+#
+# Optional modules
 # 
 
-# Origins
-feedparser
+# Almost all origins
 beautifulsoup4
+feedparser
 
-# Downloaders
+# transmission
 transmissionrpc
 
-# Webui 
+# twitter
+twitter
+
+# webui
 flask
 git+https://github.com/tomchristie/flask-api#egg=Flask-API

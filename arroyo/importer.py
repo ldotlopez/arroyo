@@ -162,8 +162,6 @@ class Importer:
 
         runner.run()
 
-        self.app.logger.info('{} results found'.format(len(runner.results)))
-
         # Remove duplicates
         tmp = dict()
         for src_data in runner.results:
@@ -242,6 +240,14 @@ class Importer:
                               sources=ret['updated-sources'])
 
         self.app.db.session.commit()
+
+        self.app.logger.info('{n} sources created'.format(
+            n=len(ret['added-sources'])
+        ))
+        self.app.logger.info('{n} sources updated'.format(
+            n=len(ret['updated-sources'])
+        ))
+
         return ret
 
     def process_spec(self, origin_spec):

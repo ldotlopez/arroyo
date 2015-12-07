@@ -68,7 +68,7 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(str(src))
+                self.app.logger.info(str(src))
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
@@ -117,7 +117,7 @@ class DownloadCommand(plugin.Command):
                     if not dry_run:
                         self.app.downloads.add(src)
 
-                    print(str(src))
+                    self.app.logger.info(str(src))
 
 
 __arroyo_extensions__ = [
