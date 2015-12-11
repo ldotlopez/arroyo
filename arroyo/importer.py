@@ -451,7 +451,14 @@ class Origin(extension.Extension):
         msg = msg.format(url=url)
         self.app.logger.info(msg)
 
-        buff = yield from self.fetch(url)
+        try:
+            buff = yield from self.fetch(url)
+        except asyncio.CancelledError as e:
+            msg = "Fetch cancelled '{url}' (possibly timeout)"
+            msg = msg.format(url=url)
+            self.app.logger.error(msg)
+            return []
+
         srcs_data = self.parse(buff)
 
         ret = self._normalize_source_data(srcs_data)
