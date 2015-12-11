@@ -77,7 +77,7 @@ class Selector:
 
     def _auto_import(self, query):
         if self.app.settings.get('auto-import'):
-            self.app.importer.import_query_spec(query.spec)
+            self.app.importer.process_query(query.spec)
 
     def get_filters(self, models, params):
         table = {}

@@ -4,10 +4,15 @@ import asyncio
 from itertools import chain
 from urllib import parse
 
+import aiohttp
 from ldotcommons import fetchers, utils
 
 from arroyo import asyncscheduler
 from arroyo import downloads, cron, extension, models
+
+
+class IncompatibleQueryError(Exception):
+    pass
 
 
 class Importer:
@@ -112,6 +117,10 @@ class Importer:
         Returned origins are configured with one iteration.
         """
 
+        msg = "Discovering origins for {query}"
+        msg = msg.format(query=query_spec)
+        self.app.logger.info(msg)
+
         impls = self.app.get_implementations(Origin)
         if not impls:
             msg = ("There are no origin implementations available or none of "
@@ -121,8 +130,19 @@ class Importer:
 
         ret = []
         for (name, impl) in impls.items():
-            origin = impl(self.app, query_spec=query_spec)
-            ret.append(origin)
+            try:
+                origin = impl(self.app, query_spec=query_spec)
+                ret.append(origin)
+                msg = " Found compatible origin '{name}'"
+                msg = msg.format(name=name)
+                self.app.logger.info(msg)
+            except IncompatibleQueryError:
+                pass
+
+        if not ret:
+            msg = "No compatible origins found for {query}"
+            msg = msg.format(query=query_spec)
+            self.app.logger.warning(msg)
 
         return ret
 
@@ -370,11 +390,18 @@ class Origin(extension.Extension):
                 'language': origin_spec['language'],
             }.items() if v is not None}
 
-        else:
+        elif query_spec:
             self._name = 'internal query'
             self._url = self.get_query_url(query_spec)
+
+            if not self._url:
+                raise IncompatibleQueryError(query_spec)
+
             self._iterations = 1
             self._overrides = {}
+
+        else:
+            raise ValueError('None of origin_spec or query_spec is specified')
 
     @property
     def iterations(self):
@@ -453,11 +480,24 @@ class Origin(extension.Extension):
 
         try:
             buff = yield from self.fetch(url)
+
         except asyncio.CancelledError as e:
             msg = "Fetch cancelled '{url}' (possibly timeout)"
             msg = msg.format(url=url)
             self.app.logger.error(msg)
             return []
+
+        except aiohttp.errors.ClientOSError as e:
+            msg = "Client error fetching {url}: {e}"
+            msg = msg.format(url=url, e=e)
+            self.app.logger.error(msg)
+            return []
+
+        except Exception as e:
+            msg = "Unhandled exception {type}: {e}"
+            msg = msg.format(type=type(e), e=e)
+            self.app.logger.critical(msg)
+            raise
 
         srcs_data = self.parse(buff)
 
