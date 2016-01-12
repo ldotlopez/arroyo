@@ -9,7 +9,6 @@ import sys
 
 
 from ldotcommons import utils
-import humanfriendly
 
 
 def fmt_src(src):
@@ -58,7 +57,7 @@ class SearchCommand(plugin.Command):
 
         if all([filters, keywords]):
             msg = 'Filters and keywords are mutually exclusive'
-            raise plugin.exc.ArgumentError(msg)
+            raise plugin.exc.PluginArgumentError(msg)
 
         if keywords:
             self.app.settings.delete('query')
@@ -78,7 +77,7 @@ class SearchCommand(plugin.Command):
         specs = self.app.selector.get_queries_specs()
         if not specs:
             msg = 'One filter or one keyword or one [query.label] is required'
-            raise plugin.exc.ArgumentError(msg)
+            raise plugin.exc.PluginArgumentError(msg)
 
         src_fmt = ("[{state_symbol}] {id} ({seeds}/{leechers}, {language}) "
                    "{name}")

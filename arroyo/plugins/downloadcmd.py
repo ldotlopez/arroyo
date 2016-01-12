@@ -62,9 +62,15 @@ class DownloadCommand(plugin.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        if sum([1 for x in (show, add, remove, from_queries) if x]) > 1:
-            msg = 'Only one action at time is supported'
-            raise plugin.exc.ArgumentError(msg)
+        test = sum([1 for x in (show, add, remove, from_queries) if x])
+
+        if test == 0:
+            msg = "No action specified"
+            raise plugin.exc.PluginArgumentError()
+
+        elif test > 1:
+            msg = "Only one action at time is supported"
+            raise plugin.exc.PluginArgumentError(msg)
 
         if show:
             for src in self.app.downloads.list():

@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+
 class SettingError(Exception):
     def __init__(self, key, value, original=None):
         msg = "Invalid setting '{key}': '{value}'"
@@ -9,6 +10,11 @@ class SettingError(Exception):
         self.key = key
         self.value = value
         self.original = original
+
+
+class PluginArgumentError(Exception):
+    pass
+
 
 #
 # The following exceptions aren't reviewed
@@ -61,14 +67,6 @@ class ProcessException(Exception):
         super(ProcessException, self).__init__()
         self.args = args
         self.kwargs = kwargs
-
-
-class ArgumentError(Exception):
-    def __init__(self, msg, *args, tip=True, **kwargs):
-        if not msg.endswith('.'):
-            msg += "."
-        msg += " Try -h/--help switch for more information"
-        super(ArgumentError, self).__init__(msg, *args, **kwargs)
 
 
 class NoImplementationError(Exception):

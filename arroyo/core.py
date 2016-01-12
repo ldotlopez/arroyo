@@ -68,7 +68,8 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'cron', 'db', 'downloads', 'import', 'mediainfo', 'search',
+    'croncmd', 'dbcmd', 'downloadcmd', 'importcmd', 'mediainfocmd',
+    'searchcmd',
 
     # Downloaders
     'mockdownloader', 'transmission',
@@ -369,7 +370,7 @@ class Arroyo:
             else:
                 try:
                     self._services[cls] = cls(self)
-                except arroyo.exc.ArgumentError as e:
+                except arroyo.exc.PluginArgumentError as e:
                     self.logger.critical(str(e))
 
     def get_implementations(self, extension_point):
@@ -402,11 +403,12 @@ class Arroyo:
             description='valid subcommands',
             help='additional help')
 
+        subparsers = {}
         for (name, cmd) in self.get_implementations(extension.Command).items():
-            command_parser = subparser.add_parser(name, help=cmd.help)
+            subparsers[name] = subparser.add_parser(name, help=cmd.help)
             for argument in cmd.arguments:
                 args, kwargs = argument()
-                command_parser.add_argument(*args, **kwargs)
+                subparsers[name].add_argument(*args, **kwargs)
 
         # Parse arguments
         args = argparser.parse_args(command_line_arguments)
@@ -418,6 +420,11 @@ class Arroyo:
         ext = self.get_extension(extension.Command, args.subcommand)
         try:
             ext.run(args)
+
+        except arroyo.exc.PluginArgumentError as e:
+            subparsers[args.subcommand].print_help()
+            print("\nError message: {}".format(e), file=sys.stderr)
+
         except (arroyo.exc.BackendError,
                 arroyo.exc.NoImplementationError) as e:
             self.logger.critical(e)

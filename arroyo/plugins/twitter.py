@@ -119,7 +119,7 @@ class TwitterNotifierService(plugin.Service):
         except KeyError as e:
             msg = "Missing {ns}.{key} setting"
             msg = msg.format(ns=_SETTINGS_NS, key=e.args[0])
-            raise plugin.exc.ArgumentError(msg)
+            raise plugin.exc.PluginArgumentError(msg)
 
         notify_on = settings.get('notify-on', '')
 

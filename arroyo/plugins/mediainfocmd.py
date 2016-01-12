@@ -27,7 +27,7 @@ class MediainfoCommand(plugin.Command):
 
         if not any([item, all_]):
             msg = 'One of item or all options must be used'
-            raise plugin.ArgumentError(msg)
+            raise plugin.exc.PluginArgumentError(msg)
 
         if item:
             srcs = [self.app.db.get(models.Source, id=item)]

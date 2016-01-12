@@ -37,7 +37,7 @@ class ImportCommand(plugin.Command):
         plugin.argument(
             '--origins',
             dest='from_origins',
-            type=bool,
+            action='store_true',
             default=False,
             help='Use origin definitions')
     )
@@ -46,7 +46,12 @@ class ImportCommand(plugin.Command):
         if arguments.from_origins and arguments.backend:
             msg = ("--origins and --backend options are "
                    "mutually exclusive")
-            raise plugin.exc.ArgumentError(msg)
+            raise plugin.exc.PluginArgumentError(msg)
+
+        if not arguments.from_origins or not arguments.backend:
+            msg = ("At least one of --origins or --backend options must be "
+                   "specified")
+            raise plugin.exc.PluginArgumentError(msg)
 
         if arguments.backend:
             # Delete previous origins
@@ -60,7 +65,8 @@ class ImportCommand(plugin.Command):
                     'origin.command-line.' + k,
                     getattr(arguments, k))
 
-        self.app.importer.run()
+        elif arguments.from_origins:
+            self.app.importer.run()
 
 
 __arroyo_extensions__ = [
