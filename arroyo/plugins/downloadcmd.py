@@ -62,7 +62,7 @@ class DownloadCommand(plugin.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        test = sum([1 for x in (show, add, remove, from_config) if x])
+        test = sum([1 for x in (show, add, remove, query, from_config) if x])
 
         if test == 0:
             msg = "No action specified"
