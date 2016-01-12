@@ -35,10 +35,10 @@ class DownloadCommand(plugin.Command):
             help='filters to apply in key_mod=value form'),
 
         plugin.argument(
-            '--queries',
-            dest='from_queries',
+            '--from-config',
+            dest='from_config',
             action='store_true',
-            help="Download matching sources from queries"),
+            help="Download matching sources from queries defined in config"),
 
         plugin.argument(
             '-n', '--dry-run',
@@ -52,7 +52,7 @@ class DownloadCommand(plugin.Command):
         source_id_add = args.add
         source_id_remove = args.remove
         query = args.query
-        from_queries = args.from_queries
+        from_config = args.from_config
         dry_run = args.dry_run
 
         add, remove, source_id = False, False, False
@@ -62,11 +62,11 @@ class DownloadCommand(plugin.Command):
         if source_id_remove:
             remove, source_id = True, source_id_remove
 
-        test = sum([1 for x in (show, add, remove, from_queries) if x])
+        test = sum([1 for x in (show, add, remove, from_config) if x])
 
         if test == 0:
             msg = "No action specified"
-            raise plugin.exc.PluginArgumentError()
+            raise plugin.exc.PluginArgumentError(msg)
 
         elif test > 1:
             msg = "Only one action at time is supported"
@@ -106,7 +106,7 @@ class DownloadCommand(plugin.Command):
 
                 print(str(src))
 
-        elif from_queries:
+        elif from_config:
             specs = self.app.selector.get_queries_specs()
             for spec in specs:
                 matches = self.app.selector.matches(spec)
@@ -125,6 +125,11 @@ class DownloadCommand(plugin.Command):
 
                     self.app.logger.info(str(src))
 
+        else:
+            # This code should never be reached but keeping it here we will
+            # prevent future mistakes
+            msg = "Incorrect usage"
+            raise plugin.exc.PluginArgumentError(msg)
 
 __arroyo_extensions__ = [
     ('download', DownloadCommand)

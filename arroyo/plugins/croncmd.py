@@ -39,23 +39,24 @@ class CronCommand(plugin.Command):
     )
 
     def run(self, arguments):
-        _list = arguments.list
-        _all = arguments.all
+        list_ = arguments.list
+        all_ = arguments.all
         tasks = arguments.tasks
+        force = arguments.force
 
-        test = sum([1 for x in [_list, _all, tasks] if x])
+        test = sum([1 for x in [list_, all_, tasks] if x])
 
         if test == 0:
-            msg = ("Al least one of '--list', '--all' or '--task' options "
-                   "must be specified")
+            msg = ("One of '--list', '--all' or '--task' options must be "
+                   "specified")
             raise plugin.exc.PluginArgumentError(msg)
 
         if test > 1:
-            msg = ("Only one of '--list', '--all' and '--task' options must "
-                   "be specified")
+            msg = ("Only one of '--list', '--all' and '--task' options can be "
+                   "specified. They are mutually exclusive.")
             raise plugin.exc.PluginArgumentError(msg)
 
-        if arguments.list:
+        if list_:
             impls = self.app.get_implementations(plugin.CronTask)
 
             for (name, impl) in sorted(impls.items(), key=lambda x: x[0]):
@@ -67,15 +68,18 @@ class CronCommand(plugin.Command):
 
                 print(msg)
 
-        elif arguments.all:
-            self.app.cron.run_all(force=arguments.force)
+        elif all_:
+            self.app.cron.run_all(force=force)
 
-        elif arguments.tasks:
-            for name in arguments.tasks:
-                self.app.cron.run(name, arguments.force)
+        elif tasks:
+            for name in tasks:
+                self.app.cron.run(name, force)
 
-        msg = "Incorrect usage"
-        raise plugin.exc.PluginArgumentError(msg)
+        else:
+            # This code should never be reached but keeping it here we will
+            # prevent future mistakes
+            msg = "Incorrect usage"
+            raise plugin.exc.PluginArgumentError(msg)
 
 __arroyo_extensions__ = [
     ('cron', CronCommand),

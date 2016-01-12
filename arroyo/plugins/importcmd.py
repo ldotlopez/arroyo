@@ -35,26 +35,33 @@ class ImportCommand(plugin.Command):
             type=str,
             help='force language of found sources'),
         plugin.argument(
-            '--origins',
-            dest='from_origins',
+            '--from-config',
+            dest='from_config',
             action='store_true',
             default=False,
-            help='Use origin definitions')
+            help='Use origin definitions from configuration')
     )
 
     def run(self, arguments):
-        if arguments.from_origins and arguments.backend:
-            msg = ("--origins and --backend options are "
-                   "mutually exclusive")
+        if arguments.from_config and arguments.backend:
+            msg = ("Only one of --from-config or --backend options can be "
+                   "specified. They are mutually exclusive.")
             raise plugin.exc.PluginArgumentError(msg)
 
-        if not arguments.from_origins or not arguments.backend:
-            msg = ("At least one of --origins or --backend options must be "
-                   "specified")
+        if not arguments.from_config and not arguments.backend:
+            msg = ("One of --from-config or --backend options must "
+                   "be specified")
             raise plugin.exc.PluginArgumentError(msg)
 
         if arguments.backend:
-            # Delete previous origins
+            # d = dict(name='command-line')
+            # d.update({k: getattr(arguments, k)
+            #           for k in ['backend', 'url', 'iterations', 'type',
+            #                     'language']})
+
+            # spec = plugin.OriginSpec(**d)
+            # self.app.importer.process_spec(spec)
+
             if self.app.settings.has_namespace('origin'):
                 self.app.settings.delete('origin')
 
@@ -64,9 +71,16 @@ class ImportCommand(plugin.Command):
                 self.app.settings.set(
                     'origin.command-line.' + k,
                     getattr(arguments, k))
-
-        elif arguments.from_origins:
             self.app.importer.run()
+
+        elif arguments.from_config:
+            self.app.importer.run()
+
+        else:
+            # This code should never be reached but keeping it here we will
+            # prevent future mistakes
+            msg = "Incorrect usage"
+            raise plugin.exc.PluginArgumentError(msg)
 
 
 __arroyo_extensions__ = [

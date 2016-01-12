@@ -56,29 +56,29 @@ class Command(plugin.Command):
         test = [1 for x in (reset, shell, reset_states, archive_all,
                             reset_source_id, archive_source_id) if x]
 
-        msg = None
         if sum(test) == 0:
             msg = "No action specified"
+            raise plugin.exc.PluginArgumentError(msg)
+
         elif sum(test) > 1:
             msg = "Just one option can be specified at one time"
-
-        if msg:
             raise plugin.exc.PluginArgumentError(msg)
 
         if reset:
             self.app.db.reset()
 
-        if reset_states:
+        elif reset_states:
             self.app.db.update_all_states(models.Source.State.NONE)
 
-        if archive_all:
+        elif archive_all:
             self.app.db.update_all_states(models.Source.State.ARCHIVED)
 
-        if shell:
+        elif shell:
             self.app.db.shell()
 
-        source_id = reset_source_id or archive_source_id
-        if source_id:
+        elif reset_source_id or archive_source_id:
+            source_id = reset_source_id or archive_source_id
+
             if reset_source_id:
                 state = models.Source.State.NONE
             else:
@@ -91,10 +91,13 @@ class Command(plugin.Command):
 
             source.state = state
             self.app.db.session.commit()
-            return
 
-        msg = "Incorrect usage"
-        raise plugin.exc.PluginArgumentError(msg)
+        else:
+            # This code should never be reached but keeping it here we will
+            # prevent future mistakes
+            msg = "Incorrect usage"
+            raise plugin.exc.PluginArgumentError(msg)
+
 
 __arroyo_extensions__ = [
     ('db', Command)
