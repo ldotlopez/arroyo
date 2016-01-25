@@ -8,6 +8,7 @@ from urllib import parse
 
 
 import bs4
+import ldotcommons
 
 
 class Eztv(plugin.Origin):
@@ -53,7 +54,14 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
-        buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+        try:
+            buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+        except ldotcommons.fetchers.FetchError as e:
+            msg = "Network error: {message}"
+            msg = msg.format(message=str(e))
+            self.app.logger.error(msg)
+            return
+
         soup = bs4.BeautifulSoup(buff, "html.parser")
 
         series = series.lower()
