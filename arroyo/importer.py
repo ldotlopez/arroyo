@@ -583,7 +583,7 @@ class Origin(extension.Extension):
                 qs = parse.urlparse(psrc['uri']).query
                 urn = parse.parse_qs(qs)['xt'][-1]
                 urn = urn.lower()
-                sha1urn, b64urn = downloads.calculate_urns(urn.lower())
+                sha1urn, b64urn = downloads.calculate_urns(urn)
                 psrc['urn'] = sha1urn
             except (IndexError, KeyError):
                 return None

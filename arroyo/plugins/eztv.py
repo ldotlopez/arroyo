@@ -8,6 +8,7 @@ from urllib import parse
 
 
 import bs4
+import humanfriendly
 import ldotcommons
 
 
@@ -88,11 +89,11 @@ class Eztv(plugin.Origin):
 
         def parse_row(row):
             children = row.findChildren('td')
-            if len(row.findChildren('td')) != 5:
+            if len(row.findChildren('td')) != 6:
                 return None
 
             try:
-                return {
+                ret = {
                     'name': children[1].text.strip(),
                     'uri': children[2].select('a.magnet')[0]['href'],
                     'language': 'eng-us',
@@ -100,6 +101,14 @@ class Eztv(plugin.Origin):
                 }
             except (IndexError, AttributeError):
                 return None
+
+            try:
+                ret['size'] = int(humanfriendly.parse_size(
+                    children[3].text.strip()))
+            except (IndexError, ValueError, humanfriendly.InvalidSize):
+                pass
+
+            return ret
 
         soup = bs4.BeautifulSoup(buff, "html.parser")
         ret = map(parse_row, soup.select('tr'))

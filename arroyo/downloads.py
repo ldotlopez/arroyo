@@ -196,12 +196,14 @@ def calculate_urns(urn):
     prefix, algo, id_ = urn.split(':', 3)
 
     if is_sha1_urn(urn):
-        urn_sha1 = id_
-        urn_base32 = base64.b32encode(binascii.unhexlify(id_)).decode('ascii')
+        urn_sha1 = id_.lower()
+        urn_base32 = base64.b32encode(
+            binascii.unhexlify(urn_sha1)).decode('ascii')
 
     elif is_base32_urn(urn):
-        urn_sha1 = binascii.hexlify(base64.b32decode(id_)).decode('ascii')
-        urn_base32 = id_
+        urn_base32 = id_.upper()
+        urn_sha1 = binascii.hexlify(
+            base64.b32decode(urn_base32)).decode('ascii')
 
     else:
         msg = "Unknow enconding for '{urn}'"
@@ -255,7 +257,6 @@ def magnet_from_torrent_data(torrent_data):
         info['xl'] = int(info['xl'])
     except ValueError:
         del info['xl']
-
 
     magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(
         b32hash=info.pop('b32hash'),
