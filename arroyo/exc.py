@@ -16,6 +16,20 @@ class PluginArgumentError(Exception):
     pass
 
 
+class NetworkError(IOError):
+    def __init__(self, msg, e=None, *args, **kwargs):
+        self.msg = msg
+        self.e = e
+        self.args = args
+        self.kwargs = kwargs
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.msg
+
+
 #
 # The following exceptions aren't reviewed
 #

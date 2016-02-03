@@ -255,7 +255,7 @@ def magnet_from_torrent_data(torrent_data):
     }
     try:
         info['xl'] = int(info['xl'])
-    except ValueError:
+    except (ValueError, TypeError):
         del info['xl']
 
     magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(

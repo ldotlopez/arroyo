@@ -22,6 +22,7 @@ class Importer:
 
     def __init__(self, app):
         self.app = app
+        self._runner = None
         self.app.settings.set_validator(
             self._origin_ns_validator,
             ns='origin')
@@ -152,6 +153,13 @@ class Importer:
             Origin, backend,
             origin_spec=origin_spec)
 
+    def sched(self, *coros):
+        if self._runner is None:
+            msg = "Scheduler is only available during process phase"
+            raise TypeError(msg)
+
+        self._runner.sched(*coros)
+
     def process(self, *origins):
         """Core function for importer.Importer.
 
@@ -172,19 +180,21 @@ class Importer:
         """
 
         # Get, sched and run all tasks from origins
-        runner = ImporterRunner(
+        self._runner = ImporterRunner(
             maxtasks=self.app.settings.get('async-max-concurrency'),
             timeout=self.app.settings.get('async-timeout'),
             logger=self.app.logger.getChild('asyncsched'))
 
         for origin in origins:
-            runner.sched(*origin.get_tasks())
+            self._runner.sched(*origin.get_tasks())
 
-        runner.run()
+        self._runner.run()
+        res = self._runner.results
+        self._runner = None
 
         # Remove duplicates
         tmp = dict()
-        for src_data in runner.results:
+        for src_data in res:
             k = src_data['urn']
 
             if k in tmp and (src_data['created'] < tmp[k]['created']):
@@ -419,6 +429,9 @@ class Origin(extension.Extension):
         g = self.paginate(self._url)
         return (next(g) for x in range(iters))
 
+    def paginate(self, url):
+        yield url
+
     def paginate_by_query_param(self, url, key, default=1):
         """
         Utility generator for easy pagination
@@ -453,6 +466,9 @@ class Origin(extension.Extension):
 
     def get_tasks(self):
         return [self.process(url) for url in self.urls()]
+
+    def push_to_sched(self, *coros):
+        self.app.importer.sched(*coros)
 
     @asyncio.coroutine
     def fetch(self, url):
@@ -536,7 +552,7 @@ class Origin(extension.Extension):
                        "following keys: {missing_keys}")
                 msg = msg.format(name=self.PROVIDER_NAME,
                                  missing_keys=missing_keys)
-                self.app.logg.error(msg)
+                self.app.logger.error(msg)
                 return None
 
             # Only those keys are allowed
