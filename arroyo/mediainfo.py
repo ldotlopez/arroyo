@@ -178,7 +178,12 @@ class Mediainfo:
 
             # Update source.type only if it is unknow
             if src.type is None:
-                src.type = info['type']
+                try:
+                    src.type = info['type']
+                except ValueError:
+                    msg = "Invalid type '{type}' for '{name}'"
+                    msg = msg.format(type=info['type'], name=src)
+                    self._logger.warning(msg)
 
             # Fix language
             # info also contains a country property but doesn't satisfy our
