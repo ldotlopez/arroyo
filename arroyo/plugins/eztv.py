@@ -6,8 +6,8 @@ from arroyo import plugin
 import re
 from urllib import parse
 
-
 import bs4
+from ldotcommons import fetchers
 
 
 class Eztv(plugin.Origin):
@@ -53,7 +53,14 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
-        buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+        try:
+            buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+        except fetchers.FetchError as e:
+            msg = 'Unable to fetch {url}: {msg}'
+            msg = msg.format(url='https://eztv.ch/showlist/', msg=str(e))
+            self.logger.error(msg)
+            return
+
         soup = bs4.BeautifulSoup(buff, "html.parser")
 
         series = series.lower()
