@@ -18,7 +18,8 @@ from ldotcommons import utils
 class Tpb(plugin.Origin):
     PROVIDER_NAME = 'tpb'
 
-    TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    # TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    TLD = 'cr'
     BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=TLD)
 
     def paginate(self, url):
