@@ -6,10 +6,9 @@ from arroyo import plugin
 import re
 from urllib import parse
 
-
 import bs4
 import humanfriendly
-import ldotcommons
+from ldotcommons import fetchers
 
 
 class Eztv(plugin.Origin):
@@ -57,10 +56,10 @@ class Eztv(plugin.Origin):
 
         try:
             buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
-        except ldotcommons.fetchers.FetchError as e:
-            msg = "Network error: {message}"
-            msg = msg.format(message=str(e))
-            self.app.logger.error(msg)
+        except fetchers.FetchError as e:
+            msg = 'Unable to fetch {url}: {msg}'
+            msg = msg.format(url='https://eztv.ch/showlist/', msg=str(e))
+            self.logger.error(msg)
             return
 
         soup = bs4.BeautifulSoup(buff, "html.parser")

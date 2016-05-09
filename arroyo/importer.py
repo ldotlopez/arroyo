@@ -381,6 +381,10 @@ class Origin(extension.Extension):
             msg = 'origin_spec and query_spec are mutually exclusive'
             raise ValueError(msg)
 
+        self.logger = app.logger.getChild(self.PROVIDER_NAME)
+
+        self._iteration = 0
+
         if origin_spec:
             self._name = origin_spec['name']
             self._url = origin_spec['url'] or self.BASE_URL
