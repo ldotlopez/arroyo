@@ -1,5 +1,6 @@
 import re
 import asyncio
+import aiohttp
 from urllib import parse
 from arroyo import plugin
 from arroyo.plugin.tools import downloads
@@ -26,6 +27,7 @@ class Origin(plugin.Origin):
 
     @asyncio.coroutine
     def process(self, url, parser_func):
+        yield from super(Origin, self).process
         try:
             buff = yield from self.fetch(url)
 
@@ -43,6 +45,18 @@ class Origin(plugin.Origin):
 
         return parser_func(buff)
 
+    def parse_listing_page(self, buff):
+        links = self._extract_links(buff)
+
+        followups = ['http://www.mejortorrent.com' + x for x in links
+                     if re.search('-descargar-torrents?.+-\d+.+\.html$', x)]
+        followups += ['http://www.mejortorrent.com/' + x for x in links
+                      if 'secciones.php?' in x and 'sec=descargas' in x]
+
+        self.push_to_sched(*[
+            self.process(x, parse_func=self.parse_table_page)
+            for x in followups])
+
     def parse_table_page(self, buff):
         """
         Only direct links to torrent files are allowed
@@ -52,7 +66,9 @@ class Origin(plugin.Origin):
         torrents = ['http://www.mejortorrent.com' + x for x in links
                     if x.endswith('.torrent')]
 
-        self.push_to_sched(
+        self.push_to_sched(*[
+            self.process(x, parse_func=self.parse_torrent_data)
+            for x in torrents])
 
     def parse_torrent_data(self, buff):
         magnet = downloads.magnet_from_torrent_data(buff)
@@ -70,27 +86,6 @@ class Origin(plugin.Origin):
             }]
 
     def parse(self, buff, url, **kwargs):
-        if self._depth > self._MAX_DEPTH:
-            msg = "Max depth reached. Aborting"
-            self.app.logger.warning(msg)
-            return []
-
-        if url.endswith('.torrent'):
-            magnet = downloads.magnet_from_torrent_data(buff)
-            parsed = parse.urlparse(magnet)
-            qs = parse.parse_qs(parsed.query)
-
-            try:
-                name = qs.get('dn')[-1]
-            except (IndexError, TypeError):
-                return []
-
-            return [{
-                'uri': magnet,
-                'name': name
-                }]
-
-        else:
             soup = bs4.BeautifulSoup(buff, "html.parser")
 
             # Extract all links not seen
