@@ -4,7 +4,7 @@
 
 import unittest
 
-import ngstore as store
+from arroyo import ngstore as store
 
 
 class SelectorInterfaceTest(unittest.TestCase):
@@ -37,6 +37,20 @@ class SelectorInterfaceTest(unittest.TestCase):
 
         self.assertEqual(s.get(None), {})
 
+    def test_override(self):
+        s = store.Store()
+        s.set('x', 1)
+        s.set('x', 'a')
+        self.assertEqual(s.get('x'), 'a')
+        self.assertEqual(s.get(None), {'x': 'a'})
+
+    def test_override_with_dict(self):
+        s = store.Store()
+        s.set('x', 1)
+        s.set('x', 'a')
+        self.assertEqual(s.get('x'), 'a')
+        self.assertEqual(s.get(None), {'x': 'a'})
+
     def test_key_not_found(self):
         s = store.Store()
 
@@ -45,13 +59,6 @@ class SelectorInterfaceTest(unittest.TestCase):
         self.assertEqual(cm.exception.args[0], 'y')
 
         self.assertEqual(s.get(None), {})
-
-    def test_override(self):
-        s = store.Store()
-        s.set('x', 1)
-        s.set('x', 'a')
-        self.assertEqual(s.get('x'), 'a')
-        self.assertEqual(s.get(None), {'x': 'a'})
 
     def test_children(self):
         s = store.Store()
@@ -67,6 +74,10 @@ class SelectorInterfaceTest(unittest.TestCase):
         self.assertEqual(
             set(s.children('a')),
             set(['b', 'c']))
+
+        self.assertEqual(
+            s.children(None),
+            ['a'])
 
     def test_complex(self):
         s = store.Store()
@@ -85,7 +96,39 @@ class SelectorInterfaceTest(unittest.TestCase):
             s.get('a.b')
         self.assertEqual(cm.exception.args[0], 'a.b')
 
-    def test_ilegal_keys(self):
+    def test_validator_simple(self):
+        def validator(k, v):
+            if k == 'int' and not isinstance(v, int):
+                raise store.ValidationError(k, v, 'not int')
+
+            return v
+
+        s = store.Store()
+        s.add_validator(validator)
+
+        s.set('int', 1)
+        with self.assertRaises(store.ValidationError):
+            s.set('int', 'a')
+
+    def test_validator_alters_value(self):
+        def validator(k, v):
+            if k == 'int' and not isinstance(v, int):
+                try:
+                    v = int(v)
+                except ValueError:
+                    raise store.ValidationError(k, v, 'not int')
+
+            return v
+
+        s = store.Store()
+        s.add_validator(validator)
+
+        s.set('int', 1.1)
+        self.assertEqual(s.get('int'), 1)
+        with self.assertRaises(store.ValidationError):
+            s.set('int', 'a')
+
+    def test_illegal_keys(self):
         s = store.Store()
 
         with self.assertRaises(store.IllegalKeyError):
@@ -103,37 +146,10 @@ class SelectorInterfaceTest(unittest.TestCase):
         with self.assertRaises(store.IllegalKeyError):
             s.set('x..a', 1)
 
-    def test_validator_simple(self):
-        def validator(k, v):
-            if k == 'int' and not isinstance(v, int):
-                raise store.ValidationError('not int')
-
-            return v
-
+    def test_dottet_value(self):
         s = store.Store()
-        s.add_validator(validator)
-
-        s.set('int', 1)
-        with self.assertRaises(store.ValidationError):
-            s.set('int', 'a')
-
-    def test_validator_alters_value(self):
-        def validator(k, v):
-            if k == 'int' and not isinstance(v, int):
-                try:
-                    v = int(v)
-                except ValueError:
-                    raise store.ValidationError('not int')
-
-            return v
-
-        s = store.Store()
-        s.add_validator(validator)
-
-        s.set('int', 1.1)
-        self.assertEqual(s.get('int'), 1)
-        with self.assertRaises(store.ValidationError):
-            s.set('int', 'a')
+        s.set('a.b', 'c.d')
+        self.assertEqual(s.get('a.b'), 'c.d')
 
 if __name__ == '__main__':
     unittest.main()

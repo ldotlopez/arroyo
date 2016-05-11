@@ -13,5 +13,5 @@ if [ -z "$VIRTUAL_ENV" ]; then
 fi
 PYTHONPATH="$D" python3 "$D/arroyo" \
 	--db-uri sqlite:///"$D/arroyo.db" \
-	--config-file "$D/arroyo.ini" \
+	--config-file "$D/arroyo.yml" \
 	"$@" 

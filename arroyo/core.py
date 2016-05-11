@@ -10,7 +10,6 @@ import warnings
 from ldotcommons import (
     fetchers,
     keyvaluestore,
-    store,
     utils
 )
 
@@ -26,6 +25,8 @@ from arroyo import (
     selector,
     signaler)
 
+from . import ngstore
+
 #
 # Default values for config
 #
@@ -38,7 +39,7 @@ _defaults = {
     'legacy': False,
     'log-level': 'WARNING',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher': 'urllib',
+    'fetcher.type': 'urllib',
     'fetcher.options.enable-cache': True,
     'fetcher.options.cache-delta': 60 * 20,
     'fetcher.options.user-agent':
@@ -55,7 +56,7 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'fetcher': str,
+    'fetcher.type': str,
     'fetcher.options.enable-cache': bool,
     'fetcher.options.cache-delta': int,
     'fetcher.options.user-agent': str,
@@ -154,14 +155,18 @@ def build_basic_settings(arguments=[]):
 
     # Now we have to load default and extra config files.
     # Once they are loaded they are useless in 'args'.
-    cp = configparser.RawConfigParser()
-    if cp.read(getattr(args, 'config-files',
-                       utils.user_path('config', 'arroyo.ini'))):
-        delattr(args, 'config-files')
+    config_files = getattr(args, 'config-files',
+                           utils.user_path('config', 'arroyo.yml'))
 
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
-    store.load_configparser(cp, root_sections=('main',))
+    for cfg in config_files:
+        with open(cfg) as fh:
+            store.load_(fh)
+    try:
+        delattr(args, 'config-files')
+    except AttributeError:
+        pass
 
     # Arguments must be loaded with care.
 
@@ -218,41 +223,66 @@ class EncodedStreamHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class ArroyoStore(store.Store):
+class ArroyoStore(ngstore.Store):
     def __init__(self, *args, **kwargs):
-        def _get_validator():
-            _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-            _type_validator = store.type_validator(_defaults_types,
-                                                   relaxed=True)
+        # def _get_validator():
+        #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+        #     _type_validator = store.type_validator(_defaults_types,
+        #                                            relaxed=True)
 
-            def _validator(key, value):
-                if key == 'log-level' and value not in _log_lvls:
-                    raise ValueError(value)
+        #     def _validator(key, value):
+        #         if key == 'log-level' and value not in _log_lvls:
+        #             raise ValueError(value)
 
-                if key.startswith('plugin.') and key.endswith('.enabled'):
-                    return store.cast_value(value, bool)
+        #         if key.startswith('plugin.') and key.endswith('.enabled'):
+        #             return store.cast_value(value, bool)
 
-                return _type_validator(key, value)
+        #         return _type_validator(key, value)
 
-            return _validator
+        #     return _validator
 
-        if 'validator' not in kwargs:
-            kwargs['validator'] = _get_validator()
+        # if 'validator' not in kwargs:
+        #     kwargs['validator'] = _get_validator()
+
+        super().__init__(*args, **kwargs)
 
         # Build and configure logger
         handler = EncodedStreamHandler()
-        formater = logging.Formatter(self.get('log-format', r'%(message)s'))
+        formater = logging.Formatter(
+            self.get_('log-format', default=r'%(message)s'))
         handler.setFormatter(formater)
 
         self._logger = logging.getLogger('arroyo.settings')
         self._logger.addHandler(handler)
 
-        super().__init__(*args, **kwargs)
+        self.add_validator_(ngstore.TypeValidator(_defaults_types))
 
-    def __setitem__(self, key, value):
+    def set_(self, *args, **kwargs):
         try:
-            super().__setitem__(key, value)
-        except ValueError as e:
+            super().set_(*args, **kwargs)
+        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
+                ngstore.ValidationError) as e:
+            self._logger.error(str(e))
+
+    def get_(self, *args, **kwargs):
+        try:
+            super().get_(*args, **kwargs)
+        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
+                ngstore.ValidationError) as e:
+            self._logger.error(str(e))
+
+    def delete_(self, *args, **kwargs):
+        try:
+            super().delete_(*args, **kwargs)
+        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
+                ngstore.ValidationError) as e:
+            self._logger.error(str(e))
+
+    def children_(self, *args, **kwargs):
+        try:
+            super().children_(*args, **kwargs)
+        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
+                ngstore.ValidationError) as e:
             self._logger.error(str(e))
 
 

@@ -1,0 +1,22 @@
+# Settings
+db-uri': sqlite:////tmp/arroyo.db
+log-level: 'WARNING'
+log-format: '[%(levelname)s] [%(name)s] %(message)s'
+async-max-concurrency': 5
+async-timeout': 10
+
+# Downloader options
+downloader:
+    type': mock
+
+# Features
+auto-cron: false
+auto-import': true,
+
+# Fetcher options
+fetcher:
+    type: urllib
+    options:
+        enable-cache: True
+        cache-delta: 1200
+        user-agent: 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
