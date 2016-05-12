@@ -11,89 +11,120 @@ class SelectorInterfaceTest(unittest.TestCase):
     def test_get_set(self):
         s = store.Store()
 
-        s.set('x', 1)
-        self.assertEqual(s.get('x'), 1)
-        self.assertEqual(s.get(None), {'x': 1})
+        s.set_('x', 1)
+        self.assertEqual(s.get_('x'), 1)
+        self.assertEqual(s.get_(None), {'x': 1})
 
     def test_delete(self):
         s = store.Store()
 
-        s.set('x', 1)
-        s.delete('x')
+        s.set_('x', 1)
+        s.delete_('x')
         with self.assertRaises(store.KeyNotFoundError) as cm:
-            s.get('x')
+            s.get_('x')
         self.assertEqual(cm.exception.args[0], 'x')
 
-        self.assertEqual(s.get(None), {})
+        self.assertEqual(s.get_(None), {})
 
     def test_get_with_default(self):
         s = store.Store()
 
-        self.assertEqual(s.get('foo', default=3), 3)
-        self.assertEqual(s.get('foo', default='x'), 'x')
+        self.assertEqual(s.get_('foo', default=3), 3)
+        self.assertEqual(s.get_('foo', default='x'), 'x')
         with self.assertRaises(store.KeyNotFoundError) as cm:
-            s.get('foo')
+            s.get_('foo')
         self.assertEqual(cm.exception.args[0], 'foo')
 
-        self.assertEqual(s.get(None), {})
+        self.assertEqual(s.get_(None), {})
+
+    def test_all_keys(self):
+        s = store.Store()
+        s.set_('x', 1)
+        s.set_('y.a', 2)
+        s.set_('y.b', 2)
+
+        self.assertEqual(
+            set(s.all_keys()),
+            set(['x', 'y.a', 'y.b']))
+
+    def test_has_key(self):
+        s = store.Store()
+        s.set_('x', 1)
+        s.set_('y.a', 2)
+        s.set_('y.b', 2)
+
+        self.assertTrue(s.has_key_('x'))
+        self.assertTrue(s.has_key_('y.a'))
+        self.assertFalse(s.has_key_('y'))
+
+    def test_has_ns(self):
+        s = store.Store()
+        s.set_('x', 1)
+        s.set_('y.a', 2)
+        s.set_('y.b', 2)
+
+        self.assertFalse(s.has_namespace_('x'))
+        self.assertFalse(s.has_namespace_('y.a'))
+        self.assertTrue(s.has_namespace_('y'))
+        self.assertFalse(s.has_namespace_('z'))
 
     def test_override(self):
         s = store.Store()
-        s.set('x', 1)
-        s.set('x', 'a')
-        self.assertEqual(s.get('x'), 'a')
-        self.assertEqual(s.get(None), {'x': 'a'})
+        s.set_('x', 1)
+        s.set_('x', 'a')
+        self.assertEqual(s.get_('x'), 'a')
+        self.assertEqual(s.get_(None), {'x': 'a'})
 
     def test_override_with_dict(self):
         s = store.Store()
-        s.set('x', 1)
-        s.set('x', 'a')
-        self.assertEqual(s.get('x'), 'a')
-        self.assertEqual(s.get(None), {'x': 'a'})
+        s.set_('x', 1)
+        s.set_('x', 'a')
+        self.assertEqual(s.get_('x'), 'a')
+        self.assertEqual(s.get_(None), {'x': 'a'})
 
     def test_key_not_found(self):
         s = store.Store()
 
         with self.assertRaises(store.KeyNotFoundError) as cm:
-            s.get('y')
+            s.get_('y')
         self.assertEqual(cm.exception.args[0], 'y')
 
-        self.assertEqual(s.get(None), {})
+        self.assertEqual(s.get_(None), {})
 
     def test_children(self):
         s = store.Store()
-        s.set('a.b.x', 1)
-        s.set('a.b.y', 2)
-        s.set('a.b.z', 3)
-        s.set('a.c.w', 4)
+        s.set_('a.b.x', 1)
+        s.set_('a.b.y', 2)
+        s.set_('a.b.z', 3)
+        s.set_('a.c.w', 4)
 
         self.assertEqual(
-            set(s.children('a.b')),
+            set(s.children_('a.b')),
             set(['x', 'y', 'z']))
 
         self.assertEqual(
-            set(s.children('a')),
+            set(s.children_('a')),
             set(['b', 'c']))
 
         self.assertEqual(
-            s.children(None),
+            s.children_(None),
             ['a'])
 
     def test_complex(self):
         s = store.Store()
 
-        s.set('a.b.c', 3)
-        self.assertEqual(s.get('a.b.c'), 3)
-        self.assertEqual(s.get('a.b'), {'c': 3})
-        self.assertEqual(s.get('a'), {'b': {'c': 3}})
-        self.assertEqual(s.get(None), {'a': {'b': {'c': 3}}})
+        s.set_('a.b.c', 3)
+        self.assertEqual(s.get_('a.b.c'), 3)
+        self.assertEqual(s.get_('a.b'), {'c': 3})
+        self.assertEqual(s.get_('a'), {'b': {'c': 3}})
+        self.assertEqual(s.get_(None), {'a': {'b': {'c': 3}}})
 
-        s.set('a.k.a', 1)
-        s.delete('a.b')
-        self.assertEqual(s.get(None), {'a': {'k': {'a': 1}}})
+        s.set_('a.k.a', 1)
+        s.delete_('a.b')
+        self.assertEqual(s.get_(None), {'a': {'k': {'a': 1}}})
 
         with self.assertRaises(store.KeyNotFoundError) as cm:
-            s.get('a.b')
+            s.get_('a.b')
         self.assertEqual(cm.exception.args[0], 'a.b')
 
     def test_validator_simple(self):
@@ -104,11 +135,11 @@ class SelectorInterfaceTest(unittest.TestCase):
             return v
 
         s = store.Store()
-        s.add_validator(validator)
+        s.add_validator_(validator)
 
-        s.set('int', 1)
+        s.set_('int', 1)
         with self.assertRaises(store.ValidationError):
-            s.set('int', 'a')
+            s.set_('int', 'a')
 
     def test_validator_alters_value(self):
         def validator(k, v):
@@ -121,35 +152,35 @@ class SelectorInterfaceTest(unittest.TestCase):
             return v
 
         s = store.Store()
-        s.add_validator(validator)
+        s.add_validator_(validator)
 
-        s.set('int', 1.1)
-        self.assertEqual(s.get('int'), 1)
+        s.set_('int', 1.1)
+        self.assertEqual(s.get_('int'), 1)
         with self.assertRaises(store.ValidationError):
-            s.set('int', 'a')
+            s.set_('int', 'a')
 
     def test_illegal_keys(self):
         s = store.Store()
 
         with self.assertRaises(store.IllegalKeyError):
-            s.set(1, 1)
+            s.set_(1, 1)
 
         with self.assertRaises(store.IllegalKeyError):
-            s.set('.x', 1)
+            s.set_('.x', 1)
 
         with self.assertRaises(store.IllegalKeyError):
-            s.set('.x', 1)
+            s.set_('.x', 1)
 
         with self.assertRaises(store.IllegalKeyError):
-            s.set('x.', 1)
+            s.set_('x.', 1)
 
         with self.assertRaises(store.IllegalKeyError):
-            s.set('x..a', 1)
+            s.set_('x..a', 1)
 
     def test_dottet_value(self):
         s = store.Store()
-        s.set('a.b', 'c.d')
-        self.assertEqual(s.get('a.b'), 'c.d')
+        s.set_('a.b', 'c.d')
+        self.assertEqual(s.get_('a.b'), 'c.d')
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import configparser
 import importlib
 import logging
 import sys
@@ -39,11 +38,13 @@ _defaults = {
     'legacy': False,
     'log-level': 'WARNING',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher.type': 'urllib',
+    'fetcher.backend': 'urllib',
     'fetcher.options.enable-cache': True,
     'fetcher.options.cache-delta': 60 * 20,
-    'fetcher.options.user-agent':
-        'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+    'fetcher.options.headers': {
+        'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+        },
     'async-max-concurrency': 5,
     'async-timeout': 10
 }
@@ -56,10 +57,10 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'fetcher.type': str,
+    'fetcher.backend': str,
     'fetcher.options.enable-cache': bool,
     'fetcher.options.cache-delta': int,
-    'fetcher.options.user-agent': str,
+    'fetcher.options.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float
 }
@@ -177,7 +178,7 @@ def build_basic_settings(arguments=[]):
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-    log_level = store.get('log-level', 'WARNING')
+    log_level = store.get_('log-level', default='WARNING')
     try:
         log_level = log_levels.index(log_level)
     except ValueError:
@@ -188,7 +189,7 @@ def build_basic_settings(arguments=[]):
     log_level = max(0, min(4, log_level - args.quiet + args.verbose))
     delattr(args, 'quiet')
     delattr(args, 'verbose')
-    store.set('log-level', log_levels[log_level])
+    store.set_('log-level', log_levels[log_level])
 
     # Clean up args before merging with store
     delattr(args, 'help')
@@ -201,7 +202,7 @@ def build_basic_settings(arguments=[]):
     # Finally insert defaults
     for key in _defaults:
         if key not in store:
-            store.set(key, _defaults[key])
+            store.set_(key, _defaults[key])
 
     return store
 
@@ -257,18 +258,27 @@ class ArroyoStore(ngstore.Store):
 
         self.add_validator_(ngstore.TypeValidator(_defaults_types))
 
+    def _catch(self, *args, **kwargs):
+        import ipdb; ipdb.set_trace(); pass
+
+    set = _catch
+    get = _catch
+    delete = _catch
+
     def set_(self, *args, **kwargs):
         try:
             super().set_(*args, **kwargs)
         except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
                 ngstore.ValidationError) as e:
+            import ipdb; ipdb.set_trace(); pass
             self._logger.error(str(e))
 
     def get_(self, *args, **kwargs):
         try:
-            super().get_(*args, **kwargs)
+            return super().get_(*args, **kwargs)
         except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
                 ngstore.ValidationError) as e:
+            import ipdb; ipdb.set_trace(); pass
             self._logger.error(str(e))
 
     def delete_(self, *args, **kwargs):
@@ -276,13 +286,15 @@ class ArroyoStore(ngstore.Store):
             super().delete_(*args, **kwargs)
         except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
                 ngstore.ValidationError) as e:
+            import ipdb; ipdb.set_trace(); pass
             self._logger.error(str(e))
 
     def children_(self, *args, **kwargs):
         try:
-            super().children_(*args, **kwargs)
+            return super().children_(*args, **kwargs)
         except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
                 ngstore.ValidationError) as e:
+            import ipdb; ipdb.set_trace(); pass
             self._logger.error(str(e))
 
 
@@ -297,20 +309,19 @@ class Arroyo:
         # Build and configure logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
-            self.settings.get('log-format')))
+            self.settings.get_('log-format')))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
 
-        lvlname = self.settings.get('log-level')
+        lvlname = self.settings.get_('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
 
         # Build and configure fetcher
-        fetcher = self.settings.get('fetcher')
+        fetcher = self.settings.get_('fetcher.backend')
         try:
-            fetcher_opts = self.settings.get_tree('fetcher.' + fetcher)
+            fetcher_opts = self.settings.get_('fetcher.options')
             fetcher_opts = {k.replace('-', '_'): v
                             for (k, v) in fetcher_opts.items()}
-
         except KeyError:
             fetcher_opts = {}
 
@@ -320,7 +331,7 @@ class Arroyo:
             **fetcher_opts)
 
         # Built-in providers
-        self.db = db.Db(self.settings.get('db-uri'))
+        self.db = db.Db(self.settings.get_('db-uri'))
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
                                                        session=self.db.session)
         self.signals = signaler.Signaler()
@@ -337,17 +348,18 @@ class Arroyo:
         # Load plugins
         # FIXME: Search for enabled plugins thru the keys of settings is a
         # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugin.'), self.settings)
+        plugins = filter(lambda x: x.startswith('plugin.'),
+                         self.settings.all_keys())
         plugins = map(lambda x: x.split('.'), plugins)
         plugins = filter(lambda x: len(x) >= 2, plugins)
         plugins = map(lambda x: x[1], plugins)
 
         for p in set(plugins):
-            if self.settings.get('plugin.' + p + '.enabled', True):
+            if self.settings.get_('plugin.' + p + '.enabled', default=True):
                 self.load_plugin(p)
 
         # Run cron tasks
-        if self.settings.get('auto-cron'):
+        if self.settings.get_('auto-cron'):
             self.cron.run_all()
 
     def load_plugin(self, name):

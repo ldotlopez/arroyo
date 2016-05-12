@@ -9,6 +9,7 @@ from ldotcommons import fetchers, utils
 
 from arroyo import asyncscheduler
 from arroyo import downloads, cron, extension, models
+from arroyo import ngstore as store
 
 
 class IncompatibleQueryError(Exception):
@@ -22,9 +23,7 @@ class Importer:
 
     def __init__(self, app):
         self.app = app
-        self.app.settings.set_validator(
-            self._origin_ns_validator,
-            ns='origin')
+        self.app.settings.add_validator_(self._settings_validator)
 
         self._logger = app.logger.getChild('importer')
 
@@ -35,8 +34,7 @@ class Importer:
 
         app.register_extension('import', ImporterCronTask)
 
-    @staticmethod
-    def _origin_ns_validator(k, v):
+    def _settings_validator(self, k, v):
         # Supported keys are:
         #
         # origin.*.backend (str)
@@ -45,30 +43,32 @@ class Importer:
         # origin.*.type (str, NoneType)
         # origin.*.language (str, NoneType)
 
-        parts = k.split('.')
-        if len(parts) != 3:
+        parts = k.split('.', 2)
+        if parts[0] != 'origin' or len(parts) != 3:
             return v
 
-        k = parts[-1]
+        rootns, name, prop = parts
 
-        msg = "Invalid value '{}' for '{}'. Must be '{}'"
+        if prop not in ('backend', 'url', 'iterations', 'type', 'language'):
+            raise store.ValidationError(k, v, 'Invalid option')
 
-        if k == 'backend':
+        if prop == 'backend':
             if v is None or not isinstance(v, str) or v == '':
-                raise TypeError(msg.format(v, k, str))
+                msg = 'Must be a non-empty string'
+                raise store.ValidationError(k, v, msg)
 
-        if k in ['url', 'language', 'type']:
+        if prop in ['url', 'language', 'type']:
             if not isinstance(v, (utils.NoneType, str)) or v == '':
-                raise TypeError(msg.format(v, k, str))
+                msg = 'Must be empty or a str'
+                raise store.ValidationError(k, v, msg)
 
-        if k == 'iterations':
+        if prop == 'iterations':
             if v is None:
                 v = 1
-            elif not isinstance(k, int):
-                try:
-                    v = int(v)
-                except ValueError:
-                    v = 1
+
+            elif not isinstance(v, int):
+                msg = 'Must be an integer'
+                raise store.ValidationError(k, v, msg)
 
         return v
 
@@ -90,7 +90,7 @@ class Importer:
         importer.Importer.get_origins method
         """
 
-        defs = self.app.settings.get_tree('origin', {})
+        defs = self.app.settings.get_('origin', default={})
         if not defs:
             msg = "No origins defined"
             self.app.logger.warning(msg)
@@ -173,8 +173,8 @@ class Importer:
 
         # Get, sched and run all tasks from origins
         runner = ImporterRunner(
-            maxtasks=self.app.settings.get('async-max-concurrency'),
-            timeout=self.app.settings.get('async-timeout'),
+            maxtasks=self.app.settings.get_('async-max-concurrency'),
+            timeout=self.app.settings.get_('async-timeout'),
             logger=self.app.logger.getChild('asyncsched'))
 
         for origin in origins:
@@ -462,14 +462,11 @@ class Origin(extension.Extension):
     def fetch(self, url):
         s = self.app.settings
 
-        fetcher = fetchers.AIOHttpFetcher(
-            enable_cache=s.get('fetcher.options.enable-cache'),
-            cache_delta=s.get('fetcher.options.cache-delta')
-        )
-        buff = yield from fetcher.fetch(
-            url,
-            headers=s.get_tree('fetcher.options.headers', {})
-        )
+        fetcher = fetchers.AIOHttpFetcher(**{
+            k.replace('-', '_'): v
+            for (k, v) in s.get_('fetcher.options').items()
+        })
+        buff = yield from fetcher.fetch(url)
 
         return buff
 

@@ -34,7 +34,7 @@ class ParserError(Exception):
     pass
 
 
-def dict_flattener(d):
+def flatten_dict(d):
     if not isinstance(d, dict):
         raise TypeError()
 
@@ -42,7 +42,7 @@ def dict_flattener(d):
 
     for (k, v) in d.items():
         if isinstance(v, dict):
-            subret = dict_flattener(v)
+            subret = flatten_dict(v)
             subret = {k + '.' + subk: subv for (subk, subv) in subret.items()}
             ret.update(subret)
         else:
@@ -111,8 +111,12 @@ class Store:
         return parts[-1], d
 
     def load_(self, stream):
-        d = dict_flattener(yaml.load(stream))
+        d = flatten_dict(yaml.load(stream))
         for (k, v) in d.items():
+            self.set_(k, v)
+
+    def load_arguments(self, args):
+        for (k, v) in vars(args).items():
             self.set_(k, v)
 
     def add_validator_(self, fn):
@@ -156,3 +160,26 @@ class Store:
             return list(d[subkey].keys())
         except KeyError:
             raise KeyNotFoundError(key)
+
+    def all_keys(self):
+        return flatten_dict(self._d)
+
+    def has_key_(self, key):
+        try:
+            subkey, d = self._get_subdict(key)
+        except KeyNotFoundError:
+            return False
+
+        return subkey in d
+
+    def has_namespace_(self, ns):
+        try:
+            subns, d = self._get_subdict(ns)
+        except KeyNotFoundError:
+            return False
+
+        return subns in d and isinstance(d[subns], dict)
+
+    __contains__ = has_key_
+    __setitem__ = get_
+    __setitem__ = set_
