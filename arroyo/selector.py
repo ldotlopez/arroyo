@@ -17,16 +17,18 @@ class Selector:
 
     def get_queries_specs(self):
         return [QuerySpec(x, **params) for (x, params) in
-                self.app.settings.get_tree('query', {}).items()]
+                self.app.settings.get_('query', default={}).items()]
 
     def get_queries(self):
         return list(map(self.get_query_for_spec, self.get_queries_specs()))
 
     def get_query_for_spec(self, spec):
-        base = self.app.settings.get_tree(
-            'selector.query-defaults', {})
-        specific = self.app.settings.get_tree(
-            'selector.query-{}-defaults'.format(spec.get('kind')), {})
+        base = self.app.settings.get_(
+            'selector.query-defaults',
+            default={})
+        specific = self.app.settings.get_(
+            'selector.query-{}-defaults'.format(spec.get('kind')),
+            default={})
 
         base.update(specific)
         base.update(spec)
@@ -54,7 +56,7 @@ class Selector:
     def sort(self, matches):
         sorter = self.app.get_extension(
             Sorter,
-            self.app.settings.get('selector.sorter', 'basic'))
+            self.app.settings.get_('selector.sorter', 'basic'))
 
         return sorter.sort(matches)
 
@@ -76,7 +78,7 @@ class Selector:
                 yield self.select_single(group)
 
     def _auto_import(self, query):
-        if self.app.settings.get('auto-import'):
+        if self.app.settings.get_('auto-import'):
             self.app.importer.process_query(query.spec)
 
     def get_filters(self, models, params):
@@ -101,7 +103,7 @@ class Selector:
         return {k: table[k](self.app, k, params[k]) for k in table}
 
     def apply_filters(self, qs, models, params):
-        debug = self.app.settings.get('log-level').lower() == 'debug'
+        debug = self.app.settings.get_('log-level').lower() == 'debug'
 
         guessed_models = itertools.chain(qs._entities, qs._join_entities)
         guessed_models = [x.mapper.class_ for x in guessed_models]

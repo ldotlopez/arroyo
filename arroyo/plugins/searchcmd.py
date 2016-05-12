@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import plugin
+from arroyo import ngstore as store
 
 
 import itertools
@@ -60,19 +61,20 @@ class SearchCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if keywords:
-            self.app.settings.delete('query')
+            if self.app.settings.has_key_('query'):
+                self.app.settings.delete_('query')
 
             query_name = ' '.join(keywords)
             query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
-            self.app.settings.set(
+            self.app.settings.set_(
                 'query.' + query_name + '.name-glob',
                 '*' + '*'.join(keywords) + '*')
 
         elif filters:
-            self.app.settings.delete('query')
+            self.app.settings.delete_('query')
 
             for (k, v) in filters.items():
-                self.app.settings.set('query.command-line.' + k, v)
+                self.app.settings.set_('query.command-line.' + k, v)
 
         specs = self.app.selector.get_queries_specs()
         if not specs:
