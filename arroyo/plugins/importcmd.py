@@ -63,7 +63,7 @@ class ImportCommand(plugin.Command):
             # self.app.importer.process_spec(spec)
 
             if self.app.settings.has_namespace_('origin'):
-                self.app.settings.delete('origin')
+                self.app.settings.delete_('origin')
 
             # Rebuild origin
             keys = [

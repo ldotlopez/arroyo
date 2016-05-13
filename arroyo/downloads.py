@@ -27,7 +27,7 @@ class Downloads:
     @property
     def backend(self):
         if self._backend is None:
-            name = self.app.settings.get('downloader')
+            name = self.app.settings.get_('downloader.backend')
             self._backend = self.app.get_extension(Downloader, name)
 
         return self._backend

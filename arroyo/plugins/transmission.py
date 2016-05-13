@@ -8,29 +8,13 @@ from urllib import parse
 
 from sqlalchemy import orm
 import transmissionrpc
-from ldotcommons import store
 
-
-_SETTINGS_NS = 'plugin.transmission'
-
-
-def settings_validator(key, value):
-    k = key[len(_SETTINGS_NS)+1:]
-
-    if k == 'enabled':
-        return store.cast_value(value, bool)
-
-    if k in ['address', 'user', 'password']:
-        return store.cast_value(value, str)
-
-    if k == 'port':
-        return store.cast_value(value, int)
-
-    else:
-        raise KeyError(key)
+from arroyo import nsgstore as store
 
 
 class TransmissionDownloader(plugin.Downloader):
+    _SETTINGS_NS = 'plugin.transmission'
+
     _STATE_MAP = {
         'download pending': models.Source.State.QUEUED,
         'downloading': models.Source.State.DOWNLOADING,
@@ -42,10 +26,10 @@ class TransmissionDownloader(plugin.Downloader):
         super().__init__(app)
 
         self._logger = self.app.logger.getChild('transmission')
-        self.app.settings.set_validator(settings_validator, ns=_SETTINGS_NS, )
+        self.app.settings.add_validator_(self.settings_validator)
 
         try:
-            s = app.settings.get_tree(_SETTINGS_NS, {})
+            s = app.settings.get(self._SETTINGS_NS, default={})
             self._api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),
@@ -160,6 +144,33 @@ class TransmissionDownloader(plugin.Downloader):
 
         return ret
 
+    @staticmethod
+    def settings_validator(key, value):
+        if not key.startswith('plugin.transmission'):
+            return value
+
+        prop = key[len(TransmissionDownloader._SETTINGS_NS)+1:]
+
+        if prop == 'enabled':
+            if not isinstance(value, bool):
+                raise store.ValidationError(key, value, 'Must a bool')
+            else:
+                return value
+
+        if prop in ['address', 'user', 'password']:
+            if not isinstance(value, str):
+                raise store.ValidationError(key, value, 'Must a bool')
+            else:
+                return value
+
+        if prop == 'port':
+            if not isinstance(value, int):
+                raise store.ValidationError(key, value, 'Must be a int')
+            else:
+                return value
+
+        else:
+            raise store.ValidationError(key, value, 'Unknow property')
 
 __arroyo_extensions__ = [
     ('transmission', TransmissionDownloader)
