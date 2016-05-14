@@ -9,7 +9,7 @@ from urllib import parse
 from sqlalchemy import orm
 import transmissionrpc
 
-from arroyo import nsgstore as store
+from arroyo import ngstore as store
 
 
 class TransmissionDownloader(plugin.Downloader):
@@ -29,7 +29,7 @@ class TransmissionDownloader(plugin.Downloader):
         self.app.settings.add_validator_(self.settings_validator)
 
         try:
-            s = app.settings.get(self._SETTINGS_NS, default={})
+            s = app.settings.get_(self._SETTINGS_NS, default={})
             self._api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),
