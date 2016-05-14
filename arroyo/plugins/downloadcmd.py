@@ -74,7 +74,7 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                self.app.logger.info(str(src))
+                print(str(src))
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
