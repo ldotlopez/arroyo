@@ -14,6 +14,13 @@ class Command(Extension):
     help = ''
     arguments = ()
 
+    @classmethod
+    def setup_argparser(cls, cmdargparser):
+        arguments = getattr(cls, 'arguments')
+        for argument in arguments:
+            args, kwargs = argument()
+            cmdargparser.add_argument(*args, **kwargs)
+
     def run(self, arguments):
         raise NotImplementedError()
 
@@ -23,7 +30,9 @@ class Service(Extension):
 
 
 def argument(*args, **kwargs):
-    """argparse argument wrapper to ease the command argument definitions"""
+    """
+    argparse argument wrapper to ease the command argument definitions
+    """
     def wrapped_arguments():
         return args, kwargs
 
