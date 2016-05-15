@@ -70,7 +70,7 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'croncmd', 'dbcmd', 'downloadcmd', 'importcmd', 'mediainfocmd',
+    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd', 'mediainfocmd',
     'searchcmd',
 
     # Downloaders

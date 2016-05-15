@@ -180,6 +180,9 @@ class Store:
 
         return subns in d and isinstance(d[subns], dict)
 
+    def write(self, fh):
+        fh.write(yaml.dump(self._d))
+
     __contains__ = has_key_
     __setitem__ = get_
     __setitem__ = set_
