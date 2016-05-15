@@ -3,6 +3,7 @@
 from arroyo import plugin
 import yaml
 
+
 class ConfigCommand(plugin.Command):
     help = 'manage downloads'
 
@@ -37,7 +38,7 @@ class ConfigCommand(plugin.Command):
         }
 
         if args.operation == 'dump':
-            print(yaml.dump(self.app.settings.get_(None)))
+            print(yaml.dump(self.app.settings.get(None)))
 
         elif args.operation == 'set':
             if args.type not in types_map:
@@ -46,7 +47,7 @@ class ConfigCommand(plugin.Command):
                 self.app.logger.error(msg)
                 return
 
-            self.app.settings.set_(
+            self.app.settings.set(
                 args.key[0],
                 types_map[args.type](args.value[0]))
 
@@ -55,7 +56,7 @@ class ConfigCommand(plugin.Command):
                 self.app.settings.write(fh)
 
         elif args.operation == 'get':
-            print(yaml.dump(self.app.settings.get_(args.key[0])))
+            print(yaml.dump(self.app.settings.get(args.key[0])))
 
 __arroyo_extensions__ = [
     ('config', ConfigCommand)

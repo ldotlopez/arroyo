@@ -9,7 +9,6 @@ from ldotcommons import fetchers, utils
 
 from arroyo import asyncscheduler
 from arroyo import downloads, cron, extension, models
-from arroyo import ngstore as store
 
 
 class IncompatibleQueryError(Exception):
@@ -23,7 +22,7 @@ class Importer:
 
     def __init__(self, app):
         self.app = app
-        self.app.settings.add_validator_(self._settings_validator)
+        self.app.settings.add_validator(self._settings_validator)
 
         self._logger = app.logger.getChild('importer')
 
@@ -90,7 +89,7 @@ class Importer:
         importer.Importer.get_origins method
         """
 
-        defs = self.app.settings.get_('origin', default={})
+        defs = self.app.settings.get('origin', default={})
         if not defs:
             msg = "No origins defined"
             self.app.logger.warning(msg)
@@ -173,8 +172,8 @@ class Importer:
 
         # Get, sched and run all tasks from origins
         runner = ImporterRunner(
-            maxtasks=self.app.settings.get_('async-max-concurrency'),
-            timeout=self.app.settings.get_('async-timeout'),
+            maxtasks=self.app.settings.get('async-max-concurrency'),
+            timeout=self.app.settings.get('async-timeout'),
             logger=self.app.logger.getChild('asyncsched'))
 
         for origin in origins:
@@ -464,7 +463,7 @@ class Origin(extension.Extension):
 
         fetcher = fetchers.AIOHttpFetcher(**{
             k.replace('-', '_'): v
-            for (k, v) in s.get_('fetcher.options').items()
+            for (k, v) in s.get('fetcher.options').items()
         })
         buff = yield from fetcher.fetch(url)
 

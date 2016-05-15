@@ -9,8 +9,6 @@ from urllib import parse
 from sqlalchemy import orm
 import transmissionrpc
 
-from arroyo import ngstore as store
-
 
 class TransmissionDownloader(plugin.Downloader):
     _SETTINGS_NS = 'plugin.transmission'
@@ -26,10 +24,10 @@ class TransmissionDownloader(plugin.Downloader):
         super().__init__(app)
 
         self._logger = self.app.logger.getChild('transmission')
-        self.app.settings.add_validator_(self.settings_validator)
+        self.app.settings.add_validator(self.settings_validator)
 
         try:
-            s = app.settings.get_(self._SETTINGS_NS, default={})
+            s = app.settings.get(self._SETTINGS_NS, default={})
             self._api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),

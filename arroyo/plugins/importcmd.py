@@ -54,16 +54,8 @@ class ImportCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if arguments.backend:
-            # d = dict(name='command-line')
-            # d.update({k: getattr(arguments, k)
-            #           for k in ['backend', 'url', 'iterations', 'type',
-            #                     'language']})
-
-            # spec = plugin.OriginSpec(**d)
-            # self.app.importer.process_spec(spec)
-
-            if self.app.settings.has_namespace_('origin'):
-                self.app.settings.delete_('origin')
+            if self.app.settings.has_namespace('origin'):
+                self.app.settings.delete('origin')
 
             # Rebuild origin
             keys = [
@@ -85,7 +77,7 @@ class ImportCommand(plugin.Command):
                         self.app.logger.error(msg)
                         continue
 
-                    self.app.settings.set_('origin.command-line.' + k, v)
+                    self.app.settings.set('origin.command-line.' + k, v)
 
             self.app.importer.run()
 

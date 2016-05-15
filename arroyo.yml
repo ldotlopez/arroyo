@@ -8,6 +8,7 @@ async-timeout : 10
 # Downloader options
 downloader:
     backend: mock
+    # backend: transmission
 
 # Features
 auto-cron: false
@@ -21,3 +22,10 @@ fetcher:
         cache-delta: 1200
         headers:
           'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+
+plugin:
+    transmission:
+        address: 127.0.0.1
+        port: 9091
+        # user
+        # password

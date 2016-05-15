@@ -9,6 +9,7 @@ import warnings
 from ldotcommons import (
     fetchers,
     keyvaluestore,
+    store,
     utils
 )
 
@@ -22,9 +23,8 @@ from arroyo import (
     mediainfo,
     models,
     selector,
-    signaler)
-
-from . import ngstore
+    signaler
+)
 
 #
 # Default values for config
@@ -70,8 +70,8 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd', 'mediainfocmd',
-    'searchcmd',
+    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
+    'mediainfocmd', 'searchcmd',
 
     # Downloaders
     'mockdownloader', 'transmission',
@@ -163,7 +163,7 @@ def build_basic_settings(arguments=[]):
     store = ArroyoStore()
     for cfg in config_files:
         with open(cfg) as fh:
-            store.load_(fh)
+            store.load(fh)
     try:
         delattr(args, 'config-files')
     except AttributeError:
@@ -178,7 +178,7 @@ def build_basic_settings(arguments=[]):
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-    log_level = store.get_('log-level', default='WARNING')
+    log_level = store.get('log-level', default='WARNING')
     try:
         log_level = log_levels.index(log_level)
     except ValueError:
@@ -189,7 +189,7 @@ def build_basic_settings(arguments=[]):
     log_level = max(0, min(4, log_level - args.quiet + args.verbose))
     delattr(args, 'quiet')
     delattr(args, 'verbose')
-    store.set_('log-level', log_levels[log_level])
+    store.set('log-level', log_levels[log_level])
 
     # Clean up args before merging with store
     delattr(args, 'help')
@@ -202,7 +202,7 @@ def build_basic_settings(arguments=[]):
     # Finally insert defaults
     for key in _defaults:
         if key not in store:
-            store.set_(key, _defaults[key])
+            store.set(key, _defaults[key])
 
     return store
 
@@ -224,7 +224,7 @@ class EncodedStreamHandler(logging.StreamHandler):
             self.handleError(record)
 
 
-class ArroyoStore(ngstore.Store):
+class ArroyoStore(store.Store):
     def __init__(self, *args, **kwargs):
         # def _get_validator():
         #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
@@ -250,51 +250,33 @@ class ArroyoStore(ngstore.Store):
         # Build and configure logger
         handler = EncodedStreamHandler()
         formater = logging.Formatter(
-            self.get_('log-format', default=r'%(message)s'))
+            self.get('log-format', default=r'%(message)s'))
         handler.setFormatter(formater)
 
         self._logger = logging.getLogger('arroyo.settings')
         self._logger.addHandler(handler)
 
-        self.add_validator_(ngstore.TypeValidator(_defaults_types))
+        self.add_validator(store.TypeValidator(_defaults_types))
 
-    def _catch(self, *args, **kwargs):
-        import ipdb; ipdb.set_trace(); pass
-
-    set = _catch
-    get = _catch
-    delete = _catch
-
-    def set_(self, *args, **kwargs):
+    def get(self, *args, **kwargs):
         try:
-            super().set_(*args, **kwargs)
-        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
-                ngstore.ValidationError) as e:
-            import ipdb; ipdb.set_trace(); pass
+            return super().get(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
             self._logger.error(str(e))
 
-    def get_(self, *args, **kwargs):
+    def delete(self, *args, **kwargs):
         try:
-            return super().get_(*args, **kwargs)
-        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
-                ngstore.ValidationError) as e:
-            import ipdb; ipdb.set_trace(); pass
+            super().delete(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
             self._logger.error(str(e))
 
-    def delete_(self, *args, **kwargs):
+    def children(self, *args, **kwargs):
         try:
-            super().delete_(*args, **kwargs)
-        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
-                ngstore.ValidationError) as e:
-            import ipdb; ipdb.set_trace(); pass
-            self._logger.error(str(e))
-
-    def children_(self, *args, **kwargs):
-        try:
-            return super().children_(*args, **kwargs)
-        except (ngstore.IllegalKeyError, ngstore.KeyNotFoundError,
-                ngstore.ValidationError) as e:
-            import ipdb; ipdb.set_trace(); pass
+            return super().children(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
             self._logger.error(str(e))
 
 
@@ -309,17 +291,17 @@ class Arroyo:
         # Build and configure logger
         handler = EncodedStreamHandler()
         handler.setFormatter(logging.Formatter(
-            self.settings.get_('log-format')))
+            self.settings.get('log-format')))
         self.logger = logging.getLogger('arroyo')
         self.logger.addHandler(handler)
 
-        lvlname = self.settings.get_('log-level')
+        lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
 
         # Build and configure fetcher
-        fetcher = self.settings.get_('fetcher.backend')
+        fetcher = self.settings.get('fetcher.backend')
         try:
-            fetcher_opts = self.settings.get_('fetcher.options')
+            fetcher_opts = self.settings.get('fetcher.options')
             fetcher_opts = {k.replace('-', '_'): v
                             for (k, v) in fetcher_opts.items()}
         except KeyError:
@@ -331,7 +313,7 @@ class Arroyo:
             **fetcher_opts)
 
         # Built-in providers
-        self.db = db.Db(self.settings.get_('db-uri'))
+        self.db = db.Db(self.settings.get('db-uri'))
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
                                                        session=self.db.session)
         self.signals = signaler.Signaler()
@@ -355,11 +337,11 @@ class Arroyo:
         plugins = map(lambda x: x[1], plugins)
 
         for p in set(plugins):
-            if self.settings.get_('plugin.' + p + '.enabled', default=True):
+            if self.settings.get('plugin.' + p + '.enabled', default=True):
                 self.load_plugin(p)
 
         # Run cron tasks
-        if self.settings.get_('auto-cron'):
+        if self.settings.get('auto-cron'):
             self.cron.run_all()
 
     def load_plugin(self, name):
