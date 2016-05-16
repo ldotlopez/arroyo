@@ -38,9 +38,9 @@ fetcher:
 # Selector
 selector:
     sorter: 'basic'
-    query-defaults: {}
-        # # Wait 5 hours before consider source valid for download
-        # age-min: 5H
+    query-defaults:
+        # # Wait 2 hours before consider source valid for download
+        age-min: 2H
 
     query-episode-defaults: {}
         # # Don't download sources found before that date
