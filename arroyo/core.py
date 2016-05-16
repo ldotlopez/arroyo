@@ -46,7 +46,8 @@ _defaults = {
             'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         },
     'async-max-concurrency': 5,
-    'async-timeout': 10
+    'async-timeout': 10,
+    'selector.sorter': 'basic'
 }
 
 _defaults_types = {
@@ -62,7 +63,8 @@ _defaults_types = {
     'fetcher.options.cache-delta': int,
     'fetcher.options.headers': dict,
     'async-max-concurrency': int,
-    'async-timeout': float
+    'async-timeout': float,
+    'selector.sorter': str
 }
 
 #

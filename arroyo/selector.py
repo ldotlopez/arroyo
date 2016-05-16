@@ -56,7 +56,7 @@ class Selector:
     def sort(self, matches):
         sorter = self.app.get_extension(
             Sorter,
-            self.app.settings.get('selector.sorter', 'basic'))
+            self.app.settings.get('selector.sorter'))
 
         return sorter.sort(matches)
 
