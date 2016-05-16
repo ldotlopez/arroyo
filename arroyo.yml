@@ -38,15 +38,15 @@ fetcher:
 # Selector
 selector:
     sorter: 'basic'
-    query-defaults:
+    query-defaults: {}
         # # Wait 5 hours before consider source valid for download
         # age-min: 5H
 
-    query-episode-defaults:
+    query-episode-defaults: {}
         # # Don't download sources found before that date
         # since: 2015/06/01
 
-    query-movie-defaults:
+    query-movie-defaults: {}
         # # Some good defaults for movies
         # language: eng-us
         # quality: 720p
@@ -74,7 +74,7 @@ plugin:
 
 
 # Origins populates the dabatase with torrents
-origin:
+origin: {}
 
     # name:
     #     # Check plugins folder for available analizers
@@ -120,7 +120,7 @@ origin:
 # and pushing them into downloader.
 # See subcommand search --help
 
-query:
+query: {}
 
     # name:
     #     # Query is a set of one or more filters.
