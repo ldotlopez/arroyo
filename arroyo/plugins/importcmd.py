@@ -54,23 +54,31 @@ class ImportCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if arguments.backend:
-            # d = dict(name='command-line')
-            # d.update({k: getattr(arguments, k)
-            #           for k in ['backend', 'url', 'iterations', 'type',
-            #                     'language']})
-
-            # spec = plugin.OriginSpec(**d)
-            # self.app.importer.process_spec(spec)
-
             if self.app.settings.has_namespace('origin'):
                 self.app.settings.delete('origin')
 
             # Rebuild origin
-            keys = 'backend url iterations type language'.split(' ')
-            for k in keys:
-                self.app.settings.set(
-                    'origin.command-line.' + k,
-                    getattr(arguments, k))
+            keys = [
+                ('backend', str),
+                ('url', str),
+                ('iterations', int),
+                ('type', str),
+                ('language', str)
+            ]
+            for (k, t) in keys:
+                v = getattr(arguments, k, None)
+
+                if v is not None:
+                    try:
+                        v = t(v)
+                    except ValueError:
+                        msg = 'Invalid argument {key}'
+                        msg = msg.format(key=k)
+                        self.app.logger.error(msg)
+                        continue
+
+                    self.app.settings.set('origin.command-line.' + k, v)
+
             self.app.importer.run()
 
         elif arguments.from_config:

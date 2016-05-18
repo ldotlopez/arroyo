@@ -17,16 +17,18 @@ class Selector:
 
     def get_queries_specs(self):
         return [QuerySpec(x, **params) for (x, params) in
-                self.app.settings.get_tree('query', {}).items()]
+                self.app.settings.get('query', default={}).items()]
 
     def get_queries(self):
         return list(map(self.get_query_for_spec, self.get_queries_specs()))
 
     def get_query_for_spec(self, spec):
-        base = self.app.settings.get_tree(
-            'selector.query-defaults', {})
-        specific = self.app.settings.get_tree(
-            'selector.query-{}-defaults'.format(spec.get('kind')), {})
+        base = self.app.settings.get(
+            'selector.query-defaults',
+            default={})
+        specific = self.app.settings.get(
+            'selector.query-{}-defaults'.format(spec.get('kind')),
+            default={})
 
         base.update(specific)
         base.update(spec)
@@ -54,7 +56,7 @@ class Selector:
     def sort(self, matches):
         sorter = self.app.get_extension(
             Sorter,
-            self.app.settings.get('selector.sorter', 'basic'))
+            self.app.settings.get('selector.sorter'))
 
         return sorter.sort(matches)
 

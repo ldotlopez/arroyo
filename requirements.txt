@@ -1,12 +1,11 @@
 #
 # Core
 #
-
 aiohttp
 bencodepy
 blinker
 humanfriendly
-guessit
+guessit==1.0.3
 sqlalchemy
 
 -e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons

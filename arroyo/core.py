@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import configparser
 import importlib
 import logging
 import sys
@@ -24,7 +23,8 @@ from arroyo import (
     mediainfo,
     models,
     selector,
-    signaler)
+    signaler
+)
 
 #
 # Default values for config
@@ -38,13 +38,16 @@ _defaults = {
     'legacy': False,
     'log-level': 'WARNING',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher': 'urllib',
+    'fetcher.backend': 'urllib',
     'fetcher.options.enable-cache': True,
     'fetcher.options.cache-delta': 60 * 20,
-    'fetcher.options.user-agent':
-        'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+    'fetcher.options.headers': {
+        'User-Agent':
+            'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+        },
     'async-max-concurrency': 5,
-    'async-timeout': 10
+    'async-timeout': 10,
+    'selector.sorter': 'basic'
 }
 
 _defaults_types = {
@@ -55,12 +58,13 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'fetcher': str,
+    'fetcher.backend': str,
     'fetcher.options.enable-cache': bool,
     'fetcher.options.cache-delta': int,
-    'fetcher.options.user-agent': str,
+    'fetcher.options.headers': dict,
     'async-max-concurrency': int,
-    'async-timeout': float
+    'async-timeout': float,
+    'selector.sorter': str
 }
 
 #
@@ -68,8 +72,8 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'croncmd', 'dbcmd', 'downloadcmd', 'importcmd', 'mediainfocmd',
-    'searchcmd',
+    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
+    'mediainfocmd', 'searchcmd',
 
     # Downloaders
     'mockdownloader', 'transmission',
@@ -154,14 +158,18 @@ def build_basic_settings(arguments=[]):
 
     # Now we have to load default and extra config files.
     # Once they are loaded they are useless in 'args'.
-    cp = configparser.RawConfigParser()
-    if cp.read(getattr(args, 'config-files',
-                       utils.user_path('config', 'arroyo.ini'))):
-        delattr(args, 'config-files')
+    config_files = getattr(args, 'config-files',
+                           utils.user_path('config', 'arroyo.yml'))
 
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
-    store.load_configparser(cp, root_sections=('main',))
+    for cfg in config_files:
+        with open(cfg) as fh:
+            store.load(fh)
+    try:
+        delattr(args, 'config-files')
+    except AttributeError:
+        pass
 
     # Arguments must be loaded with care.
 
@@ -172,7 +180,7 @@ def build_basic_settings(arguments=[]):
 
     # b) log level modifers must me handled and removed from args
     log_levels = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-    log_level = store.get('log-level', 'WARNING')
+    log_level = store.get('log-level', default='WARNING')
     try:
         log_level = log_levels.index(log_level)
     except ValueError:
@@ -220,39 +228,57 @@ class EncodedStreamHandler(logging.StreamHandler):
 
 class ArroyoStore(store.Store):
     def __init__(self, *args, **kwargs):
-        def _get_validator():
-            _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-            _type_validator = store.type_validator(_defaults_types,
-                                                   relaxed=True)
+        # def _get_validator():
+        #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+        #     _type_validator = store.type_validator(_defaults_types,
+        #                                            relaxed=True)
 
-            def _validator(key, value):
-                if key == 'log-level' and value not in _log_lvls:
-                    raise ValueError(value)
+        #     def _validator(key, value):
+        #         if key == 'log-level' and value not in _log_lvls:
+        #             raise ValueError(value)
 
-                if key.startswith('plugin.') and key.endswith('.enabled'):
-                    return store.cast_value(value, bool)
+        #         if key.startswith('plugin.') and key.endswith('.enabled'):
+        #             return store.cast_value(value, bool)
 
-                return _type_validator(key, value)
+        #         return _type_validator(key, value)
 
-            return _validator
+        #     return _validator
 
-        if 'validator' not in kwargs:
-            kwargs['validator'] = _get_validator()
+        # if 'validator' not in kwargs:
+        #     kwargs['validator'] = _get_validator()
+
+        super().__init__(*args, **kwargs)
 
         # Build and configure logger
         handler = EncodedStreamHandler()
-        formater = logging.Formatter(self.get('log-format', r'%(message)s'))
+        formater = logging.Formatter(
+            self.get('log-format', default=r'%(message)s'))
         handler.setFormatter(formater)
 
         self._logger = logging.getLogger('arroyo.settings')
         self._logger.addHandler(handler)
 
-        super().__init__(*args, **kwargs)
+        self.add_validator(store.TypeValidator(_defaults_types))
 
-    def __setitem__(self, key, value):
+    def get(self, *args, **kwargs):
         try:
-            super().__setitem__(key, value)
-        except ValueError as e:
+            return super().get(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
+            self._logger.error(str(e))
+
+    def delete(self, *args, **kwargs):
+        try:
+            super().delete(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
+            self._logger.error(str(e))
+
+    def children(self, *args, **kwargs):
+        try:
+            return super().children(*args, **kwargs)
+        except (store.IllegalKeyError, store.KeyNotFoundError,
+                store.ValidationError) as e:
             self._logger.error(str(e))
 
 
@@ -275,12 +301,11 @@ class Arroyo:
         self.logger.setLevel(getattr(logging, lvlname))
 
         # Build and configure fetcher
-        fetcher = self.settings.get('fetcher')
+        fetcher = self.settings.get('fetcher.backend')
         try:
-            fetcher_opts = self.settings.get_tree('fetcher.' + fetcher)
+            fetcher_opts = self.settings.get('fetcher.options')
             fetcher_opts = {k.replace('-', '_'): v
                             for (k, v) in fetcher_opts.items()}
-
         except KeyError:
             fetcher_opts = {}
 
@@ -307,13 +332,14 @@ class Arroyo:
         # Load plugins
         # FIXME: Search for enabled plugins thru the keys of settings is a
         # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugin.'), self.settings)
+        plugins = filter(lambda x: x.startswith('plugin.'),
+                         self.settings.all_keys())
         plugins = map(lambda x: x.split('.'), plugins)
         plugins = filter(lambda x: len(x) >= 2, plugins)
         plugins = map(lambda x: x[1], plugins)
 
         for p in set(plugins):
-            if self.settings.get('plugin.' + p + '.enabled', True):
+            if self.settings.get('plugin.' + p + '.enabled', default=True):
                 self.load_plugin(p)
 
         # Run cron tasks
@@ -403,12 +429,11 @@ class Arroyo:
             description='valid subcommands',
             help='additional help')
 
-        subparsers = {}
-        for (name, cmd) in self.get_implementations(extension.Command).items():
-            subparsers[name] = subparser.add_parser(name, help=cmd.help)
-            for argument in cmd.arguments:
-                args, kwargs = argument()
-                subparsers[name].add_argument(*args, **kwargs)
+        impls = self.get_implementations(extension.Command).items()
+        subargparsers = {}
+        for (name, cmdcls) in impls:
+            subargparsers[name] = subparser.add_parser(name, help=cmdcls.help)
+            cmdcls.setup_argparser(subargparsers[name])
 
         # Parse arguments
         args = argparser.parse_args(command_line_arguments)
@@ -420,9 +445,8 @@ class Arroyo:
         ext = self.get_extension(extension.Command, args.subcommand)
         try:
             ext.run(args)
-
         except arroyo.exc.PluginArgumentError as e:
-            subparsers[args.subcommand].print_help()
+            subargparsers[args.subcommand].print_help()
             print("\nError message: {}".format(e), file=sys.stderr)
 
         except (arroyo.exc.BackendError,

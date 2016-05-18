@@ -1,0 +1,158 @@
+# Settings
+# sqlalchemy URI for database
+# See http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html#database-urls
+db-uri: 'sqlite:////tmp/arroyo.db'
+
+# Logger level and format
+log-level: 'WARNING'
+log-format: '[%(levelname)s] [%(name)s] %(message)s'
+
+# Async options
+async-max-concurrency: 5
+async-timeout : 10
+
+# Downloader backend to use
+# Check arroyo/downloaders folder for available downloaders
+# Downloader options are located under its respective plugin section
+# ex. plugin.mock or plugin.transmission
+downloader:
+    backend: mock
+
+# Execute crontask at startup
+auto-cron: false
+# Enable auto import feature
+auto-import: true
+
+# Fetcher backend to use
+# Check module ldotcommons.fetchers for more
+fetcher:
+    backend: urllib
+    # Configure fetcher
+    options:
+        enable-cache: True
+        cache-delta: 1200
+        headers:
+          'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+          'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
+
+# Selector
+selector:
+    sorter: 'basic'
+    query-defaults:
+        # # Wait 2 hours before consider source valid for download
+        age-min: 2H
+
+    query-episode-defaults: {}
+        # # Don't download sources found before that date
+        # since: 2015/06/01
+
+    query-movie-defaults: {}
+        # # Some good defaults for movies
+        # language: eng-us
+        # quality: 720p
+
+plugin:
+    # # Extension example configuration
+    # name:
+    #     enabled = true
+    #     parameter1 = value1
+
+    transmission:
+        enabled: False
+        address: 127.0.0.1
+        port: 9091
+        # user: xxx
+        # password: xxx
+
+    # twitter:
+    #     enabled: False
+    #     notify_on: source-state-change=sharing, source-state-change=archived, origin-failed
+    #     consumer_key:
+    #     consumer_secret:
+    #     token:
+    #     token_secret:
+
+
+# Origins populates the dabatase with torrents
+origin: {}
+
+    # name:
+    #     # Check plugins folder for available analizers
+    #     backend: foo
+    #     # URL to analize
+    #     url: http://example.com/latest
+    #     # Iterations: some analizers can iterate over the given url parameter
+    #     # Think about iterations as how many 'pages' the backend has to parser
+    #     iterations: 1
+    #     # Type and language of media found in this origin.
+    #     # 'type' can be something like episode or movie
+    #     # 'language' should be a code like eng-us or spa-es (see babelfish doc)
+    #     # Some analizers can resolve this for themselves
+    #     type:
+    #     language:
+
+    # eztv:
+    #     backend: eztv
+    #     iterations: 3
+    #     type: episode
+    #     language: eng-us
+
+    # ka-eztv:
+    #     backend: kickass
+    #     iterations: 3
+    #     type: episode
+    #     url: https://kat.ct/user/EZTV/uploads/?field=time_add&sorder=desc
+
+    # ka-episodes:
+    #     backend: kickass
+    #     iterations: 1
+    #     type: movie
+    #     url: https://kat.cr/tv/
+
+    # ka-episodes:
+    #     backend: kickass
+    #     iterations: 1
+    #     type: episode
+    #     url: https://kat.cr/movies/
+
+# Queries are the way to download sources.
+# Using a query you are filtering sources from the database
+# and pushing them into downloader.
+# See subcommand search --help
+
+query: {}
+
+    # name:
+    #     # Query is a set of one or more filters.
+    #     # There are some examples for the (default) source selector
+    #     # Most filters have "modifiers" like:
+    #     # "_like": case-insensitive filter using wildcards (*, .)
+    #     # "_regexp": Use a regular expression
+    #     # "_in": Comma-separated list of possible values
+    #     # "_min" and "_max": Used with integer values, the usual suffixes like
+    #     #                    [KkMmGg] are valid.
+    #     name-like = *foo*
+    #     name-regex = .+720.+
+    #     min-size = 100M
+    #     series = Lost
+    #     series-in = Lost, Breaking Bad
+
+    # 'All TV Shows @ 720p (basic)':
+    #     # episode selector accepts:
+    #     # - series, year, language, season, episode, quality (hdtv, 480p, 720p, 1080p)
+    #     # movie selector accepts:
+    #     # - title, year, language, quality (see episode selector)
+    #     kind: source
+    #     type: episode
+    #     name-regexp: .+720p.+
+
+    # TBBT:
+    #     kind: episode
+    #     series: the big bang theory
+    #     quality: HDTV
+
+    # AHS:
+    #     kind: episode
+    #     series: American Horror Story
+    #     quality: 720p
+    #     language: eng-us
