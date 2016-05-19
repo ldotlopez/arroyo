@@ -24,6 +24,7 @@ class Importer:
         self.app = app
         self.app.settings.add_validator(self._settings_validator)
 
+        self._sched = None
         self._logger = app.logger.getChild('importer')
 
         app.signals.register('source-added')
@@ -171,19 +172,19 @@ class Importer:
         """
 
         # Get, sched and run all tasks from origins
-        runner = ImporterRunner(
+        self._sched = ImporterRunner(
             maxtasks=self.app.settings.get('async-max-concurrency'),
             timeout=self.app.settings.get('async-timeout'),
             logger=self.app.logger.getChild('asyncsched'))
 
         for origin in origins:
-            runner.sched(*origin.get_tasks())
+            self._sched.sched(*origin.get_tasks())
 
-        runner.run()
+        self._sched.run()
 
         # Remove duplicates
         tmp = dict()
-        for src_data in runner.results:
+        for src_data in self._sched.results:
             k = src_data['urn']
 
             if k in tmp and (src_data['created'] < tmp[k]['created']):
@@ -191,6 +192,7 @@ class Importer:
 
             tmp[k] = src_data
 
+        self._sched = None
         results = tmp
 
         # Check which sources are created and which ones are updated from data
@@ -278,6 +280,14 @@ class Importer:
         return self.process(
             *self.get_origins_for_query_spec(query_spec)
         )
+
+    def push_to_sched(self, *coros):
+        if not self._sched:
+            msg = "Scheduler not available at this phase"
+            self.app.error(msg)
+            return
+
+        self._sched.sched(*coros)
 
     def run(self):
         return self.process(*self.get_origins())

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import plugin
+from arroyo import importer
 
 from datetime import datetime
 import re
@@ -31,7 +32,7 @@ class EliteTorrent(plugin.Origin):
     }
 
     def paginate(self, url):
-        if re.search(r'/torrent/\d+/'):
+        if re.search(r'/torrent/\d+/', url):
             yield url
         else:
             yield url
@@ -48,6 +49,19 @@ class EliteTorrent(plugin.Origin):
             return self.parse_listing(soup)
 
     def parse_listing(self, soup):
+        links = soup.select('a')
+        links = filter(lambda x: re.search(r'/torrent/\d+/', x.attrs.get('href', '')), links)
+        links = map(lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'], links)
+
+        specs = [importer.OriginSpec(name=x, backend=self.PROVIDER_NAME, url=x) for x in links]
+        origins = [self.app.importer.get_origin_for_origin_spec(x) for x in specs]
+        for x in origins:
+            self.app.importer.push_to_sched(*x.get_tasks())
+
+        return links
+
+
+    def parse_listing_(self, soup):
         def parse_row(row):
             r = {
                 'name': row.select_one('a.nombre').text,
@@ -128,9 +142,9 @@ class EliteTorrent(plugin.Origin):
 
         m = re.search(r'semillas: (\d+) \| clientes: (\d+)',
                       soup.select_one('.ppal').text.lower())
-        if m:
-            seeds = m.group(1)
-            leechers = m.group(2)
+
+        seeds = m.group(1) if m else None
+        leechers = m.group(2) if m else None
 
         return [{
             'name': name,
