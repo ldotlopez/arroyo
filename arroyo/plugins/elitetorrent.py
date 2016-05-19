@@ -3,9 +3,12 @@
 from arroyo import plugin
 from arroyo import importer
 
+
 from datetime import datetime
 import re
 import time
+from urllib import parse
+
 
 import bs4
 import humanfriendly
@@ -31,6 +34,12 @@ class EliteTorrent(plugin.Origin):
         'peliculas': 'movie'
     }
 
+    _default_lang = 'esp-es'
+    _langs = [
+        'esp-es',
+        'lat-es'
+    ]
+
     def paginate(self, url):
         if re.search(r'/torrent/\d+/', url):
             yield url
@@ -38,7 +47,41 @@ class EliteTorrent(plugin.Origin):
             yield url
 
     def get_query_url(self, query):
-        return None
+        q = ''
+
+        if query.get('language', None) not in self._langs:
+            return
+
+        kind = query.get('kind')
+
+        if kind == 'episode':
+            q = query.get('series')
+            year = query.get('year', None)
+            season = query.get('season', None)
+            episode = query.get('episode', None)
+
+            if year:
+                q += ' ({year})'.format(year)
+
+            if season and episode:
+                q += ' {season}x{episode:02d}'.format(season=season, episode=episode)
+
+
+        elif kind == 'movie':
+            q = query.get('title')
+            if year:
+                q += ' ({year})'.format(year)
+
+        elif kind == 'source':
+            q = query.get('name', None) or \
+                query.get('name-like', None) or \
+                query.get('name-glob', None)
+            if q:
+                q = q.replace('*', ' ')
+
+        q = parse.quote_plus(q.lower().strip())
+        if q:
+            return 'http://www.elitetorrent.net/busqueda/' + q
 
     def parse(self, buff):
         soup = bs4.BeautifulSoup(buff, "html.parser")
@@ -58,10 +101,10 @@ class EliteTorrent(plugin.Origin):
         for x in origins:
             self.app.importer.push_to_sched(*x.get_tasks())
 
-        return links
+        return []
 
 
-    def parse_listing_(self, soup):
+    def parse_listing_alt(self, soup):
         def parse_row(row):
             r = {
                 'name': row.select_one('a.nombre').text,
@@ -113,7 +156,7 @@ class EliteTorrent(plugin.Origin):
         if '(vose)' in name.lower():
             lang = None
         else:
-            lang = 'esp-es'
+            lang = self._default_lang
 
         links = soup.select('.enlace_torrent')
         links = map(lambda x: x.attrs['href'], links)
@@ -153,7 +196,8 @@ class EliteTorrent(plugin.Origin):
             'type': type,
             'language': lang,
             'seeds': seeds,
-            'leechers': leechers
+            'leechers': leechers,
+            'created': created
         }]
 
 
