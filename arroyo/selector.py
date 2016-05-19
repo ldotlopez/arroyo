@@ -135,8 +135,10 @@ class Selector:
             try:
                 qs = f.alter_query(qs)
                 if debug:
-                    msg = "After apply '{filter}' element count is {count}"
-                    msg = msg.format(filter=f.__module__, count=qs.count())
+                    msg = "After apply '{filter}({key}, {value})' element count is {count}"
+                    msg = msg.format(filter=f.__module__,
+                        key=f.key, value=f.value,
+                        count=qs.count())
                     self.app.logger.debug(msg)
 
             except arroyo.exc.SettingError as e:
@@ -150,8 +152,10 @@ class Selector:
             items = f.apply(items)
             if debug:
                 items = list(items)
-                msg = "After apply '{filter}' element count is {count}"
-                msg = msg.format(filter=f.__module__, count=len(items))
+                msg = "After apply '{filter}({key}, {value})' element count is {count}"
+                msg = msg.format(filter=f.__module__,
+                    key=f.key, value=f.value,
+                    count=qs.count())
                 self.app.logger.debug(msg)
 
         return items, missing
