@@ -8,12 +8,22 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import fetchers
+from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
     BASE_URL = 'https://eztv.ch/page_0'
     PROVIDER_NAME = 'eztv'
+
+    _table_mults = {
+        's': 1,
+        'm': 60,
+        'h': 60*60,
+        'd': 60*60*24,
+        'w': 60*60*24*7,
+        'mo': 60*60*24*30,
+        'y': 60*60*24*365,
+    }
 
     def paginate(self, url):
         parsed = parse.urlparse(url)
@@ -107,11 +117,28 @@ class Eztv(plugin.Origin):
             except (IndexError, ValueError, humanfriendly.InvalidSize):
                 pass
 
-            # TODO: Implement created parsing
+            created = children[4].text
+            diff = 0
+
+            m = re.search(r'(\d+)([mhd]) (\d+)([smhd])', created)
+            if m:
+                amount1 = int(m.group(1))
+                qual1 = m.group(2)
+                amount2 = int(m.group(3))
+                qual2 = m.group(4)
+                diff = (
+                    amount1 * self._table_mults[qual1] +
+                    amount2 * self._table_mults[qual2])
+
+            else:
+                m = re.search(r'(\d+) (w|mo|y)', created)
+                if m:
+                    diff = int(m.group(1)) * self._table_mults[m.group(2)]
+
+            ret['created'] = utils.now_timestamp() - diff
 
             return ret
 
-        self.app.logger.warning('eztv plugin doesn\'t support created field')
         soup = bs4.BeautifulSoup(buff, "html.parser")
         ret = map(parse_row, soup.select('tr'))
         ret = filter(lambda x: x is not None, ret)
