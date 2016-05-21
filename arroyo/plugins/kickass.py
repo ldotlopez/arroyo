@@ -21,7 +21,8 @@ class KickAss(plugin.Origin):
         'movies': 'movie',
         'tv': 'episode'
         # 'music': 'music',
-        # 'books': 'book'
+        # 'books': 'book',
+        # 'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 
     def __init__(self, *args, **kwargs):
@@ -83,6 +84,9 @@ class KickAss(plugin.Origin):
         """
 
         def process_row(row):
+            row_as_text = row.text
+
+            # Check for name
             try:
                 name = row.select('a.cellMainLink')[0].text
             except IndexError:
@@ -95,42 +99,36 @@ class KickAss(plugin.Origin):
             except (IndexError, AttributeError):
                 uri = None
 
+            # Check for size
             try:
                 size = row.select('td')[1].text.replace(' ', '')
                 size = humanfriendly.parse_size(size)
-
             except (IndexError, ValueError):
                 size = None
 
+            # Check for seeds
             try:
                 seeds = int(row.select('td')[-2].text)
             except (IndexError, ValueError):
                 seeds = None
 
+            # Check for leechers
             try:
                 leechers = int(row.select('td')[-1].text)
             except (IndexError, ValueError):
                 leechers = None
 
-            try:
-                lines = row.select('td')[0].text.split('\n')
-                lines = filter(lambda x: x, lines)
-                lines = map(lambda x: x.strip(), lines)
-                section_text = list(lines)[-1]
-                typ = re.search(
-                    r'\bin\s*(\S+?)\b',
-                    section_text,
-                    re.IGNORECASE)
+            # Check for type
+            typ = None
 
-                # typ = re.search(
-                #     r'Posted by .+? in (.+?)\b',
-                #     row.select('td')[0].text,
-                #     re.IGNORECASE)
-
-                typ = typ.group(1).lower().strip()
-                typ = self._TYPES.get(typ)
-            except IndexError:
-                typ = None
+            m = re.search('Posted by .+ in (.+)', row_as_text)
+            if m:
+                category = m.group(1).strip().lower()
+                idx = category.find(' > ')
+                if idx:
+                    category = category[0:idx]
+                    subcategory = category[idx+3:]
+                typ = self._TYPES.get(category)
 
             try:
                 _table = {
@@ -154,11 +152,11 @@ class KickAss(plugin.Origin):
             return {
                 'name': name,
                 'uri': uri,
+                'type': typ,
                 'size': size,
                 'seeds': seeds,
                 'leechers': leechers,
-                'type': typ,
-                'created': created
+                'created': created,
             }
 
         soup = bs4.BeautifulSoup(buff, "html.parser")

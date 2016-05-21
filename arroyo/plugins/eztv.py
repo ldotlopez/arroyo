@@ -107,8 +107,11 @@ class Eztv(plugin.Origin):
             except (IndexError, ValueError, humanfriendly.InvalidSize):
                 pass
 
+            # TODO: Implement created parsing
+
             return ret
 
+        self.app.logger.warning('eztv plugin doesn\'t support created field')
         soup = bs4.BeautifulSoup(buff, "html.parser")
         ret = map(parse_row, soup.select('tr'))
         ret = filter(lambda x: x is not None, ret)

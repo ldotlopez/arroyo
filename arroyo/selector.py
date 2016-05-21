@@ -121,13 +121,13 @@ class Selector:
         for x in sql_aware:
             filter_list = ', '.join([x.__module__ for x in sql_aware[x]])
 
-            msg = ("{type} based filters: {filter_list}")
+            msg = ("1. {type} based filters: {filter_list}")
             msg = msg.format(type='SQL' if x else 'Python',
                              filter_list=filter_list or '[]')
             self.app.logger.debug(msg)
 
         if debug:
-            msg = "Initial element is count {count}"
+            msg = "2. Initial element is count {count}"
             msg = msg.format(count=qs.count())
             self.app.logger.debug(msg)
 
@@ -135,28 +135,42 @@ class Selector:
             try:
                 qs = f.alter_query(qs)
                 if debug:
-                    msg = "After apply '{filter}({key}, {value})' element count is {count}"
-                    msg = msg.format(filter=f.__module__,
+                    msg = ("3. After apply '{filter}({key}, {value})' "
+                           "element count is {count}")
+                    msg = msg.format(
+                        filter=f.__module__,
                         key=f.key, value=f.value,
                         count=qs.count())
                     self.app.logger.debug(msg)
 
             except arroyo.exc.SettingError as e:
-                msg = ("Ignoring invalid setting «{key}»: «{value}». "
+                msg = ("- Ignoring invalid setting «{key}»: «{value}». "
                        "Filter discarted")
                 msg = msg.format(key=e.key, value=e.value)
                 self.app.logger.warning(msg)
 
         items = (x for x in qs)
+
         for f in sql_aware.get(False, []):
             items = f.apply(items)
             if debug:
-                items = list(items)
-                msg = "After apply '{filter}({key}, {value})' element count is {count}"
-                msg = msg.format(filter=f.__module__,
-                    key=f.key, value=f.value,
-                    count=qs.count())
+                if not isinstance(items, list):
+                    items = list(items)
+
+                msg = ("3. After apply '{filter}({key}, {value})' "
+                       "element count is {count}")
+                msg = msg.format(
+                    filter=f.__module__, count=len(items),
+                    key=f.key, value=f.value)
                 self.app.logger.debug(msg)
+
+        if debug:
+            if not isinstance(items, list):
+                items = list(items)
+
+            msg = "4. Final result: {count} elements"
+            msg = msg.format(count=len(items))
+            self.app.logger.debug(msg)
 
         return items, missing
 

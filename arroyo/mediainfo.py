@@ -147,10 +147,11 @@ class Mediainfo:
                 model = models.Episode
                 arguments = {
                     'series': info['series'],
-                    'season': int(info.get('season', '0') or None),
+                    'season': int(info.get('season', '0')),
                     'number': int(info['episodeNumber']),
                     'year': int(info.get('year', '0')) or None
                 }
+
             except KeyError:
                 raise ValueError('info data for episode source is incomplete')
 

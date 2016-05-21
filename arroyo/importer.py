@@ -600,6 +600,7 @@ class Origin(extension.Extension):
 
             # Fix created
             psrc['created'] = psrc.get('created', None) or now
+
             return psrc
 
         # Normalize data structure

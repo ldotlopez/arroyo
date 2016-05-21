@@ -16,7 +16,7 @@ from ldotcommons import utils
 
 
 class Tpb(plugin.Origin):
-    PROVIDER_NAME = 'tpb'
+    PROVIDER_NAME = 'thepiratebay'
 
     # TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
     TLD = 'cr'
@@ -152,7 +152,7 @@ class Tpb(plugin.Origin):
 
 class TpbRss(plugin.Origin):
 
-    PROVIDER_NAME = 'tpbrss'
+    PROVIDER_NAME = 'thepiratebayrss'
     BASE_URL = 'http://thepiratebay.{tld}/rss/'.format(
         tld=random.sample([
             'am', 'gs', 'mn', 'la', 'vg'
@@ -184,6 +184,6 @@ class TpbRss(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('tpb', Tpb),
-    ('tpbrss', TpbRss)
+    ('thepiratebay', Tpb),
+    ('thepiratebayrss', TpbRss)
 ]

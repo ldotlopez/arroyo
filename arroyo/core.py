@@ -2,13 +2,13 @@
 
 import argparse
 import importlib
-import logging
 import sys
 import warnings
 
 from ldotcommons import (
     fetchers,
     keyvaluestore,
+    logging,
     store,
     utils
 )
@@ -209,21 +209,21 @@ def build_basic_settings(arguments=[]):
     return store
 
 
-class EncodedStreamHandler(logging.StreamHandler):
-    def __init__(self, encoding='utf-8', *args, **kwargs):
-        super(EncodedStreamHandler, self).__init__(*args, **kwargs)
-        self.encoding = encoding
-        self.terminator = self.terminator.encode(self.encoding)
+# class EncodedStreamHandler(logging.StreamHandler):
+#     def __init__(self, encoding='utf-8', *args, **kwargs):
+#         super(EncodedStreamHandler, self).__init__(*args, **kwargs)
+#         self.encoding = encoding
+#         self.terminator = self.terminator.encode(self.encoding)
 
-    def emit(self, record):
-        try:
-            msg = self.format(record).encode(self.encoding)
-            stream = self.stream
-            stream.buffer.write(msg)
-            stream.buffer.write(self.terminator)
-            self.flush()
-        except Exception:
-            self.handleError(record)
+#     def emit(self, record):
+#         try:
+#             msg = self.format(record).encode(self.encoding)
+#             stream = self.stream
+#             stream.buffer.write(msg)
+#             stream.buffer.write(self.terminator)
+#             self.flush()
+#         except Exception:
+#             self.handleError(record)
 
 
 class ArroyoStore(store.Store):
@@ -250,14 +250,15 @@ class ArroyoStore(store.Store):
         super().__init__(*args, **kwargs)
 
         # Build and configure logger
-        handler = EncodedStreamHandler()
-        formater = logging.Formatter(
-            self.get('log-format', default=r'%(message)s'))
-        handler.setFormatter(formater)
+        # handler = EncodedStreamHandler()
+        # formater = logging.Formatter(
+        #     self.get('log-format', default=r'%(message)s'))
+        # handler.setFormatter(formater)
 
-        self._logger = logging.getLogger('arroyo.settings')
-        self._logger.addHandler(handler)
+        # self._logger = logging.getLogger('arroyo.settings')
+        # self._logger.addHandler(handler)
 
+        self._logger = logging.get_logger('arroyo.settings')
         self.add_validator(store.TypeValidator(_defaults_types))
 
     def get(self, *args, **kwargs):
@@ -291,11 +292,12 @@ class Arroyo:
         self._registry = {}
 
         # Build and configure logger
-        handler = EncodedStreamHandler()
-        handler.setFormatter(logging.Formatter(
-            self.settings.get('log-format')))
-        self.logger = logging.getLogger('arroyo')
-        self.logger.addHandler(handler)
+        # handler = EncodedStreamHandler()
+        # handler.setFormatter(logging.Formatter(
+        #     self.settings.get('log-format')))
+        # self.logger = logging.getLogger('arroyo')
+        # self.logger.addHandler(handler)
+        self.logger = logging.get_logger('arroyo')
 
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
