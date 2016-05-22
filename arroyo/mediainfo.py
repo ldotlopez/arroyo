@@ -113,12 +113,13 @@ class Mediainfo:
             # Get or create specilized model. There is no need to check if it
             # gets created, will be added to session when it gets linked to its
             # source
-            try:
-                specilized_source = self._get_specilized_source(info)
-            except ValueError as e:
-                msg = "unable to get specilized data for '{source}': {reason}"
-                self._logger.warning(msg.format(source=src, reason=e))
-                continue
+            if src.type in ('movie', 'episode'):
+                try:
+                    specilized_source = self._get_specilized_source(info)
+                except ValueError as e:
+                    msg = "unable to get specilized data for '{source}': {reason}"
+                    self._logger.warning(msg.format(source=src, reason=e))
+                    continue
 
             # Link source and specialized_source
             if src.type == 'movie':

@@ -15,11 +15,14 @@ from ldotcommons import utils
 class KickAss(plugin.Origin):
     _BASE_DOMAIN = 'kat.cr'
     _TYPES = {
-        'movies': 'movie',
-        'tv': 'episode',
-        'music': 'music',
+        'anime': 'other',
+        'applications': 'application',
         'books': 'book',
+        'games': 'game',
+        'movies': 'movie',
+        'music': 'music',
         'other': 'other',
+        'tv': 'episode',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 
@@ -130,7 +133,14 @@ class KickAss(plugin.Origin):
                 if idx >= 0:
                     category = category[0:idx]
                     # subcategory = category[idx+3:]
-                typ = self._TYPES.get(category)
+
+                try:
+                    typ = self._TYPES[category]
+                except IndexError:
+                    typ = None
+                    msg = "Unknow category: {category}"
+                    msg = msg.format(category=category)
+                    self._logger.warning(msg)
 
             try:
                 _table = {

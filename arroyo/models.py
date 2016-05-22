@@ -403,4 +403,14 @@ def _check_language(lang):
 
 
 def _check_type(typ):
-    return typ in (None, 'movie', 'episode', 'music', 'book', 'xxx', 'other')
+    return typ in (
+        None,
+        'application',
+        'book',
+        'episode',
+        'game',
+        'movie',
+        'music',
+        'other',
+        'xxx',
+    )
