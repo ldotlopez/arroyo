@@ -15,6 +15,10 @@ import humanfriendly
 from ldotcommons import utils
 
 
+class _CategoryUnknowError(Exception):
+    pass
+
+
 class ThePirateBay(plugin.Origin):
     PROVIDER_NAME = 'thepiratebay'
 
@@ -128,7 +132,13 @@ class ThePirateBay(plugin.Origin):
             details = row.select('font.detDesc')[0].text
 
             # Parse category
-            typ = self.parse_category(row.select('td')[0].text)
+            try:
+                typ = self.parse_category(row.select('td')[0].text)
+            except _CategoryUnknowError as e:
+                typ = None
+                msg = "Unknow category: '{category}'"
+                msg = msg.format(category=e.args[0])
+                self.app.logger.warning(msg)
 
             # Parse size
             size = re.findall(r'([0-9\.]+\s*[GMK]i?B)',
@@ -168,7 +178,10 @@ class ThePirateBay(plugin.Origin):
         cat = cat.replace('\n', '\0').replace('\t', '\0').split('\0')
         cat = [x for x in cat if x]
 
-        typ = cls._TYPE_TABLE.get(cat[0], {}).get(cat[1], None)
+        try:
+            typ = cls._TYPE_TABLE[cat[0]][cat[1]]
+        except KeyError:
+            raise _CategoryUnknowError(cat[0] + '>' + cat[1])
 
         return typ
 
