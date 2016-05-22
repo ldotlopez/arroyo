@@ -56,6 +56,8 @@ class Source(Base):
         State.ARCHIVED: '▣'
         }
 
+    _DEFAULT_FMT = '{name}'
+
     id = Column(Integer, primary_key=True)
     urn = Column(String, unique=True)
     name = Column(String, nullable=False)
@@ -225,6 +227,14 @@ class Source(Base):
     def state_symbol(self):
         return self._SYMBOL_TABLE.get(self.state, ' ')
 
+    def format(self, fmt=None, extra_data={}):
+        if fmt is None:
+            fmt = self._DEFAULT_FMT
+
+        data = self.as_dict()
+        data.update(extra_data)
+
+        return fmt.format(**data)
 
 class Selection(Base):
     __tablename__ = 'selection'

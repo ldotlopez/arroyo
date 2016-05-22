@@ -50,6 +50,9 @@ class SearchCommand(plugin.Command):
             help='keywords')
     )
 
+    _SOURCE_FMT = '{id:5d} [{icon}] {source}'
+    _GROUP_FMT = '{prefix} {entity}'
+
     def run(self, args):
         all_states = args.all_states
         filters = args.filters
@@ -79,8 +82,9 @@ class SearchCommand(plugin.Command):
 
         for spec in specs:
             # Get matches
-            matches = self.app.selector.matches(spec,
-                                                everything=all_states)
+            matches = self.app.selector.matches(
+                spec,
+                everything=all_states)
 
             # Sort matches by entity ID
             matches = sorted(

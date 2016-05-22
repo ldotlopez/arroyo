@@ -3,6 +3,7 @@
 from arroyo import plugin
 
 
+import humanfriendly
 from ldotcommons import utils
 
 
@@ -48,6 +49,9 @@ class DownloadCommand(plugin.Command):
             action='store_true',
             help='don\'t download matching sources, just show them')
     )
+
+    _SRC_FMT = ("Download '{name}' "
+                "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
 
     def run(self, args):
         show = args.show
@@ -122,10 +126,16 @@ class DownloadCommand(plugin.Command):
                 print(query)
 
                 for src in srcs:
-                    if not dry_run:
-                        self.app.downloads.add(src)
+                    extra_data = {
+                        'size': humanfriendly.format_size(src.size)
+                    }
+                    msg = src.format(self._SRC_FMT, extra_data)
 
-                    self.app.logger.info(str(src))
+                    if dry_run:
+                        print(msg)
+                    else:
+                        self.app.downloads.add(src)
+                        self.app.logger.info(msg)
 
         else:
             # This code should never be reached but keeping it here we will
