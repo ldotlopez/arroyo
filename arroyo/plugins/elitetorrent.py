@@ -34,9 +34,9 @@ class EliteTorrent(plugin.Origin):
         'peliculas': 'movie'
     }
 
-    _default_lang = 'esp-es'
+    _default_lang = 'spa-es'
     _langs = [
-        'esp-es',
+        'spa-es',
         'lat-es'
     ]
 
