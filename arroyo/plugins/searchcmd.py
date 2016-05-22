@@ -55,26 +55,19 @@ class SearchCommand(plugin.Command):
         filters = args.filters
         keywords = args.keywords
 
-        if all([filters, keywords]):
-            msg = 'Filters and keywords are mutually exclusive'
-            raise plugin.exc.PluginArgumentError(msg)
+        spec = {}
+
+        if filters:
+            spec.update(filters.items())
 
         if keywords:
+            spec.update({'name-glob': '*' + '*'.join(keywords) + '*'})
+
+        if spec:
             if 'query' in self.app.settings:
                 self.app.settings.delete('query')
 
-            query_name = ' '.join(keywords)
-            query_name = re.sub(r'[^\sa-zA-Z0-9_\-\.]', '', query_name).strip()
-            self.app.settings.set(
-                'query.' + query_name + '.name-glob',
-                '*' + '*'.join(keywords) + '*')
-
-        elif filters:
-            if 'query' in self.app.settings:
-                self.app.settings.delete('query')
-
-            for (k, v) in filters.items():
-                self.app.settings.set('query.command-line.' + k, v)
+            self.app.settings.set('query.command-line', spec)
 
         specs = self.app.selector.get_queries_specs()
         if not specs:
