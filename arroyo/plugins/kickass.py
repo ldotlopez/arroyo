@@ -19,6 +19,7 @@ class KickAss(plugin.Origin):
         'tv': 'episode',
         'music': 'music',
         'books': 'book',
+        'other': 'other',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 
@@ -126,7 +127,7 @@ class KickAss(plugin.Origin):
             if m:
                 category = m.group(1).strip().lower()
                 idx = category.find(' > ')
-                if idx:
+                if idx >= 0:
                     category = category[0:idx]
                     # subcategory = category[idx+3:]
                 typ = self._TYPES.get(category)
