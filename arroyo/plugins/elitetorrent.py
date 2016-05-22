@@ -30,7 +30,10 @@ class EliteTorrent(plugin.Origin):
 
     _categories = {
         'series': 'episode',
-        'peliculas': 'movie'
+        'peliculas': 'movie',
+        'peliculas microhd': 'movie',
+        'peliculas hdrip': 'movie',
+        'estrenos': 'movie'
     }
 
     _default_lang = 'spa-es'
@@ -202,54 +205,6 @@ class EliteTorrent(plugin.Origin):
         ret.update(details)
 
         return [ret]
-
-    # # Alternative listing parsing, can get almost all stuff from 'modo:listado' pages
-    # # but fails to get the most important thing: the magnet. So this is useless
-    #
-    # def parse_listing_alt(self, soup):
-    #     def parse_row(row):
-    #         r = {
-    #             'name': row.select_one('a.nombre').text,
-    #             'uri': None,
-    #             'size': None,
-    #             'seeds': None,
-    #             'leechers': None,
-    #             'type': None,
-    #             'created': None
-    #         }
-
-    #         r['href'] = (
-    #             'http://www.elitetorrent.net/' +
-    #             row.select_one('a.icono-bajar').attrs['href']
-    #         )
-
-    #         try:
-    #             r['seeds'] = int(row.select_one('td.semillas').text)
-    #         except ValueError:
-    #             pass
-
-    #         try:
-    #             r['leechers'] = int(row.select_one('td.clientes').text)
-    #         except ValueError:
-    #             pass
-
-    #         created = row.select_one('td.fecha').text
-    #         m = re.search(r'^Hace (.+?) (seg|min|hrs|d|sem|mes|an)', created)
-    #         if m:
-    #             amount = m.group(1)
-    #             amount = 1 if amount.startswith('un') else int(amount)
-    #             qual = m.group(2)
-
-    #             if qual in self._time_table:
-    #                 created = \
-    #                     utils.now_timestamp() - self._time_table[qual] * amount
-    #                 r['created'] = created
-
-    #         return r
-
-    #     rows = soup.select('table.fichas-listado tr')[1:]
-
-    #     return list(map(parse_row, rows))
 
 __arroyo_extensions__ = [
     ('elitetorrent', EliteTorrent)
