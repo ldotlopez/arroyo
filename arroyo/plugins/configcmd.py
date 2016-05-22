@@ -5,7 +5,7 @@ import yaml
 
 
 class ConfigCommand(plugin.Command):
-    help = 'manage downloads'
+    help = 'Configuration management'
 
     @classmethod
     def setup_argparser(cls, cmdargparser):
