@@ -28,10 +28,10 @@ class ThePirateBay(plugin.Origin):
 
     _TYPE_TABLE = {
         'audio': {
-            'music': 'other',
-            'audio books': 'other',
+            'music': 'music',
+            'audio books': 'book',
             'sound clips': 'other',
-            'flac': 'other',
+            'flac': 'music',
             'other': 'other'
         },
         'video':{
@@ -67,16 +67,16 @@ class ThePirateBay(plugin.Origin):
             'xbox360': 'other'
         },
         'porn': {
-            'movies': 'other',
-            'games': 'other',
-            'hd - movies': 'other',
-            'movie clips': 'other',
-            'movies dvdr': 'other',
-            'other': 'other',
-            'pictures': 'other'
+            'movies': 'xxx',
+            'games': 'xxx',
+            'hd - movies': 'xxx',
+            'movie clips': 'xxx',
+            'movies dvdr': 'xxx',
+            'other': 'xxx',
+            'pictures': 'xxx'
         },
         'other': {
-            'e-books': 'other',
+            'e-books': 'book',
             'comics': 'other',
             'covers': 'other',
             'other': 'other',
