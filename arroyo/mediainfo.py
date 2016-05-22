@@ -36,11 +36,12 @@ class Mediainfo:
         #  'title': 'Temporada 2',
         #  'type': 'episode',
         #  'unidentified': ['Castellano', 'V O']}
-
         if source.type == 'movie':
             info = guessit.guess_movie_info(source.name)
         elif source.type == 'episode':
             info = guessit.guess_episode_info(source.name)
+        elif source.type == 'other':
+            info = {'name': source.name, 'type': 'other'}
         else:
             info = guessit.guess_file_info(source.name)
 
@@ -77,34 +78,34 @@ class Mediainfo:
         #  'type': 'episode',
         #  'unidentified': ['Dominion', 'p', 'Temporada 1']}
 
-        fixes = {
-            'movie': (
-                ('title', 'year'),
-                ('.avi')
-            ),
-            'episode': (
-                ('series', 'year', 'season', 'episodeNumber'),
-                ('.mp4')
-            )
-        }
+        # fixes = {
+        #     'movie': (
+        #         ('title', 'year'),
+        #         ('.avi')
+        #     ),
+        #     'episode': (
+        #         ('series', 'year', 'season', 'episodeNumber'),
+        #         ('.mp4')
+        #     )
+        # }
 
-        if source.type in fixes:
-            wanted_fields, expected_ext = fixes[source.type]
-            filename, extension = path.splitext(source.name)
+        # if source.type in fixes:
+        #     wanted_fields, expected_ext = fixes[source.type]
+        #     filename, extension = path.splitext(source.name)
 
-            if extension != expected_ext:
-                try:
-                    fake_info = guessit.guess_file_info(
-                        source.name + expected_ext)
-                except RuntimeError:
-                    # See: https://github.com/wackou/guessit/issues/209
-                    msg = "Trap RuntimeError: {name}"
-                    msg = msg.format(name=source.name + expected_ext)
-                    self._logger.critical(msg)
+        #     if extension != expected_ext:
+        #         try:
+        #             fake_info = guessit.guess_file_info(
+        #                 source.name + expected_ext)
+        #         except RuntimeError:
+        #             # See: https://github.com/wackou/guessit/issues/209
+        #             msg = "Trap RuntimeError: {name}"
+        #             msg = msg.format(name=source.name + expected_ext)
+        #             self._logger.critical(msg)
 
-                for f in wanted_fields:
-                    if f not in info and f in fake_info:
-                        info[f] = fake_info[f]
+        #         for f in wanted_fields:
+        #             if f not in info and f in fake_info:
+        #                 info[f] = fake_info[f]
 
         if 'date' in info and \
            info.get('type', None) == 'episode':
@@ -132,6 +133,13 @@ class Mediainfo:
         return info
 
     def _get_specilized_source(self, info):
+
+        typ = info.get('type')
+
+        if typ not in ('movie', 'episode'):
+            msg = "Onl"
+            raise ValueError()
+
         if info['type'] == 'movie':
             try:
                 model = models.Movie

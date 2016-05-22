@@ -188,10 +188,12 @@ class Source(Base):
             name=self.name)
 
     def __iter__(self):
-        keys = ('age created entity episode episode_id id is_active ' +
-                'language last_seen leechers movie movie_id name provider  ' +
-                'seeds share_ratio size state state_symbol tags type type ' +
-                'uri urn').split()
+        keys = [
+            'age', 'created', 'entity', 'episode', 'episode_id', 'id',
+            'is_active', 'language', 'last_seen', 'leechers', 'movie',
+            'movie_id', 'name', 'provider', 'seeds', 'share_ratio', 'size',
+            'state', 'state_symbol', 'tags', 'type', 'type', 'uri', 'urn'
+        ]
 
         for k in keys:
             yield (k, getattr(self, k))
@@ -312,7 +314,7 @@ class Episode(Base):
             number=self.number)
 
     def __iter__(self):
-        keys = 'id series year season number'.split(' ')
+        keys = ['id', 'series', 'year', 'season', 'number']
         for k in keys:
             yield (k, getattr(self, k))
 
@@ -388,7 +390,7 @@ class Movie(Base):
         return self.__str__()
 
     def __iter__(self):
-        keys = 'id title year'.split(' ')
+        keys = ['id', 'title', 'year']
         for k in keys:
             yield (k, getattr(self, k))
 
@@ -401,4 +403,4 @@ def _check_language(lang):
 
 
 def _check_type(typ):
-    return typ in (None, 'movie', 'episode')
+    return typ in (None, 'movie', 'episode', 'music', 'book', 'xxx', 'other')
