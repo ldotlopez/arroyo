@@ -28,60 +28,60 @@ class ThePirateBay(plugin.Origin):
 
     _TYPE_TABLE = {
         'audio': {
-            'music': None,
-            'audio books': None,
-            'sound clips': None,
-            'flac': None,
-            'other': None
+            'music': 'other',
+            'audio books': 'other',
+            'sound clips': 'other',
+            'flac': 'other',
+            'other': 'other'
         },
         'video':{
             'movies': 'movie',
             'movies dvdr': 'movie',
-            'music videos': None,
-            'Movie clips': None,
+            'music videos': 'other',
+            'Movie clips': 'other',
             'tv shows': 'episode',
-            'handheld': None,
+            'handheld': 'other',
             'hd - movies': 'movie',
             'hd - tv shows': 'episode',
-            '3d': None,
-            'other': None,
+            '3d': 'other',
+            'other': 'other',
         },
         'applications': {
-            'android': None,
-            'handheld': None,
-            'ios (ipad/iphone)': None,
-            'mac': None,
-            'other os': None,
-            'unix': None,
-            'windows': None
+            'android': 'other',
+            'handheld': 'other',
+            'ios (ipad/iphone)': 'other',
+            'mac': 'other',
+            'other os': 'other',
+            'unix': 'other',
+            'windows': 'other'
         },
         'games': {
-            'android': None,
-            'handheld': None,
-            'ios (ipad/iphone)': None,
-            'mac': None,
-            'other': None,
-            'pc': None,
-            'psx': None,
-            'wii': None,
-            'xbox360': None
+            'android': 'other',
+            'handheld': 'other',
+            'ios (ipad/iphone)': 'other',
+            'mac': 'other',
+            'other': 'other',
+            'pc': 'other',
+            'psx': 'other',
+            'wii': 'other',
+            'xbox360': 'other'
         },
         'porn': {
-            'movies': None,
-            'games': None,
-            'hd - movies': None,
-            'movie clips': None,
-            'movies dvdr': None,
-            'other': None,
-            'pictures': None
+            'movies': 'other',
+            'games': 'other',
+            'hd - movies': 'other',
+            'movie clips': 'other',
+            'movies dvdr': 'other',
+            'other': 'other',
+            'pictures': 'other'
         },
         'other': {
-            'e-books': None,
-            'comics': None,
-            'covers': None,
-            'other': None,
-            'physibles(?!)': None,
-            'pictures': None
+            'e-books': 'other',
+            'comics': 'other',
+            'covers': 'other',
+            'other': 'other',
+            'physibles(?!)': 'other',
+            'pictures': 'other'
         }
     }
 
@@ -109,14 +109,14 @@ class ThePirateBay(plugin.Origin):
             'movie': 'title'
         }
         selector = query.get('kind')
-        field = t.get(selector, None)
+        field = t.get(selector, 'other')
         if not field:
             return
 
-        q = None
+        q = 'other'
         for suffix in ['', '-glob', '-like', '-regexp']:
-            q = query.get(field + suffix, None)
-            if q is not None:
+            q = query.get(field + suffix, 'other')
+            if q is not 'other':
                 q = q.replace('%', ' ').replace('*', ' ')
                 q = q.strip()
                 q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
@@ -124,7 +124,7 @@ class ThePirateBay(plugin.Origin):
 
         if q:
             return "https://thepiratebay.{tld}/search/{q}/0/99/0".format(
-                   tld=self.TLD,
+                   tld=self._TLD,
                    q=q)
 
     def parse(self, buff):
@@ -135,7 +135,7 @@ class ThePirateBay(plugin.Origin):
             try:
                 typ = self.parse_category(row.select('td')[0].text)
             except _CategoryUnknowError as e:
-                typ = None
+                typ = 'other'
                 msg = "Unknow category: '{category}'"
                 msg = msg.format(category=e.args[0])
                 self.app.logger.warning(msg)
@@ -150,7 +150,7 @@ class ThePirateBay(plugin.Origin):
             try:
                 created = self.parse_timestamp(row.select('.detDesc')[0].text)
             except IndexError:
-                created = None
+                created = 'other'
 
             return {
                 'name': row.findAll('a')[2].text,
@@ -253,11 +253,11 @@ class ThePirateBayRSS(plugin.Origin):
     def paginate(self, url):
         yield url
 
-    # def url_generator(self, url=None):
+    # def url_generator(self, url='other'):
     #     """Generates URLs for the current website,
     #     TPB doesn't support pagination on feeds
     #     """
-    #     if url is None:
+    #     if url is 'other':
     #         url = self.BASE_URL
 
     #     yield url
