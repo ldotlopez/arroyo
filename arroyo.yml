@@ -57,6 +57,19 @@ plugin:
     #     enabled = true
     #     parameter1 = value1
 
+    eztv: {}
+        # eztv doesn't has default language setting since it's english only
+
+    thepiratebay:
+        default-language: eng-us
+
+    kickass:
+        default-language: eng-us
+
+    spanishtracker:
+        # spanishtracker is broken for now
+        enabled: False
+
     transmission:
         enabled: False
         address: 127.0.0.1
