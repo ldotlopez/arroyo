@@ -19,10 +19,10 @@ class KickAss(plugin.Origin):
 
     _TYPES = {
         'movies': 'movie',
-        'tv': 'episode'
-        # 'music': 'music',
-        # 'books': 'book',
-        # 'xxx': 'xxx'  # ¯\_(ツ)_/¯
+        'tv': 'episode',
+        'music': 'music',
+        'books': 'book',
+        'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 
     def __init__(self, *args, **kwargs):
