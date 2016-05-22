@@ -2,12 +2,14 @@
 
 from arroyo import plugin
 from arroyo.plugin.tools import downloads
-models = plugin.models
 
 from urllib import parse
 
+from ldotcommons import store
 from sqlalchemy import orm
 import transmissionrpc
+
+models = plugin.models
 
 
 class TransmissionDownloader(plugin.Downloader):

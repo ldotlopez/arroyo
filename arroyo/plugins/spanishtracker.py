@@ -38,7 +38,6 @@ class Spanishtracker(plugin.Origin):
             return
 
         selector = query.get('kind', 'source')
-
         if selector == 'episode':
             catstr = '7'
             q = query.get('series')
@@ -48,6 +47,7 @@ class Spanishtracker(plugin.Origin):
             q = query.get('title')
 
         elif selector == 'source':
+            catstr = ''
             q = query.get('name') or \
                 query.get('name-glob') or \
                 query.get('name-like') or \

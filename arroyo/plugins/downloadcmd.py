@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import plugin
-models = plugin.models
 
 
 from ldotcommons import utils
+
+
+models = plugin.models
 
 
 class DownloadCommand(plugin.Command):

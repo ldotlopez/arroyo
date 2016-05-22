@@ -1,11 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from os import path
+from arroyo import models
+
 
 import babelfish
 import guessit
-
-from arroyo import models
 
 
 class Mediainfo:
@@ -133,13 +132,6 @@ class Mediainfo:
         return info
 
     def _get_specilized_source(self, info):
-
-        typ = info.get('type')
-
-        if typ not in ('movie', 'episode'):
-            msg = "Onl"
-            raise ValueError()
-
         if info['type'] == 'movie':
             try:
                 model = models.Movie

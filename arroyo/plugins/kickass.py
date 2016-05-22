@@ -14,9 +14,6 @@ from ldotcommons import utils
 
 class KickAss(plugin.Origin):
     _BASE_DOMAIN = 'kat.cr'
-    BASE_URL = 'http://{}/new/?page=1'.format(_BASE_DOMAIN)
-    PROVIDER_NAME = 'kickass'
-
     _TYPES = {
         'movies': 'movie',
         'tv': 'episode',
@@ -24,6 +21,10 @@ class KickAss(plugin.Origin):
         'books': 'book',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
+
+    BASE_URL = 'http://{domain}/new/?page=1'.format(
+        domain=_BASE_DOMAIN)
+    PROVIDER_NAME = 'kickass'
 
     def __init__(self, *args, **kwargs):
         super(KickAss, self).__init__(*args, **kwargs)
@@ -127,7 +128,7 @@ class KickAss(plugin.Origin):
                 idx = category.find(' > ')
                 if idx:
                     category = category[0:idx]
-                    subcategory = category[idx+3:]
+                    # subcategory = category[idx+3:]
                 typ = self._TYPES.get(category)
 
             try:

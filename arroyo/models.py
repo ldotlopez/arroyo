@@ -29,7 +29,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
         'source': relationship("Source",
                                backref=backref("tags",
                                                lazy='dynamic',
-                                               cascade="all, delete, delete-orphan"))
+                                               cascade="all, delete, delete-orphan"))  # nopep8
     }))
 
 

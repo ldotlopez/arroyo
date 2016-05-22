@@ -60,7 +60,7 @@ class SearchCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if keywords:
-            if self.app.settings.has_key('query'):
+            if 'query' in self.app.settings:
                 self.app.settings.delete('query')
 
             query_name = ' '.join(keywords)
@@ -70,7 +70,7 @@ class SearchCommand(plugin.Command):
                 '*' + '*'.join(keywords) + '*')
 
         elif filters:
-            if self.app.settings.has_key('query'):
+            if 'query' in self.app.settings:
                 self.app.settings.delete('query')
 
             for (k, v) in filters.items():

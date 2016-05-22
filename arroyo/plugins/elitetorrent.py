@@ -12,7 +12,6 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import utils
 
 
 class EliteTorrent(plugin.Origin):
@@ -91,8 +90,8 @@ class EliteTorrent(plugin.Origin):
                 q += ' ({year})'.format(year)
 
             if season and episode:
-                q += ' {season}x{episode:02d}'.format(season=season, episode=episode)
-
+                q += ' {season}x{episode:02d}'.format(
+                    season=season, episode=episode)
 
         elif kind == 'movie':
             q = query.get('title')
@@ -120,17 +119,22 @@ class EliteTorrent(plugin.Origin):
 
     def parse_listing(self, soup):
         links = soup.select('a')
-        links = filter(lambda x: re.search(r'/torrent/\d+/', x.attrs.get('href', '')), links)
-        links = map(lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'], links)
+        links = filter(
+            lambda x: re.search(r'/torrent/\d+/', x.attrs.get('href', '')),
+            links)
+        links = map(
+            lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'],
+            links)
 
-        specs = [importer.OriginSpec(name=x, backend=self.PROVIDER_NAME, url=x) for x in links]
-        origins = [self.app.importer.get_origin_for_origin_spec(x) for x in specs]
+        specs = [importer.OriginSpec(name=x, backend=self.PROVIDER_NAME, url=x)
+                 for x in links]
+        origins = [self.app.importer.get_origin_for_origin_spec(x)
+                   for x in specs]
+
         for x in origins:
             self.app.importer.push_to_sched(*x.get_tasks())
 
         return []
-
-
 
     def parse_detailed(self, soup):
         info = soup.select_one('.info-tecnica')
@@ -153,24 +157,30 @@ class EliteTorrent(plugin.Origin):
         needed_details = ['created', 'type', 'size']
         for ch in info.children:
             try:
-                txt = ch.text
+                txt = ch.text.lower()
             except AttributeError:
                 continue
 
-            if txt.lower() == 'fecha':
+            if txt == 'fecha':
                 try:
                     tmp = datetime.strptime(ch.next_sibling.text, '%d-%m-%Y')
                     details['created'] = int(time.mktime(tmp.timetuple()))
-                except ValueError:  # Sometime we can get things like 'Hoy, 20:32'
-                                    # It's simplier to just drop it and go to defaults
+                except ValueError:  # Sometime we can get things like
+                                    # 'Hoy, 20:32'. It's simplier to just drop
+                                    # it and go to defaults
                     details['created'] = None
 
-            elif txt.lower().startswith('categor'):
+            elif txt.startswith('categor'):
                 cat = ch.next_sibling.text.lower()
                 details['type'] = self._categories.get(cat, None)
+                if details['type'] is None:
+                    msg = "Unknow category : '{category}'"
+                    msg = msg.format(category=cat)
+                    self.app.logger.warning(msg)
 
-            elif txt.lower().startswith('tama'):
-                details['size'] = humanfriendly.parse_size(ch.next_sibling.text)
+            elif txt.startswith('tama'):
+                details['size'] = humanfriendly.parse_size(
+                    ch.next_sibling.text)
 
             # Break this loop ASAP please.
             if all([x in details for x in needed_details]):

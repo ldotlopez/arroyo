@@ -34,7 +34,7 @@ class ThePirateBay(plugin.Origin):
             'flac': 'music',
             'other': 'other'
         },
-        'video':{
+        'video': {
             'movies': 'movie',
             'movies dvdr': 'movie',
             'music videos': 'other',
@@ -238,8 +238,6 @@ class ThePirateBay(plugin.Origin):
             return conv(m.groupdict())
 
         return now
-
-
 
 
 class ThePirateBayRSS(plugin.Origin):
