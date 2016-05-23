@@ -36,6 +36,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
 class Source(Base):
     __tablename__ = 'source'
 
+    # TODO: rethink those classes
     class State:
         NONE = 0
         INITIALIZING = 1
@@ -46,6 +47,13 @@ class Source(Base):
         DONE = 6
         ARCHIVED = 7
 
+    class Formats:
+        DEFAULT = '{name}'
+        DETAIL = (
+            "{name} "
+            "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})"
+        )
+
     _SYMBOL_TABLE = {
         State.INITIALIZING: '⋯',
         State.QUEUED: '⋯',
@@ -54,9 +62,7 @@ class Source(Base):
         State.SHARING: '⇅',
         State.DONE: '✓',
         State.ARCHIVED: '▣'
-        }
-
-    _DEFAULT_FMT = '{name}'
+    }
 
     id = Column(Integer, primary_key=True)
     urn = Column(String, unique=True)
@@ -88,10 +94,6 @@ class Source(Base):
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
 
-    @property
-    def tag_dict(self):
-        return {x.key: x.value for x in self.tags.all()}
-
     @staticmethod
     def from_data(name, sha1=None, **kwargs):
         if not sha1:
@@ -117,6 +119,14 @@ class Source(Base):
 
         return ret
 
+    @property
+    def tag_dict(self):
+        return {x.key: x.value for x in self.tags.all()}
+
+    @hybrid_property
+    def age(self):
+        return utils.now_timestamp() - self.created
+
     @hybrid_property
     def entity(self):
         return (
@@ -125,40 +135,9 @@ class Source(Base):
         )
 
     @hybrid_property
-    def age(self):
-        return utils.now_timestamp() - self.created
-
-    @hybrid_property
-    def share_ratio(self):
-        if self.seeds is None or self.leechers is None:
-            return 0
-
-        if self.leechers == 0:
-            return sys.maxsize
-
-        return self.seeds / self.leechers
-
-    @hybrid_property
     def is_active(self):
         return self.state not in [Source.State.NONE, Source.State.ARCHIVED]
 
-    #
-    # Type property
-    #
-    @hybrid_property
-    def type(self):
-        return self._type
-
-    @type.setter
-    def type(self, value):
-        if not _check_type(value):
-            raise ValueError(value)
-
-        self._type = value.lower() if value else None
-
-    #
-    # Language property
-    #
     @hybrid_property
     def language(self):
         return self._language
@@ -170,24 +149,56 @@ class Source(Base):
 
         self._language = value.lower() if value else None
 
-    def __str__(self, fmt='[{state_symbol}] {id} {name}'):
-        d = self.as_dict()
-        d.update({
-            'seeds': self.seeds if self.seeds is not None else '-',
-            'leechers': self.leechers if self.leechers is not None else '-',
-            'share_ratio': self.share_ratio or '-',
-            'language': self.language or 'no language'
-        })
+    @hybrid_property
+    def share_ratio(self):
+        if self.seeds is None or self.leechers is None:
+            return 0
 
-        return fmt.format(**d)
+        if self.leechers == 0:
+            return sys.maxsize
 
-    def __unicode__(self):
-        return self.name
+        return self.seeds / self.leechers
 
-    def __repr__(self):
-        return "<Source {id} ('{name}')>".format(
-            id=self.id,
-            name=self.name)
+    @property
+    def state_name(self):
+        for attr in [x for x in dir(Source.State)]:
+            if getattr(Source.State, attr) == self.state:
+                return attr.lower()
+        return "unknow-{}".format(self.state)
+
+    @property
+    def state_symbol(self):
+        return self._SYMBOL_TABLE.get(self.state, ' ')
+
+    @hybrid_property
+    def type(self):
+        return self._type
+
+    @type.setter
+    def type(self, value):
+        if not _check_type(value):
+            raise ValueError(value)
+
+        self._type = value.lower() if value else None
+
+    def as_dict(self):
+        return {k: v for (k, v) in self}
+
+    def format(self, fmt=Formats.DEFAULT, extra_data={}):
+        data = self.as_dict()
+        data['seeds'] = data.get('seeds') or '-'
+        data['leechers'] = data.get('leechers') or '-'
+        data['language'] = data.get('language') or '--- --'
+
+        data.update(extra_data)
+
+        return fmt.format(**data)
+
+    def __eq__(self, other):
+        return self.id.__eq__(other.id)
+
+    def __hash__(self):
+        return self.id.__hash__()
 
     def __iter__(self):
         keys = [
@@ -207,34 +218,17 @@ class Source(Base):
     def __lt__(self, other):
         return self.id.__lt__(other.id)
 
-    def __eq__(self, other):
-        return self.id.__eq__(other.id)
+    def __str__(self):
+        return self.__unicode__()
 
-    def __hash__(self):
-        return self.id.__hash__()
+    def __repr__(self):
+        return "<Source {id} ('{name}')>".format(
+            id=self.id,
+            name=self.name)
 
-    def as_dict(self):
-        return {k: v for (k, v) in self}
+    def __unicode__(self):
+        return self.format(self.Formats.DEFAULT)
 
-    @property
-    def state_name(self):
-        for attr in [x for x in dir(Source.State)]:
-            if getattr(Source.State, attr) == self.state:
-                return attr.lower()
-        return "unknow-{}".format(self.state)
-
-    @property
-    def state_symbol(self):
-        return self._SYMBOL_TABLE.get(self.state, ' ')
-
-    def format(self, fmt=None, extra_data={}):
-        if fmt is None:
-            fmt = self._DEFAULT_FMT
-
-        data = self.as_dict()
-        data.update(extra_data)
-
-        return fmt.format(**data)
 
 class Selection(Base):
     __tablename__ = 'selection'
@@ -286,6 +280,9 @@ class Episode(Base):
 
     SELECTION_MODEL = EpisodeSelection
 
+    class Formats:
+        DEFAULT = '{series_with_year} S{season:02d}E{number:02d}'
+
     @staticmethod
     def from_data(series, season, number, **kwargs):
         ret = Episode()
@@ -299,37 +296,41 @@ class Episode(Base):
 
         return ret
 
-    def __str__(self, fmt='{series_with_year} S{season:02d}E{number:02d}'):
+    def as_dict(self):
+        return {k: v for (k, v) in self}
+
+    def format(self, fmt=Formats.DEFAULT, extra_data={}):
         d = self.as_dict()
-        d.update({
-            'series_with_year':
-                ('{series} ({year})' if self.year else '{series}').format(
-                    series=self.series,
-                    year=self.year),
-            'year': self.year or ''
-        })
+
+        if self.year:
+            series_with_year = "{series} ({year})"
+        else:
+            series_with_year = "{series}"
+
+        d['series_with_year'] = series_with_year.format(**d)
+        d.update(**extra_data)
 
         return fmt.format(**d)
-
-    def __unicode__(self):
-        return self.__str__()
-
-    def __repr__(self):
-        fmt = "<Episode {id} {series} ({year}) S{season:02d}E{number:02d})>"
-        return fmt.format(
-            id=self.id,
-            series=self.series,
-            year=self.year or '----',
-            season=self.season,
-            number=self.number)
 
     def __iter__(self):
         keys = ['id', 'series', 'year', 'season', 'number']
         for k in keys:
             yield (k, getattr(self, k))
 
-    def as_dict(self):
-        return {k: v for (k, v) in self}
+    def __repr__(self):
+        d = {}
+        if self.year is None:
+            d['year'] = '----'
+
+        return self.format(
+            fmt="<Episode #{id} {series} ({year}) S{season:02d}E{number:02d})>",
+            extra_data=d)
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.format()
 
 
 class MovieSelection(Selection):
@@ -366,6 +367,9 @@ class Movie(Base):
 
     SELECTION_MODEL = MovieSelection
 
+    class Formats:
+        DEFAULT = '{title_with_year}'
+
     @staticmethod
     def from_data(title, **kwargs):
         ret = Movie()
@@ -377,35 +381,41 @@ class Movie(Base):
 
         return ret
 
-    def __repr__(self):
-        fmt = "<Movie {id} {title} ({year})>"
-        return fmt.format(
-            id=self.id,
-            title=self.title,
-            year=self.year or '----')
+    def as_dict(self):
+        return {k: v for (k, v) in self}
 
-    def __str__(self, fmt='{title_with_year}'):
+    def format(self, fmt=Formats.DEFAULT, extra_data={}):
         d = self.as_dict()
-        d.update({
-            'title_with_year':
-                ('{title} ({year})' if self.year else '{title}').format(
-                    title=self.title,
-                    year=self.year),
-            'year': self.year or ''
-        })
+
+        if self.year:
+            title_with_year = "{title} ({year})"
+        else:
+            title_with_year = "{title}"
+
+        d['title_with_year'] = title_with_year.format(**d)
+        d.update(**extra_data)
 
         return fmt.format(**d)
-
-    def __unicode__(self):
-        return self.__str__()
 
     def __iter__(self):
         keys = ['id', 'title', 'year']
         for k in keys:
             yield (k, getattr(self, k))
 
-    def as_dict(self):
-        return {k: v for (k, v) in self}
+    def __repr__(self):
+        d = {}
+        if self.year is None:
+            d['year'] = '----'
+
+        return self.format(
+            fmt="<Movie #{id} {title} ({year})>",
+            extra_data=d)
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.format()
 
 
 def _check_language(lang):
