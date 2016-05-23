@@ -82,7 +82,7 @@ _plugins = [
     'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
     # Origins
-    'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
+    'elitetorrent', 'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
 
     # Sorters
     'basicsorter',
