@@ -5,6 +5,7 @@ from arroyo import importer
 
 
 from datetime import datetime
+import functools
 import re
 import time
 from urllib import parse
@@ -42,8 +43,13 @@ class EliteTorrent(plugin.Origin):
         'lat-es'
     ]
 
+    @staticmethod
+    @functools.lru_cache(maxsize=8)
+    def re_cache(re_str):
+        return re.compile(re_str)
+
     def paginate(self, url):
-        if re.search(r'/torrent/\d+/', url):
+        if self.re_cache(r'/torrent/\d+/').search(url):
             yield url
             return
 
@@ -123,7 +129,8 @@ class EliteTorrent(plugin.Origin):
     def parse_listing(self, soup):
         links = soup.select('a')
         links = filter(
-            lambda x: re.search(r'/torrent/\d+/', x.attrs.get('href', '')),
+            lambda x: self.re_cache(r'/torrent/\d+/').search(
+                x.attrs.get('href', '')),
             links)
         links = map(
             lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'],
@@ -189,8 +196,9 @@ class EliteTorrent(plugin.Origin):
             if all([x in details for x in needed_details]):
                 break
 
-        m = re.search(r'semillas: (\d+) \| clientes: (\d+)',
-                      soup.select_one('.ppal').text.lower())
+        m = self.re_cache(r'semillas: (\d+) \| clientes: (\d+)').search(
+            soup.select_one('.ppal').text.lower()
+        )
 
         seeds = m.group(1) if m else None
         leechers = m.group(2) if m else None

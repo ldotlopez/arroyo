@@ -2,6 +2,7 @@
 
 import asyncio
 from itertools import chain
+import traceback
 from urllib import parse
 
 import aiohttp
@@ -305,8 +306,8 @@ class ImporterRunner(asyncscheduler.AsyncScheduler):
         if e:
             msg += ' {exctype}: {excstr}'
             msg = msg.format(exctype=type(e), excstr=e)
-
-        self._logger.error(msg)
+            self._logger.error(msg)
+            traceback.print_exc()
 
         self.feed()
 
