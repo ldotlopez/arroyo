@@ -4,7 +4,7 @@ from arroyo import plugin
 
 
 import humanfriendly
-from ldotcommons import utils
+from ldotcommons import logging, utils
 
 
 models = plugin.models
@@ -50,10 +50,33 @@ class DownloadCommand(plugin.Command):
             help='don\'t download matching sources, just show them')
     )
 
-    _SRC_FMT = ("Download '{name}' "
-                "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
+    # SOURCE_FMT = models.Source.Formats.DEFAULT
+    SOURCE_FMT = "'{name}'"
+
+    @classmethod
+    def format_source(cls, src):
+        d = {}
+
+        if src.size:
+            d['size'] = humanfriendly.format_size(src.size)
+
+        return src.format(
+            cls.SOURCE_FMT,
+            extra_data=d)
+
+    def conditional_logger(level, msg):
+        if not dry_run:
+            self.app.logger(level, msg)
+        else:
+            print(msg)
 
     def run(self, args):
+        def conditional_logger(level, msg):
+            if not dry_run:
+                self.app.logger(level, msg)
+            else:
+                print(msg)
+
         show = args.show
         source_id_add = args.add
         source_id_remove = args.remove
@@ -80,68 +103,67 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(str(src))
+                print(src.format(models.Source.Formats.DETAIL))
+
+            return
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
-            if not src:
+            if src:
+                msg = "Download added: " + self.format(src)
+                if not dry_run:
+                    self.app.downloads.add(src)
+                conditional_logger(logging.INFO, msg)
+
+            else:
                 msg = "Source with id {id} not found"
                 msg = msg.format(id=source_id)
                 self.app.logger.error(msg)
-                return
 
-            self.app.downloads.add(src)
+            return
 
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
-            if not src:
+            if src:
+                msg = "Download removed: " + self.format(src)
+                if not dry_run:
+                    self.app.downloads.add(src)
+                conditional_logger(logging.INFO, msg)
+
+            else:
                 msg = "Source with id {id} not found"
                 msg = msg.format(id=source_id)
                 self.app.logger.error(msg)
-                return
 
-            self.app.downloads.remove(src)
+            return
 
-        elif query:
-            spec = plugin.QuerySpec('command-line', **query)
-            matches = self.app.selector.matches(spec)
-            srcs = self.app.selector.select(matches)
-            for src in srcs:
-                if not dry_run:
-                    self.app.downloads.add(src)
-
-                print(str(src))
+        if query:
+            specs = [plugin.QuerySpec('command-line', **query)]
 
         elif from_config:
             specs = self.app.selector.get_queries_specs()
-            for spec in specs:
-                matches = self.app.selector.matches(spec)
-                srcs = self.app.selector.select(matches)
-                if srcs is None:
-                    msg = "No selection for {query}"
-                    msg = msg.format(query=query)
-                    self.app.logger.warning(msg)
-                    continue
 
-                print(query)
-
-                for src in srcs:
-                    extra_data = {
-                        'size': humanfriendly.format_size(src.size)
-                    }
-                    msg = src.format(self._SRC_FMT, extra_data)
-
-                    if dry_run:
-                        print(msg)
-                    else:
-                        self.app.downloads.add(src)
-                        self.app.logger.info(msg)
-
-        else:
-            # This code should never be reached but keeping it here we will
-            # prevent future mistakes
-            msg = "Incorrect usage"
+        if not specs:
+            msg = "No queries specified"
             raise plugin.exc.PluginArgumentError(msg)
+
+        for spec in specs:
+            matches = self.app.selector.matches(spec)
+            srcs = list(self.app.selector.select(matches))
+            if not srcs:
+                msg = "No results for {query}"
+                msg = msg.format(query=query)
+                self.app.logger.error(msg)
+                continue
+
+            for src in srcs:
+                extra_data = {
+                    'size': humanfriendly.format_size(src.size)
+                }
+                msg = "Download added: " + self.format_source(src)
+
+                self.app.downloads.add(src)
+                conditional_logger(logging.INFO, msg)
 
 __arroyo_extensions__ = [
     ('download', DownloadCommand)
