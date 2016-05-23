@@ -22,8 +22,19 @@ class _CategoryUnknowError(Exception):
 class ThePirateBay(plugin.Origin):
     PROVIDER_NAME = 'thepiratebay'
 
-    # TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    # URL structure:
+    # https://thepiratebay.cr/search.php?q={q}&page={page}&orderby=99
+    # order_by=3 uploaded
+    # order_by=5 size
+    # order_by=11 uploaded by
+    # order_by=7 seeds
+    # order_by=9 leechers
+    # order_by=11 uploaded by
+
     _TLD = 'cr'
+    # 'Hydra' domains
+    # _TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+
     BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=_TLD)
 
     _TYPE_TABLE = {
