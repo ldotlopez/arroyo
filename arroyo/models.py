@@ -188,7 +188,7 @@ class Source(Base):
         data = self.as_dict()
         data['seeds'] = data.get('seeds') or '-'
         data['leechers'] = data.get('leechers') or '-'
-        data['language'] = data.get('language') or '--- --'
+        data['language'] = data.get('language') or 'unknow'
 
         data.update(extra_data)
 

@@ -1,27 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import models, plugin
 
 
 import itertools
-import re
 import sys
 
 
+import humanfriendly
 from ldotcommons import utils
-
-
-def fmt_src(src):
-    return "{id:5d} [{icon}] {source}".format(
-        icon=src.state_symbol,
-        id=src.id,
-        source=src)
-
-
-def fmt_grp(prefix, iterable):
-    return "\n".join([
-        "{} {}".format(prefix, x) for x in iterable
-        ])
 
 
 class SearchCommand(plugin.Command):
@@ -50,8 +37,18 @@ class SearchCommand(plugin.Command):
             help='keywords')
     )
 
-    _SOURCE_FMT = '{id:5d} [{icon}] {source}'
-    _GROUP_FMT = '{prefix} {entity}'
+    SOURCE_FMT = "{state_symbol} {id:5d} " + models.Source.Formats.DETAIL
+
+    @classmethod
+    def format_source(cls, src):
+        d = {}
+
+        if src.size:
+            d['size'] = humanfriendly.format_size(src.size)
+
+        return src.format(
+            cls.SOURCE_FMT,
+            extra_data=d)
 
     def run(self, args):
         all_states = args.all_states
@@ -76,9 +73,6 @@ class SearchCommand(plugin.Command):
         if not specs:
             msg = 'One filter or one keyword or one [query.label] is required'
             raise plugin.exc.PluginArgumentError(msg)
-
-        src_fmt = ("[{state_symbol}] {id} ({seeds}/{leechers}, {language}) "
-                   "{name}")
 
         for spec in specs:
             # Get matches
@@ -110,8 +104,9 @@ class SearchCommand(plugin.Command):
             print(msg.format(label=spec.name, n_results=len(matches)))
 
             for (entity, group) in groups:
-                print('+ {}'.format(entity or 'Ungroupped'))
-                print(fmt_grp('|-', (x.__str__(fmt=src_fmt) for x in group)))
+                print('{}'.format(entity or 'Ungroupped'))
+                lines = [self.format_source(x) for x in group]
+                print("\n".join(lines) + "\n")
 
 
 __arroyo_extensions__ = [
