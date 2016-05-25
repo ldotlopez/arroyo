@@ -10,18 +10,20 @@ class TestApp(core.Arroyo):
         basedir = os.path.dirname(__file__)
         mock_fetcher_basedir = os.path.join(basedir, 'www-samples')
 
-        settings = {
+        data = {
             'auto-cron': False,
             'auto-import': False,
-            'fetcher': 'mock',
-            'fetcher.mock.basedir': mock_fetcher_basedir,
+            'fetcher.backend': 'mock',
+            'fetcher.options.basedir': mock_fetcher_basedir,
             'db-uri': 'sqlite:///:memory:',
-            'downloader': 'mock',
+            'downloader.backend': 'mock',
             'log-format': '%(message)s',
             'log-level': 'WARNING',
         }
-        settings.update(d)
-        settings = core.ArroyoStore(settings)
+        data.update(d)
+
+        settings = core.ArroyoStore()
+        settings.update(data)
 
         super().__init__(settings)
 

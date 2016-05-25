@@ -57,8 +57,21 @@ class SearchView(MethodView):
 
         return res
 
+class SettingsView(MethodView):
+    def get(self):
+        return g.app.settings.get(None)
+
+    def post(self):
+        data = request.data
+        g.app.settings.replace(data)
+
+
 search = Blueprint('search', __name__)
 search.add_url_rule(
-    '',
-    view_func=SearchView.as_view('search_api'),
-    methods=['GET'])
+    '/',
+    view_func=SearchView.as_view('search_api'))
+
+settings = Blueprint('settings', __name__)
+settings.add_url_rule(
+    '/',
+    view_func=SettingsView.as_view('settings_api'))

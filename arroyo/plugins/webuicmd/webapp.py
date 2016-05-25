@@ -20,7 +20,9 @@ class WebApp(FlaskAPI):
             lambda: redirect(url_for('static', filename='index.html'))
         )
         self.register_blueprint(blueprints.search,
-                                url_prefix='/api/search')
+                                url_prefix='/api/search/')
+        self.register_blueprint(blueprints.settings,
+                                url_prefix='/api/settings/')
 
         @self.before_request
         def before_request():

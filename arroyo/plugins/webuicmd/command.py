@@ -35,7 +35,8 @@ class Command(plugin.Command):
         # URL is at self.app.db._sess.connection().engine.url
         # Patch will add the check_same_thread=False parameter to the URL and
         # replace Arroyo.db._sess object
-
+        self.app.settings.set('auto-import', False)
+        self.app.settings.set('auto-cron', False)
         server = webapp.WebApp(self.app)
         server.run(host=arguments.host,
                    port=arguments.port,
