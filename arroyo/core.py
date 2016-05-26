@@ -73,7 +73,7 @@ _defaults_types = {
 _plugins = [
     # Commands
     'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
-    'mediainfocmd', 'searchcmd',
+    'mediainfocmd', 'searchcmd', 'webuicmd',
 
     # Downloaders
     'mockdownloader', 'transmission',
