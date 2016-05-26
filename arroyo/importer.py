@@ -472,10 +472,12 @@ class Origin(extension.Extension):
     def fetch(self, url):
         s = self.app.settings
 
-        fetcher = fetchers.AIOHttpFetcher(**{
-            k.replace('-', '_'): v
-            for (k, v) in s.get('fetcher.options').items()
-        })
+        fetcher = fetchers.AIOHttpFetcher(
+            logger=self.logger.getChild('fetcher'),
+            **{
+                k.replace('-', '_'): v
+                for (k, v) in s.get('fetcher.options').items()
+            })
         buff = yield from fetcher.fetch(url)
 
         return buff
