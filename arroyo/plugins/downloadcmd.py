@@ -151,8 +151,8 @@ class DownloadCommand(plugin.Command):
             matches = self.app.selector.matches(spec)
             srcs = list(self.app.selector.select(matches))
             if not srcs:
-                msg = "No results for {query}"
-                msg = msg.format(query=query)
+                msg = "No results for {name}"
+                msg = msg.format(name=spec.name)
                 self.app.logger.error(msg)
                 continue
 
@@ -162,7 +162,8 @@ class DownloadCommand(plugin.Command):
                 }
                 msg = "Download added: " + self.format_source(src)
 
-                self.app.downloads.add(src)
+                if not dry_run:
+                    self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
 
 __arroyo_extensions__ = [
