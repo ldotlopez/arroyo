@@ -46,14 +46,25 @@ class WebUITest(unittest.TestCase):
 
         webui = webapp.WebApp(app)
         with webui.test_client() as cl:
+            # Get current config
             resp, code = parse(cl.get('/api/settings/'))
-
             self.assertTrue(
                 resp['plugin']['webuicmd']['enabled']
             )
 
-            # resp['auto-cron'] = not resp['auto-cron']
-            # cl.post('/api/settings/', data=resp)
+            # Change some value
+            oldvalue = resp['auto-cron']
+            resp['auto-cron'] = not oldvalue
+            cl.post(
+                '/api/settings/',
+                data=json.dumps(resp),
+                content_type='application/json')
+
+            # Check new valie
+            resp, code = parse(cl.get('/api/settings/'))
+            self.assertTrue(
+                resp['plugin']['webuicmd']['enabled'] != oldvalue
+            )
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,12 +1,12 @@
 # -*- coding: utf-8 -*-
 
 import itertools
-
+import json
 
 from flask import Blueprint, request, g
 from flask.views import MethodView
-# from flask.ext.api import status
-# from flask.ext.api import exceptions
+from flask.ext.api import status
+from flask.ext.api import exceptions
 
 
 from arroyo import selector
@@ -57,6 +57,7 @@ class SearchView(MethodView):
 
         return res
 
+
 class SettingsView(MethodView):
     def get(self):
         return g.app.settings.get(None)
@@ -64,7 +65,7 @@ class SettingsView(MethodView):
     def post(self):
         data = request.data
         g.app.settings.replace(data)
-
+        return '', status.HTTP_204_NO_CONTENT
 
 search = Blueprint('search', __name__)
 search.add_url_rule(
