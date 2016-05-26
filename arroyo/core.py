@@ -71,9 +71,10 @@ _defaults_types = {
 # Default plugins
 #
 _plugins = [
-    # Commands
+    # Commands (note: webuicmd doesn't create the webserver until it's invoked,
+    # so, no overhead here)
     'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
-    'mediainfocmd', 'searchcmd',
+    'mediainfocmd', 'searchcmd', 'webuicmd',
 
     # Downloaders
     'mockdownloader', 'transmission',
