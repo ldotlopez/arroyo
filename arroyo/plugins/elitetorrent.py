@@ -31,6 +31,7 @@ class EliteTorrent(plugin.Origin):
 
     _categories = {
         'series': 'episode',
+        'series vose': 'episode',
         'peliculas': 'movie',
         'peliculas microhd': 'movie',
         'peliculas hdrip': 'movie',
@@ -182,6 +183,11 @@ class EliteTorrent(plugin.Origin):
 
             elif txt.startswith('categor'):
                 cat = ch.next_sibling.text.lower()
+
+                # Catch 'vose' categories
+                if cat.endswith(' vose'):
+                    lang = None
+
                 details['type'] = self._categories.get(cat, None)
                 if details['type'] is None:
                     msg = "Unknow category : '{category}'"
