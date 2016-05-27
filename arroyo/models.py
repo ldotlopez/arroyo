@@ -323,7 +323,8 @@ class Episode(Base):
             d['year'] = '----'
 
         return self.format(
-            fmt="<Episode #{id} {series} ({year}) S{season:02d}E{number:02d})>",
+            fmt=("<Episode #{id} {series} ({year}) "
+                 "S{season:02d}E{number:02d})>"),
             extra_data=d)
 
     def __str__(self):
