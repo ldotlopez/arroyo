@@ -17,7 +17,7 @@ class WebApp(FlaskAPI):
 
         self.static_folder = os.path.join(os.path.dirname(__file__), 'statics')
         self.route('/')(
-            lambda: redirect(url_for('static', filename='index.html'))
+            lambda: redirect(url_for('static', filename='webui/index.html'))
         )
         self.register_blueprint(blueprints.search,
                                 url_prefix='/api/search/')

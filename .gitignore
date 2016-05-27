@@ -1,7 +1,16 @@
 *.pyc
 __pycache__/
 *.swp
+.tags
+.ctags
+
 env/
+
 *.sublime-workspace
 *.db
 local.ini
+
+node_modules
+typings/
+
+
