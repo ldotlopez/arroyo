@@ -52,6 +52,7 @@ class DownloadCommand(plugin.Command):
 
     # SOURCE_FMT = models.Source.Formats.DEFAULT
     SOURCE_FMT = "'{name}'"
+    LIST_FMT = '[{state_symbol}] {id:3d} {name}'
 
     @classmethod
     def format_source(cls, src):
@@ -103,7 +104,7 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(src.format(models.Source.Formats.DETAIL))
+                print(src.format(self.LIST_FMT))
 
             return
 
