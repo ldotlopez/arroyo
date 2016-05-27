@@ -2,7 +2,7 @@
 __pycache__/
 *.swp
 .tags
-.ctags
+.tags*
 
 env/
 
@@ -11,6 +11,7 @@ env/
 local.ini
 
 node_modules
+bower_components
 typings/
 
 
