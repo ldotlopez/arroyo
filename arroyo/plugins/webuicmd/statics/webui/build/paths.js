@@ -3,7 +3,8 @@ const PATHS = {
     dist: {
         root: 'dist',
         app: 'dist/app',
-        styles: 'dist/css'
+        styles: 'dist/css',
+        fonts: 'dist/fonts'
     },
     src: {
         typescript: [
@@ -14,6 +15,9 @@ const PATHS = {
         static: [
             'src/systemjs.config.js',
             'src/index.html'
+        ],
+        fonts: [
+            'bower_components/font-awesome/fonts/**/*'
         ]
     }
 };

@@ -1,9 +1,14 @@
 
+var SERVER = "127.0.0.1:5000";
+
 var gulp = require('gulp'),
+    watch = require('gulp-watch'),
+    browserSync = require('browser-sync').create(),
     clean = require('gulp-clean'),
     typescript = require('gulp-tsc'),
     sass = require('gulp-sass'),
-    autoprefixer = require('gulp-autoprefixer');
+    autoprefixer = require('gulp-autoprefixer')
+    cleanCss = require('gulp-clean-css');
 
 var paths = require('./build/paths');
 
@@ -45,8 +50,33 @@ gulp.task('styles', function() {
     return gulp.src(paths.src.styles)
                .pipe(sass())
                .pipe(autoprefixer())
-               .pipe(gulp.dest(paths.dist.styles));
+               .pipe(cleanCss())
+               .pipe(gulp.dest(paths.dist.styles))
+               .pipe(browserSync.stream());
 });
 
-gulp.task('build', ['copy', 'compile-typescript', 'styles']);
+gulp.task('fonts', function() {
+    return gulp.src(paths.src.fonts)
+               .pipe(gulp.dest(paths.dist.fonts));
+});
+
+gulp.task('watch', function() {
+    gulp.watch(paths.src.styles, ['styles']);
+        // browserSync can inject the styles, no need to reload
+
+    gulp.watch(paths.src.typescript, ['compile-typescript'])
+        .on('change', browserSync.reload);
+
+    gulp.watch(paths.src.static, ['copy'])
+        .on('change', browserSync.reload);
+});
+
+gulp.task('browser-sync', function() {
+    browserSync.init({
+        proxy: SERVER
+    });
+});
+
+gulp.task('build', ['copy', 'compile-typescript', 'styles', 'fonts']);
+gulp.task('dev', ['build', 'watch', 'browser-sync']);
 gulp.task('default', ['build']);

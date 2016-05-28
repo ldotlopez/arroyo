@@ -1,0 +1,22 @@
+{
+  "name": "arroyo-webui",
+  "description": "web ui for arroyo media dowloader",
+  "main": "",
+  "authors": [
+    "Luis López <ldotlopez@gmail.com>",
+    "Jacobo Tarragón <jacobo.tarragon@gmail.com>"
+  ],
+  "license": "ISC",
+  "homepage": "",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "bootstrap-sass": "~3.3.6",
+    "font-awesome": "~4.6.3"
+  }
+}

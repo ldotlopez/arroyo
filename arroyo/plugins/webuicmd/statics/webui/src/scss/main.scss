@@ -1,7 +1,5 @@
 
-$text-color: blue;
+@import "../../bower_components/bootstrap-sass/assets/stylesheets/bootstrap";
+@import "../../bower_components/font-awesome/scss/font-awesome";
 
-body {
-    margin: 2em;
-    color: $text-color;
-}
+@import "base";
