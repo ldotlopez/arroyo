@@ -5,3 +5,14 @@ body {
     color: $theme-color-text;
     background-color: $theme-color-background;
 }
+
+#container {
+    display: flex;
+    flex-flow: column nowrap;
+    justify-content: flex-start;
+    min-height: 100vh;
+
+    #view {
+        flex: 1;
+    }
+}

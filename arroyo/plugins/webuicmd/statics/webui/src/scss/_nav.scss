@@ -1,0 +1,31 @@
+
+#nav-main {
+    font-size: 2rem;
+
+    ul {
+        display: flex;
+        list-style-type: none;
+        justify-content: space-between;
+
+        padding: 0;
+        margin: 0;
+
+        li {
+            display: inline-block;
+            flex: 1;
+            text-align: center;
+
+            padding: 1em 0;
+            border-top: 2px solid $theme-color-inactive;
+
+            a {
+                display: block;
+            }
+        }
+
+        li.active {
+            background: $theme-color-background-highlight;
+            border-color: $theme-color-primary;
+        }
+    }
+}

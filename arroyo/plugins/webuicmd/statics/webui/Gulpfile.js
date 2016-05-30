@@ -25,7 +25,8 @@ var paths = require('./build/paths');
 
 gulp.task('copy', function() {
     return gulp.src(paths.src.static)
-               .pipe(gulp.dest(paths.dist.root));
+               .pipe(gulp.dest(paths.dist.root))
+               .pipe(browserSync.stream());
 })
 
 gulp.task('compile-typescript', function() {
@@ -43,7 +44,8 @@ gulp.task('compile-typescript', function() {
 
     return gulp.src(paths.src.typescript)
                .pipe(typescript(conf))
-               .pipe(gulp.dest(paths.dist.app));
+               .pipe(gulp.dest(paths.dist.app))
+               .pipe(browserSync.stream());
 });
 
 gulp.task('styles', function() {
@@ -62,13 +64,8 @@ gulp.task('fonts', function() {
 
 gulp.task('watch', function() {
     gulp.watch(paths.src.styles, ['styles']);
-        // browserSync can inject the styles, no need to reload
-
-    gulp.watch(paths.src.typescript, ['compile-typescript'])
-        .on('change', browserSync.reload);
-
-    gulp.watch(paths.src.static, ['copy'])
-        .on('change', browserSync.reload);
+    gulp.watch(paths.src.typescript, ['compile-typescript']);
+    gulp.watch(paths.src.static, ['copy']);
 });
 
 gulp.task('browser-sync', function() {

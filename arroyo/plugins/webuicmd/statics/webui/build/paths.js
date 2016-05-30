@@ -14,7 +14,7 @@ const PATHS = {
         styles: "src/scss/**/*scss",
         static: [
             'src/systemjs.config.js',
-            'src/index.html'
+            'src/**/*.html'
         ],
         fonts: [
             'bower_components/font-awesome/fonts/**/*'

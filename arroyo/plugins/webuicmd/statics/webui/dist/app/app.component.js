@@ -15,7 +15,7 @@ var AppComponent = (function () {
     AppComponent = __decorate([
         core_1.Component({
             selector: 'arroyo-webui',
-            template: '<h1>Arroyo Web UI</h1>'
+            templateUrl: 'app/templates/app.html'
         }), 
         __metadata('design:paramtypes', [])
     ], AppComponent);
