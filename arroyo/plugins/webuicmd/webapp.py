@@ -3,7 +3,7 @@
 import os
 
 
-from flask import redirect, url_for, g
+from flask import redirect, url_for, g, send_from_directory
 from flask.ext.api import FlaskAPI
 # from werkzeug.contrib.fixers import ProxyFix
 
@@ -16,13 +16,22 @@ class WebApp(FlaskAPI):
         super().__init__(__name__)
 
         self.static_folder = os.path.join(os.path.dirname(__file__), 'statics')
-        self.route('/')(
-            lambda: redirect(url_for('static', filename='webui/dist/index.html'))
-        )
+
+        self.route('/static/<path:path>')(self.send_static_file)
+
         self.register_blueprint(blueprints.search,
                                 url_prefix='/api/search/')
         self.register_blueprint(blueprints.settings,
                                 url_prefix='/api/settings/')
+
+        def serve_index_at_root():
+            return send_from_directory(self.static_folder, 'webui/dist/index.html')
+
+        def serve_index_at_path(path):
+            return send_from_directory(self.static_folder, 'webui/dist/index.html')
+
+        self.route('/<path:path>')(serve_index_at_path)
+        self.route('/')(serve_index_at_root)
 
         @self.before_request
         def before_request():

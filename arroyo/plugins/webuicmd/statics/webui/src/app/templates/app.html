@@ -1,19 +1,19 @@
 
 <div id="container">
-
-    <header id="header-main">
-    </header>
-
     <main id="view" role="main">
+        {{ title }}
+        <router-outlet></router-outlet>
     </main>
 
     <nav id="nav-main">
         <ul>
             <li>
-                <a href="#"><i class="fa fa-fw fa-cog"></i></a>
+                <a [routerLink]="['/config']">
+                   <i class="fa fa-fw fa-cog"></i></a>
             </li>
             <li>
-                <a class="active" href="#"><i class="fa fa-fw fa-search"></i></a>
+                <a [routerLink]="['/search']">
+                   <i class="fa fa-fw fa-search"></i></a>
             </li>
         </ul>
     </nav>

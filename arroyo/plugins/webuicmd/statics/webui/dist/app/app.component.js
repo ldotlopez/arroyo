@@ -9,15 +9,28 @@ var __metadata = (this && this.__metadata) || function (k, v) {
     if (typeof Reflect === "object" && typeof Reflect.metadata === "function") return Reflect.metadata(k, v);
 };
 var core_1 = require('@angular/core');
+var router_1 = require('@angular/router');
+var config_component_1 = require('./config/config.component');
+var search_component_1 = require('./search/search.component');
 var AppComponent = (function () {
-    function AppComponent() {
+    function AppComponent(router) {
+        this.router = router;
+        this.title = "Arroyo Web UI";
     }
+    AppComponent.prototype.ngOnInit = function () {
+        this.router.navigate(['/search']);
+    };
     AppComponent = __decorate([
         core_1.Component({
             selector: 'arroyo-webui',
-            templateUrl: 'app/templates/app.html'
-        }), 
-        __metadata('design:paramtypes', [])
+            templateUrl: window['STATIC_URL'] + 'app/templates/app.html',
+            directives: [router_1.ROUTER_DIRECTIVES],
+        }),
+        router_1.Routes([
+            { path: '/search', component: search_component_1.SearchComponent },
+            { path: '/config', component: config_component_1.ConfigComponent },
+        ]), 
+        __metadata('design:paramtypes', [router_1.Router])
     ], AppComponent);
     return AppComponent;
 }());
