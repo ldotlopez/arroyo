@@ -1,6 +1,7 @@
 
 #nav-main {
     font-size: 2rem;
+    border-top: 1px solid $theme-color-inactive;
 
     ul {
         display: flex;
@@ -10,22 +11,42 @@
         padding: 0;
         margin: 0;
 
+
         li {
             display: inline-block;
             flex: 1;
             text-align: center;
 
-            padding: 1em 0;
-            border-top: 2px solid $theme-color-inactive;
-
             a {
+                padding: 1em 0;
                 display: block;
+            }
+
+            a.active, a:hover {
+                background: $theme-color-background-highlight;
+                box-shadow: inset 0 2px 2px -2px $theme-color-primary;
             }
         }
 
-        li.active {
-            background: $theme-color-background-highlight;
-            border-color: $theme-color-primary;
+    }
+}
+
+@media (min-width: $screen-sm-min) {
+    #nav-main {
+        border-top: none;
+        border-right: 1px solid $theme-color-inactive;
+
+        ul {
+            flex-flow: column nowrap;
+
+            li {
+                a {
+                    padding: 1em;
+                }
+                a.active, a:hover {
+                    box-shadow: inset -2px 0px 2px -2px $theme-color-primary;
+                }
+            }
         }
     }
 }

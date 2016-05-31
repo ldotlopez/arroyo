@@ -7,6 +7,10 @@ body {
 }
 
 #container {
+    /**
+     * stacked layout;
+     * view expands to take all the vertical space left by the nav and header
+     */
     display: flex;
     flex-flow: column nowrap;
     justify-content: flex-start;
@@ -14,5 +18,28 @@ body {
 
     #view {
         flex: 1;
+    }
+}
+
+@media (min-width: $screen-sm-min) {
+    /**
+     * sidebar layout;
+     * view expands to take all horizontal space left by the sidebar nav.
+     * all elements are streteched vertically;
+     */
+    #container {
+        flex-flow: row nowrap;
+        justify-content: space-between;
+        align-items: stretch;
+    }
+
+    #view {
+        order: 1;
+        flex: 1;
+    }
+
+    #nav-main {
+        height: 100vh;
+        order: 0;
     }
 }
