@@ -2,8 +2,33 @@
 @import "theme";
 
 body {
+    min-width: 322px;
+
     color: $theme-color-text;
     background-color: $theme-color-background;
+
+    font-family: $theme-font-family;
+    font-size: 12px;
+}
+
+@media (min-width: $screen-sm-min) { body { font-size: 14px; } }
+@media (min-width: $screen-md-min) { body { font-size: 16px; } }
+@media (min-width: $screen-lg-min) { body { font-size: 18px; } }
+
+h1 {
+    font-family: $theme-font-family-heading;
+    font-size: 2.2em;
+}
+
+h2 {
+    font-size: 1.8em;
+}
+
+p {
+    margin: 0 0 1em;
+    &:last-child {
+        margin: 0;
+    }
 }
 
 #container {
@@ -16,8 +41,23 @@ body {
     justify-content: flex-start;
     min-height: 100vh;
 
+    #brand {
+        font-size: 0.8em;
+        text-align: center;
+        p {
+            margin: 0 0 1em;
+        }
+    }
+
     #view {
         flex: 1;
+        height: 90vh;
+        overflow: scroll;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    #nav {
+        height: 10vh;
     }
 }
 
@@ -31,15 +71,55 @@ body {
         flex-flow: row nowrap;
         justify-content: space-between;
         align-items: stretch;
+
+        #view {
+            order: 1;
+            flex: 1;
+            height: auto;
+            overflow: auto;
+        }
+
+        #nav-main {
+            order: 0;
+        }
     }
 
-    #view {
-        order: 1;
-        flex: 1;
+}
+
+.section-header {
+    background: white;
+    padding-left: 0.5em;
+
+    h1 {
+        color: $theme-color-heading;
+        margin: 0;
+        padding: 1em 0;
+    }
+}
+
+.content-section {
+    padding: 0.5em;
+
+    .content-section-help {
+        font-family: $theme-font-family-monospace;
+        color: $theme-color-secondary;
+        margin: 0 0 1em;
+        word-break: break-word;
     }
 
-    #nav-main {
-        height: 100vh;
-        order: 0;
+    .content-section-body {
+        padding: 1em;
+        background: white;
+        box-shadow: 0 0 3px 1px $theme-color-border;
+    }
+}
+
+@media (min-width: $screen-sm-min) {
+    .section-header {
+        padding-left: 2em;
+    }
+
+    .content-section {
+        padding: 1em 2em;
     }
 }

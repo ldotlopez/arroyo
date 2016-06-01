@@ -15,7 +15,7 @@ var SearchComponent = (function () {
     SearchComponent = __decorate([
         core_1.Component({
             selector: 'search',
-            template: '<h1>Search!</h1>'
+            templateUrl: window['STATIC_URL'] + 'app/search/templates/search.html'
         }), 
         __metadata('design:paramtypes', [])
     ], SearchComponent);

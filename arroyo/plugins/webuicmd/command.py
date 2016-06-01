@@ -41,7 +41,7 @@ class Command(plugin.Command):
         p['host'] = \
             arguments.interface or \
             self.app.settings.get('plugin.webui.interface') or \
-            '127.0.0.1'
+            '0.0.0.0'
 
         p['port'] = \
             arguments.port or \

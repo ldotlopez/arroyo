@@ -3,6 +3,6 @@ import {Component} from '@angular/core';
 
 @Component({
     selector: 'search',
-    template: '<h1>Search!</h1>'
+    templateUrl: window['STATIC_URL'] + 'app/search/templates/search.html'
 })
 export class SearchComponent { }

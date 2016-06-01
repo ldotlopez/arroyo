@@ -1,1 +1,155 @@
-<h1>Arroyo config</h1>
+<header class="section-header">
+    <h1>Configuration</h1>
+</header>
+
+<form name="form">
+    <section class="content-section">
+        <header>
+            <h2>DB Configuration</h2>
+        </header>
+        <div class="content-section-body">
+            <div class="form-group">
+                <label for="config-db-uri" class="form-label">DB URI</label>
+                <input type="text" id="config-db-uri" class="form-control" />
+                <p class="form-help">
+                    sqlalchemy URI for database (see <a href="http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html#database-urls" title="sqlalchemy documentation">sqlalchemy</a>)
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <header>
+            <h2>Logger</h2>
+        </header>
+        <div class="content-section-body">
+            <div class="form-group">
+                <label class="form-label">Log level</label>
+                <div class="form-options radio-inline">
+                    <div class="option">
+                        <input id="config-log-level-debug" type="radio" name="config-log-level" value="DEBUG" />
+                            <label for="config-log-level-debug">debug</label>
+                    </div>
+                    <div class="option">
+                        <input id="config-log-level-info" type="radio" name="config-log-level" value="INFO" />
+                            <label for="config-log-level-info">info</label>
+                    </div>
+                    <div class="option">
+                        <input id="config-log-level-warning" type="radio" name="config-log-level" value="WARNING" />
+                            <label for="config-log-level-warning">warning</label>
+                    </div>
+                    <div class="option">
+                        <input id="config-log-level-critical" type="radio" name="config-log-level" value="CRITICAL" />
+                            <label for="config-log-level-critical">critical</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="config-log-format">Log format</label>
+                <input id="config-log-format" class="form-control" type="text" />
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <header>
+            <h2>Downloader</h2>
+            <p class="content-section-help">this is what Arroyo calls to process your torrents</p>
+        </header>
+        <div class="content-section-body">
+            <div class="form-group">
+                <label class="form-label" for="config-downloader-backend">Backend</label>
+                <select class="form-control">
+                    <option value="mock">mock</option>
+                    <option value="transmission">transmission</option>
+                </select>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <header>
+            <h2>Auto features</h2>
+            <p class="content-section-help">tasks you may want Arroyo to run automatically</p>
+        </header>
+        <div class="content-section-body">
+            <div class="form-group">
+                <div class="checkbox-inline">
+                    <div class="option">
+                        <input id="config-auto-cron" type="checkbox" name="config-auto-cron" />
+                            <label for="config-auto-cron">Auto Cron</label>
+                        <p class="form-help">execute import and download tasks at startup</p>
+                    </div>
+                    <div class="option">
+                        <input id="config-auto-import" type="checkbox" name="config-auto-import" />
+                            <label for="config-auto-import">Auto Import</label>
+                        <p class="form-help">imports from sources before searching</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="content-section">
+        <header>
+            <h2>Fetcher</h2>
+            <p class="content-section-help">
+                fetcher options (see <a href="https://github.com/ldotlopez/ldotcommons/blob/master/ldotcommons/fetchers.py" title="ldotcommons package">ldotcommons</a>)
+            </p>
+        </header>
+        <div class="content-section-body">
+            <div class="form-group">
+                <label class="form-label" for="config-fetcher-backend">Backend</label>
+                <select class="form-control">
+                    <option value="mock">mock</option>
+                    <option value="urllib">urllib</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <div class="checkbox-inline">
+                    <div class="option">
+                        <input id="config-fetcher-cache" type="checkbox" name="config-fetcher-cache" />
+                            <label for="config-fetcher-cache">Enable Cache</label>
+                    </div>
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="config-fetcher-cache-delta">Cache Delta</label>
+                <input class="form-control" type="text" name="config-fetcher-cache-delta" id="config-fetcher-cache-delta" />
+            </div>
+            <div class="form-group">
+                <label class="form-label">Headers</label>
+                <div class="container-fluid sub-form">
+                    <div class="row">
+                        <div class="col-xs-3">
+                            <div class="form-group">
+                                <label for="config-fetcher-header-key-1" class="form-label">Key</label>
+                                <input id="config-fetcher-header-key-1" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-xs-9">
+                            <div class="form-group">
+                                <label for="config-fetcher-header-value-1" class="form-label">Value</label>
+                                <input id="config-fetcher-header-value-1" type="text" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-xs-3">
+                            <div class="form-group">
+                                <label for="config-fetcher-header-key-1" class="form-label">Key</label>
+                                <input id="config-fetcher-header-key-1" type="text" class="form-control" />
+                            </div>
+                        </div>
+                        <div class="col-xs-9">
+                            <div class="form-group">
+                                <label for="config-fetcher-header-value-1" class="form-label">Value</label>
+                                <input id="config-fetcher-header-value-1" type="text" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</form>

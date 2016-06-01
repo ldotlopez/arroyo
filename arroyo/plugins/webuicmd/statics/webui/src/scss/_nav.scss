@@ -1,7 +1,12 @@
 
 #nav-main {
+    background: $theme-color-primary;
+
+    border-width: 1px 0 0 0;
+    border-style: solid;
+    border-color: $theme-color-border;
+
     font-size: 2rem;
-    border-top: 1px solid $theme-color-inactive;
 
     ul {
         display: flex;
@@ -17,14 +22,21 @@
             flex: 1;
             text-align: center;
 
+
             a {
                 padding: 1em 0;
                 display: block;
+                color: white;
+                border-style: solid;
+                border-color: $theme-color-highlight;
+                border-width: 0 1px 0 0;
             }
 
             a.router-link-active, a:hover {
-                background: $theme-color-background-highlight;
-                box-shadow: inset 0 2px 2px -2px $theme-color-primary;
+                background: $theme-color-highlight;
+                box-shadow: inset 0 4px 0px 0px white;
+                color: white;
+                border-width: 0;
             }
         }
 
@@ -33,8 +45,7 @@
 
 @media (min-width: $screen-sm-min) {
     #nav-main {
-        border-top: none;
-        border-right: 1px solid $theme-color-inactive;
+        border-width: 0 1px 0 0;
 
         ul {
             flex-flow: column nowrap;
@@ -42,9 +53,13 @@
             li {
                 a {
                     padding: 1em;
+                    border-width: 0 0 1px 0;
                 }
+
                 a.router-link-active, a:hover {
-                    box-shadow: inset -2px 0px 2px -2px $theme-color-primary;
+                    box-shadow: inset 4px 0px 0px -2px white;
+                    color: white;
+                    border-width: 0;
                 }
             }
         }

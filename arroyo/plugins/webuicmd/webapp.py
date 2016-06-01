@@ -15,6 +15,7 @@ class WebApp(FlaskAPI):
     def __init__(self, app):
         super().__init__(__name__)
 
+        self.config['SEND_FILE_MAX_AGE_DEFAULT'] = 0
         self.static_folder = os.path.join(os.path.dirname(__file__), 'statics')
 
         self.route('/static/<path:path>')(self.send_static_file)

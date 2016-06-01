@@ -18,7 +18,7 @@ var AppComponent = (function () {
         this.title = "Arroyo Web UI";
     }
     AppComponent.prototype.ngOnInit = function () {
-        this.router.navigate(['/search']);
+        // this.router.navigate(['/search']);
     };
     AppComponent = __decorate([
         core_1.Component({

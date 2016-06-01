@@ -1,6 +1,18 @@
 
-$theme-color-text: #383838;
+@import url(https://fonts.googleapis.com/css?family=Oswald:300|Open+Sans:400,300,600&subset=latin,latin-ext);
+
+$theme-font-family: 'Open Sans', 'Helvetica Neue', 'Helvetica', 'Arial', sans-serif;
+$theme-font-family-heading: 'Oswald', 'Calibri', 'Lucida', serif;
+$theme-font-family-monospace: monospace;
+
+$theme-color-primary: rgb(56, 62, 73);
+$theme-color-secondary: rgb(35, 40, 49);
+$theme-color-highlight: rgb(71, 77, 88);
+$theme-color-inactive: #c5c5c5;
+
 $theme-color-background: #EFEFEF;
 $theme-color-background-highlight: #FAFAFA;
-$theme-color-inactive: #E5E5E5;
-$theme-color-primary: #404D79;
+$theme-color-border: #E5E5E5;
+
+$theme-color-heading: $theme-color-primary;
+$theme-color-text: #383838;
