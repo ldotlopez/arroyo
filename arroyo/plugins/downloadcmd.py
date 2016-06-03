@@ -73,7 +73,7 @@ class DownloadCommand(plugin.Command):
     def run(self, args):
         def conditional_logger(level, msg):
             if not dry_run:
-                self.app.logger(level, msg)
+                self.app.logger.log(level, msg)
             else:
                 print(msg)
 
@@ -110,7 +110,7 @@ class DownloadCommand(plugin.Command):
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download added: " + self.format(src)
+                msg = "Download added: " + src.format()
                 if not dry_run:
                     self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
@@ -162,7 +162,8 @@ class DownloadCommand(plugin.Command):
                 }
                 msg = "Download added: " + self.format_source(src)
 
-                self.app.downloads.add(src)
+                if not dry_run:
+                    self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
 
 __arroyo_extensions__ = [
