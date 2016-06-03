@@ -164,8 +164,7 @@ def build_basic_settings(arguments=[]):
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
     for cfg in config_files:
-        with open(cfg) as fh:
-            store.load(fh)
+        store.load(cfg)
     try:
         delattr(args, 'config-files')
     except AttributeError:
@@ -259,7 +258,25 @@ class ArroyoStore(store.Store):
         # self._logger.addHandler(handler)
 
         self._logger = logging.get_logger('arroyo.settings')
+        self._files = []
         self.add_validator(store.TypeValidator(_defaults_types))
+
+    @property
+    def files(self):
+        return self._files
+
+    def load(self, path):
+        with open(path) as fh:
+            super().load(fh)
+
+        self._files.append(path)
+
+    def dump(self, path=None):
+        if path is None:
+            path = self.files[-1]
+
+        with open(path, 'w+') as fh:
+            super().dump(fh)
 
     def get(self, *args, **kwargs):
         try:

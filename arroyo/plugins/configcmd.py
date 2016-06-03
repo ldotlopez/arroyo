@@ -51,9 +51,7 @@ class ConfigCommand(plugin.Command):
                 args.key[0],
                 types_map[args.type](args.value[0]))
 
-            cfgfile = vars(args)['config-files'][-1]
-            with open(cfgfile, 'w') as fh:
-                self.app.settings.write(fh)
+            self.app.settings.dump()
 
         elif args.operation == 'get':
             print(yaml.dump(self.app.settings.get(args.key[0])))

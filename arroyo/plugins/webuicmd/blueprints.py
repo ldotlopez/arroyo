@@ -65,6 +65,8 @@ class SettingsView(MethodView):
     def post(self):
         data = request.data
         g.app.settings.replace(data)
+        g.app.settings.dump()
+
         return '', status.HTTP_204_NO_CONTENT
 
 search = Blueprint('search', __name__)
