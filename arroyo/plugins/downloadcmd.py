@@ -125,9 +125,9 @@ class DownloadCommand(plugin.Command):
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download removed: " + self.format(src)
+                msg = "Download removed: " + src.format()
                 if not dry_run:
-                    self.app.downloads.add(src)
+                    self.app.downloads.remove(src)
                 conditional_logger(logging.INFO, msg)
 
             else:
