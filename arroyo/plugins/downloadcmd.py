@@ -50,19 +50,18 @@ class DownloadCommand(plugin.Command):
             help='don\'t download matching sources, just show them')
     )
 
-    # SOURCE_FMT = models.Source.Formats.DEFAULT
     SOURCE_FMT = "'{name}'"
+    LIST_FMT =  ("[{state_symbol}] {name} " +
+                 "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
 
-    @classmethod
-    def format_source(cls, src):
+    @staticmethod
+    def format_source(src, fmt):
         d = {}
 
         if src.size:
             d['size'] = humanfriendly.format_size(src.size)
 
-        return src.format(
-            cls.SOURCE_FMT,
-            extra_data=d)
+        return src.format(fmt, extra_data=d)
 
     def conditional_logger(level, msg):
         if not dry_run:
@@ -103,14 +102,15 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(src.format(models.Source.Formats.DETAIL))
+                print(self.format_source(src, self.LIST_FMT))
 
             return
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download added: " + src.format()
+                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
+
                 if not dry_run:
                     self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
@@ -125,7 +125,7 @@ class DownloadCommand(plugin.Command):
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download removed: " + src.format()
+                msg = "Download removed: " + self.format_source(src, self.SOURCE_FMT)
                 if not dry_run:
                     self.app.downloads.remove(src)
                 conditional_logger(logging.INFO, msg)
@@ -157,10 +157,7 @@ class DownloadCommand(plugin.Command):
                 continue
 
             for src in srcs:
-                extra_data = {
-                    'size': humanfriendly.format_size(src.size)
-                }
-                msg = "Download added: " + self.format_source(src)
+                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
 
                 if not dry_run:
                     self.app.downloads.add(src)
