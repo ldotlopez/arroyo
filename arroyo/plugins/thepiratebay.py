@@ -39,6 +39,7 @@ class ThePirateBay(plugin.Origin):
 
     _TYPE_TABLE = {
         'applications': {
+            'applications': 'other',
             'android': 'other',
             'handheld': 'other',
             'ios (ipad/iphone)': 'other',
