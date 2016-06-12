@@ -4,9 +4,11 @@ from arroyo import plugin
 from arroyo.plugin.tools import filter
 
 
+import datetime
 import functools
+import time
 
-
+import humanfriendly
 from ldotcommons import utils
 
 
@@ -42,8 +44,13 @@ class Filter(plugin.Filter):
             _convert_value(utils.parse_interval)
 
         elif self.key == 'since':
+            x = humanfriendly.parse_date(self.value)
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            x = int(x)
+
             self.key = 'created-min'
-            _convert_value(utils.parse_date)
+            self.value = x
 
         elif self.key in self._nums:
             _convert_value(float)
