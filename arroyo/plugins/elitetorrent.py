@@ -68,6 +68,7 @@ class EliteTorrent(plugin.Origin):
                 else:
                     paths.append(c)
 
+            params['modo'] = params.get('modo', 'listado')
             params['orden'] = params.get('orden', 'fecha')
 
             try:
