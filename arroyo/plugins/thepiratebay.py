@@ -38,12 +38,61 @@ class ThePirateBay(plugin.Origin):
     BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=_TLD)
 
     _TYPE_TABLE = {
+        'applications': {
+            'android': 'other',
+            'handheld': 'other',
+            'ios (ipad/iphone)': 'other',
+            'mac': 'other',
+            'other os': 'other',
+            'unix': 'other',
+            'windows': 'other'
+        },
         'audio': {
             'music': 'music',
             'audio books': 'book',
             'sound clips': 'other',
             'flac': 'music',
             'other': 'other'
+        },
+        'books': {
+            'books': 'book'
+        },
+        'games': {
+            'android': 'other',
+            'handheld': 'other',
+            'ios (ipad/iphone)': 'other',
+            'mac': 'other',
+            'other': 'other',
+            'pc': 'other',
+            'psx': 'other',
+            'wii': 'other',
+            'xbox360': 'other'
+        },
+        'movies': {
+            'movies': 'movie'
+        },
+        'music': {
+            'music': 'music'
+        },
+        'other': {
+            'e-books': 'book',
+            'comics': 'other',
+            'covers': 'other',
+            'other': 'other',
+            'physibles(?!)': 'other',
+            'pictures': 'other'
+        },
+        'porn': {
+            'movies': 'xxx',
+            'games': 'xxx',
+            'hd - movies': 'xxx',
+            'movie clips': 'xxx',
+            'movies dvdr': 'xxx',
+            'other': 'xxx',
+            'pictures': 'xxx'
+        },
+        'tv': {
+            'tv': 'episode'
         },
         'video': {
             'movies': 'movie',
@@ -57,42 +106,8 @@ class ThePirateBay(plugin.Origin):
             '3d': 'other',
             'other': 'other',
         },
-        'applications': {
-            'android': 'other',
-            'handheld': 'other',
-            'ios (ipad/iphone)': 'other',
-            'mac': 'other',
-            'other os': 'other',
-            'unix': 'other',
-            'windows': 'other'
-        },
-        'games': {
-            'android': 'other',
-            'handheld': 'other',
-            'ios (ipad/iphone)': 'other',
-            'mac': 'other',
-            'other': 'other',
-            'pc': 'other',
-            'psx': 'other',
-            'wii': 'other',
-            'xbox360': 'other'
-        },
-        'porn': {
-            'movies': 'xxx',
-            'games': 'xxx',
-            'hd - movies': 'xxx',
-            'movie clips': 'xxx',
-            'movies dvdr': 'xxx',
-            'other': 'xxx',
-            'pictures': 'xxx'
-        },
-        'other': {
-            'e-books': 'book',
-            'comics': 'other',
-            'covers': 'other',
-            'other': 'other',
-            'physibles(?!)': 'other',
-            'pictures': 'other'
+        'xxx': {
+            'xxx': 'xxx'
         }
     }
 
