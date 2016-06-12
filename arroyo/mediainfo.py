@@ -91,9 +91,10 @@ class Mediainfo:
             # Create mediainfo tags attached to source skipping some keys...
 
             # ... but delete the old ones first
-            src.tags.\
-                filter(models.SourceTag.key.startswith('mediainfo.')).\
-                delete(synchronize_session='fetch')
+            if src.id:
+                src.tags.\
+                    filter(models.SourceTag.key.startswith('mediainfo.')).\
+                    delete(synchronize_session='fetch')
 
             # ... ok, create links now
             for (k, v) in info.items():
