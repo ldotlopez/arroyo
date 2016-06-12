@@ -98,7 +98,7 @@ class EliteTorrent(plugin.Origin):
             episode = query.get('episode', None)
 
             if year:
-                q += ' ({year})'.format(year)
+                q += ' ({year})'.format(year=year)
 
             if season and episode:
                 q += ' {season}x{episode:02d}'.format(
