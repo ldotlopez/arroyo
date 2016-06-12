@@ -50,20 +50,18 @@ class DownloadCommand(plugin.Command):
             help='don\'t download matching sources, just show them')
     )
 
-    # SOURCE_FMT = models.Source.Formats.DEFAULT
-    SOURCE_FMT = "'{name}'"
-    LIST_FMT = '[{state_symbol}] {id:3d} {name}'
+    SOURCE_FMT = "{name}"
+    LIST_FMT =  ("[{state_symbol}] {id:3d} {name} " +
+                 "(lang: {language}, size: {size})")
 
-    @classmethod
-    def format_source(cls, src):
+    @staticmethod
+    def format_source(src, fmt):
         d = {}
 
         if src.size:
             d['size'] = humanfriendly.format_size(src.size)
 
-        return src.format(
-            cls.SOURCE_FMT,
-            extra_data=d)
+        return src.format(fmt, extra_data=d)
 
     def conditional_logger(level, msg):
         if not dry_run:
@@ -104,14 +102,14 @@ class DownloadCommand(plugin.Command):
 
         if show:
             for src in self.app.downloads.list():
-                print(src.format(self.LIST_FMT))
+                print(self.format_source(src, self.LIST_FMT))
 
             return
 
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download added: " + str(src)
+                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
                 if not dry_run:
                     self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
@@ -126,9 +124,9 @@ class DownloadCommand(plugin.Command):
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download removed: " + self.format(src)
+                msg = "Download removed: " + self.format_source(src, self.SOURCE_FMT)
                 if not dry_run:
-                    self.app.downloads.add(src)
+                    self.app.downloads.remove(src)
                 conditional_logger(logging.INFO, msg)
 
             else:
@@ -161,7 +159,7 @@ class DownloadCommand(plugin.Command):
                 extra_data = {
                     'size': humanfriendly.format_size(src.size)
                 }
-                msg = "Download added: " + self.format_source(src)
+                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
 
                 if not dry_run:
                     self.app.downloads.add(src)
