@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import importer, plugin
 
 
 class ImportCommand(plugin.Command):
@@ -54,10 +54,7 @@ class ImportCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if arguments.backend:
-            if self.app.settings.has_namespace('origin'):
-                self.app.settings.delete('origin')
-
-            # Rebuild origin
+            # Build origin data
             keys = [
                 ('backend', str),
                 ('url', str),
@@ -65,6 +62,8 @@ class ImportCommand(plugin.Command):
                 ('type', str),
                 ('language', str)
             ]
+
+            origin_data = {}
             for (k, t) in keys:
                 v = getattr(arguments, k, None)
 
@@ -77,9 +76,12 @@ class ImportCommand(plugin.Command):
                         self.app.logger.error(msg)
                         continue
 
-                    self.app.settings.set('origin.command-line.' + k, v)
+                    spec_data[k] = v
 
-            self.app.importer.run()
+            origin = self.app.importer.get_origin_for_origin_spec(
+                importer.OriginSpec(name='command-line', **origin_data))
+
+            self.app.importer.process(origin)
 
         elif arguments.from_config:
             self.app.importer.run()
