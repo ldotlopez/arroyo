@@ -18,7 +18,8 @@ class Mediainfo:
             ('.avi')
         ),
         'episode': (
-            ('series', 'year', 'season', 'episodeNumber', 'format', 'language'),
+            ('series', 'year', 'season', 'episodeNumber', 'format',
+             'language'),
             ('.mp4')
         )
     }
@@ -84,7 +85,8 @@ class Mediainfo:
             if src.language is None:
                 info_lang = info.get('language')
                 if info_lang is None:
-                    info_lang = self.get_default_language_for_provider(src.provider)
+                    info_lang = self.get_default_language_for_provider(
+                        src.provider)
 
                 src.language = info_lang
 
@@ -118,7 +120,8 @@ class Mediainfo:
                 try:
                     specilized_source = self._get_specilized_source(info)
                 except ValueError as e:
-                    msg = "unable to get specilized data for '{source}': {reason}"
+                    msg = ("unable to get specilized data for "
+                           "'{source}': {reason}")
                     self._logger.warning(msg.format(source=src, reason=e))
                     continue
 
