@@ -51,7 +51,7 @@ class DownloadCommand(plugin.Command):
     )
 
     SOURCE_FMT = "'{name}'"
-    LIST_FMT = ("[{state_symbol}] '{name}' " +
+    LIST_FMT = ("[{state_symbol}] {id:5} '{name}' " +
                 "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
 
     @staticmethod
