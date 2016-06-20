@@ -76,7 +76,7 @@ class ImportCommand(plugin.Command):
                         self.app.logger.error(msg)
                         continue
 
-                    spec_data[k] = v
+                    origin_data[k] = v
 
             origin = self.app.importer.get_origin_for_origin_spec(
                 importer.OriginSpec(name='command-line', **origin_data))
