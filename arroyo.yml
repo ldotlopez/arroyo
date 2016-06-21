@@ -64,7 +64,7 @@ plugin:
         default-language: eng-us
 
     kickass:
-        default-language:
+        default-language: eng-us
 
     spanishtracker:
         # spanishtracker is broken for now
