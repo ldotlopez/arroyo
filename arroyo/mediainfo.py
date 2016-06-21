@@ -197,10 +197,16 @@ class Mediainfo:
                     self._logger.warning(msg)
 
             # ... but delete the old ones first
+            #
+            # Warning: delete operation needs synchronize_session parameter.
+            # Possible values are 'fetch' or False, both work as expected but
+            # 'fetch' is slightly faster.
+            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
             if src.id:
-                src.tags.\
-                    filter(models.SourceTag.key.startswith('mediainfo.')).\
-                    delete(synchronize_session='fetch')
+                tags = src.tags
+                tags = tags.filter(
+                    models.SourceTag.key.startswith('mediainfo.'))
+                tags.delete(synchronize_session='fetch')
 
             # ... ok, create links now
             for (k, v) in info.items():
