@@ -50,9 +50,9 @@ class DownloadCommand(plugin.Command):
             help='don\'t download matching sources, just show them')
     )
 
-    SOURCE_FMT = "{name}"
-    LIST_FMT =  ("[{state_symbol}] {id:3d} {name} " +
-                 "(lang: {language}, size: {size})")
+    SOURCE_FMT = "'{name}'"
+    LIST_FMT = ("[{state_symbol}] {id:5} '{name}' " +
+                "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
 
     @staticmethod
     def format_source(src, fmt):
@@ -109,7 +109,9 @@ class DownloadCommand(plugin.Command):
         elif source_id_add:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
+                msg = "Download added: " + self.format_source(
+                    src, self.SOURCE_FMT)
+
                 if not dry_run:
                     self.app.downloads.add(src)
                 conditional_logger(logging.INFO, msg)
@@ -124,7 +126,8 @@ class DownloadCommand(plugin.Command):
         elif source_id_remove:
             src = self.app.db.get(models.Source, id=source_id)
             if src:
-                msg = "Download removed: " + self.format_source(src, self.SOURCE_FMT)
+                msg = "Download removed: " + self.format_source(
+                    src, self.SOURCE_FMT)
                 if not dry_run:
                     self.app.downloads.remove(src)
                 conditional_logger(logging.INFO, msg)
@@ -156,10 +159,8 @@ class DownloadCommand(plugin.Command):
                 continue
 
             for src in srcs:
-                extra_data = {
-                    'size': humanfriendly.format_size(src.size)
-                }
-                msg = "Download added: " + self.format_source(src, self.SOURCE_FMT)
+                msg = "Download added: " + self.format_source(
+                    src, self.SOURCE_FMT)
 
                 if not dry_run:
                     self.app.downloads.add(src)

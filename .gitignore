@@ -4,4 +4,6 @@ __pycache__/
 env/
 *.sublime-workspace
 *.db
+profile.png
+profile.pstats
 local.ini
