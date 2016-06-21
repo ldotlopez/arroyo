@@ -23,7 +23,7 @@ class Mediainfo:
         k = 'plugin.' + provider + '.default-language'
         return self._app.settings.get(k, default=None)
 
-    def get_mediainfo_(self, source):
+    def get_mediainfo(self, source):
         """
         Get guessed mediainfo from src (mostly from src.name)
         """
@@ -64,7 +64,7 @@ class Mediainfo:
         #         print("OK {}".format(source.name))
 
         # After all guesses from guessit translate to arroyo-style
-        if info['type'] == 'episode':
+        if info.get('type') == 'episode':
             info['series'] = info.pop('title', None)
             info['episode_number'] = info.pop('episode', None)
 
@@ -72,8 +72,8 @@ class Mediainfo:
 
         # FIXME: Don't drop, save
         # Drop multiple languages and multiple episode numbers
-        for k in ['language', 'language', 'part']:
-            if k in info and isinstance(info[k], list):
+        for k in ['language', 'part']:
+            if isinstance(info.get(k), list):
                 msg = 'Drop multiple instances of {key} in {source}'
                 msg = msg.format(source=src, key=k)
                 self._logger.warning(msg)
@@ -82,20 +82,22 @@ class Mediainfo:
         # Integrate part as episode in season 0
         if 'part' in info:
             if info.get('type') == 'movie':
-                msg = "Movie '{source} has 'part'"
+                msg = "Movie '{source}' has 'part'"
                 self._logger.warning(msg)
 
             elif info.get('type') == 'episode':
                 if 'season' in info:
-                    msg = "Episode '{source} has 'part' and season '{type}'"
+                    msg = "Episode '{source}' has 'part' and season '{type}'"
                     self._logger.warning(msg)
                 else:
                     info['season'] = 0
                     info['episode_number'] = info.pop('part')
 
             else:
-                msg = "Source '{source} has 'part' and an unknow type '{type}'"
+                msg = ("Source '{source}' has 'part' and an unknow "
+                       "type: '{type}'")
                 msg = msg.format(source=source, type=info.get('type', None))
+                self._logger.warning(msg)
 
         # Reformat date as episode number for episodes if needed
         if info.get('type', None) == 'episode' and \
@@ -107,19 +109,23 @@ class Mediainfo:
 
             # Reformat episode number
             if not info.get('episode_number', None):
-                info['episode_number'] = '{year}{month}{day}'.format(
+                info['episode_number'] = '{year}{month:0>2}{day:0>2}'.format(
                     year=info['date'].year,
                     month=info['date'].month,
                     day=info['date'].day)
 
         # Reformat language as 3let-2let code
         # Note that info also contains a country property but doesn't
-        # satisfy our needs.
-        # info's country refers to the country where the episode/movie whas
-        # produced.
+        # satisfy our needs: info's country refers to the country where the
+        # episode/movie was produced.
         # Example:
         # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
         # For now only the 3+2 letter code is used.
+        #
+        # Other sources like 'game of thrones 1x10 multi.avi' are parsed as
+        # multilingual (babelfish <Language [mul]>) but throw an exception when
+        # alpha2 property is accessed.
+
         if 'language' in info:
             try:
                 info['language'] = '{}-{}'.format(
@@ -163,7 +169,7 @@ class Mediainfo:
             if src.type not in ('movie', 'episode', None):
                 continue
 
-            info = self.get_mediainfo_(src)
+            info = self.get_mediainfo(src)
             if src.type and src.type != info['type']:
                 msg = "Type missmatch for '{source}': {type1} != {type2}"
                 msg = msg.format(
@@ -216,7 +222,7 @@ class Mediainfo:
             # source
             if src.type in ('movie', 'episode'):
                 try:
-                    specilized_source = self.get_specilized_source(info)
+                    specialized_source = self.get_specialized_source(info)
                 except ValueError as e:
                     msg = ("unable to get specilized data for "
                            "'{source}': {reason}")
@@ -225,17 +231,17 @@ class Mediainfo:
 
             # Link source and specialized_source
             if src.type == 'movie':
-                src.movie = specilized_source
+                src.movie = specialized_source
                 src.episode = None
 
             elif src.type == 'episode':
                 src.movie = None
-                src.episode = specilized_source
+                src.episode = specialized_source
 
         # Apply changes
         self._app.db.session.commit()
 
-    def get_specilized_source(self, info):
+    def get_specialized_source(self, info):
         if info['type'] == 'movie':
             try:
                 model = models.Movie
