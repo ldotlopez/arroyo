@@ -4,33 +4,6 @@ from arroyo import plugin
 models = plugin.models
 
 
-"""Examples
-For: Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]
-GuessIt found: {
-    [1.00] "screenSize": "720p",
-    [1.00] "type": "episode",
-    [1.00] "season": 5,
-    [1.00] "format": "HDTV",
-    [0.70] "series": "Game Of Thrones",
-    [1.00] "releaseGroup": "0SEC[rarbg]",
-    [1.00] "videoCodec": "h264",
-    [1.00] "episodeNumber": 5
-}
-
-For: True Detective S02E04 INTERNAL HDTV x264-BATV
-GuessIt found: {
-    [1.00] "episodeNumber": 4,
-    [1.00] "releaseGroup": "BATV",
-    [1.00] "type": "episode",
-    [0.70] "series": "True Detective",
-    [0.50] "title": "INTERNAL",
-    [1.00] "season": 2,
-    [1.00] "format": "HDTV",
-    [1.00] "videoCodec": "h264"
-}
-"""
-
-
 class QualityFilter(plugin.Filter):
     APPLIES_TO = models.Source
     HANDLES = ('quality',)
@@ -54,7 +27,7 @@ class QualityFilter(plugin.Filter):
         super().__init__(app, key, value)
 
     def filter(self, item):
-        screen_size = item.tag_dict.get('mediainfo.screenSize', '').lower()
+        screen_size = item.tag_dict.get('mediainfo.screen_size', '').lower()
         fmt = item.tag_dict.get('mediainfo.format', '').lower()
 
         # Check for plain HDTV (in fact it means no 720p or anything else)
@@ -76,7 +49,7 @@ class CodecFilter(plugin.Filter):
 
     def filter(self, item):
         return \
-            self.value == item.tag_dict.get('mediainfo.videoCodec', '').lower()
+            self.value == item.tag_dict.get('mediainfo.video_codec', '').lower()
 
 
 __arroyo_extensions__ = [

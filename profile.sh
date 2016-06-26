@@ -17,3 +17,4 @@ PYTHONPATH="$D" python3 -m profile -o profile.pstats "$D/arroyo/__main__.py" \
 	"$@"
 
 PYTHONPATH="$D" gprof2dot -f pstats profile.pstats | dot -Tpng -o profile.png
+rm profile.pstats
