@@ -82,12 +82,16 @@ class Mediainfo:
         # Integrate part as episode in season 0
         if 'part' in info:
             if info.get('type') == 'movie':
-                msg = "Movie '{source}' has 'part'"
+                msg = "Movie '{source}' has 'part', ignoring 'part'"
+                msg = msg.format(source=source)
                 self._logger.warning(msg)
 
             elif info.get('type') == 'episode':
                 if 'season' in info:
-                    msg = "Episode '{source}' has 'part' and season '{type}'"
+                    msg = ("Episode '{source}' has 'part' and 'season', "
+                           "ignoring 'part'")
+                    msg = msg.format(
+                        source=source, type=info.get('type') or '(None)')
                     self._logger.warning(msg)
                 else:
                     info['season'] = 0
@@ -95,8 +99,9 @@ class Mediainfo:
 
             else:
                 msg = ("Source '{source}' has 'part' and an unknow "
-                       "type: '{type}'")
-                msg = msg.format(source=source, type=info.get('type', None))
+                       "type: '{type}', ignoring 'part'")
+                msg = msg.format(
+                    source=source, type=info.get('type') or '(None)')
                 self._logger.warning(msg)
 
         # Reformat date as episode number for episodes if needed
