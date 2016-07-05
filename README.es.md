@@ -42,15 +42,16 @@ El comando 'import' acepta las siguientes opciones:
 El comando 'import' puede usar el archivo de configuracion para obtener los parámetros anteriores. Para ello se pueden definir una o varias secciones siguendo el siguiente esquema. (Únicamente el parámetro 'backend' es obligatorio)
 
 ```
-[source.nombre]
-backend = kickass
-url = http://kat.cr/usearch/category:tv
-type = episode
+origin:
+  nombre:
+    backend: kickass
+    url: http://kat.cr/usearch/category:tv
+    type: episode
 ```
 
 Para que el comando 'import' importe todas las páginas especificadas en las secciones 'source' del archivo de configuración se ha de usar la siguiente linea de comandos:
 
-> $ arroyo import --origins
+> $ arroyo import --from-config
 
 Búsqueda
 --------
@@ -71,11 +72,11 @@ El comando 'search' necesita uno o varios parametros '-f' que definen que filtro
 
 Uniendo varios filtros podemos definir nuestras búsquedas automáticas:
 
-> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='es-ES' -f quality=720p
+> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='spa-es' -f quality=720p
 
 El comando 'search' muestra únicamente los resultados correspondientes a material que aún no se ha puesto descargar, descartando todo aquel material que ya esté descartado. Si queremos mostrar todos los resultados podemos añadir el parámetro '-a' o '--all' a la línea de comandos:
 
-> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='es-ES' -f quality=720p --all
+> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='spa-es' -f quality=720p --all
 
 Opcionalmente el comando 'search' se puede usar de forma simplificada:
 
@@ -83,32 +84,33 @@ Opcionalmente el comando 'search' se puede usar de forma simplificada:
 
 Que realmente se traduce como:
 
-> $ arroyo search name-like='game of thrones s02e03'
+> $ arroyo search -f name-glob='*game*of*thrones*s02e03*'
 
 Descarga
 --------
 
 El proceso de descarga es exactamente el mismo que el de busqueda. Simplemente se utiliza el comando 'download' en lugar de 'search':
 
-> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='es-ES' -f quality=720p
+> $ arroyo search -f kind=episode -f series='the big bang theory' -f language='spa-es' -f quality=720p
 
 Pasaría a ser:
 
-> $ arroyo download -f kind=episode -f series='the big bang theory' -f language='es-ES' -f quality=720p
+> $ arroyo download -f kind=episode -f series='the big bang theory' -f language='spa-es' -f quality=720p
 
 Del mismo modo que el comando 'import' puede usar el archivo de configuración, el comando 'download' puede usar una o varias consultas definidas en el archivo de configuración usando el siguiente esquema de sección:
 
 ```
-[query.the big bang (es) 720]
-kind = episode
-series = the big bang theory
-quality = 720p
-language = es-ES
+query:
+  the big bang (es) 720p:
+    kind: episode
+    series: the big bang theory
+    quality: 720p
+    language: spa-es
 ```
 
 Para que el comando 'download' aplique estas consultas y comience a descargar el material correspondiente se ha de usar la siguiente linea de comandos:
 
-> $ arroyo download --queries
+> $ arroyo download --from-config
 
 Adicionalmente el comando 'download' permite gestionar las descargas en curso usando los siguientes parámetros:
 
