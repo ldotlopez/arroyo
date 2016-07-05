@@ -69,7 +69,6 @@ class EliteTorrent(plugin.Origin):
                     paths.append(c)
 
             params['orden'] = params.get('orden', 'fecha')
-            params['modo'] = params.get('modo', 'listado')
 
             try:
                 params['pag'] = int(params['pag']) + 1
