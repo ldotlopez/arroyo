@@ -227,7 +227,7 @@ def build_basic_settings(arguments=[]):
 
 
 class ArroyoStore(store.Store):
-    def __init__(self, items):
+    def __init__(self, items={}):
         # def _get_validator():
         #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
         #     _type_validator = store.type_validator(_defaults_types,
@@ -244,9 +244,14 @@ class ArroyoStore(store.Store):
 
         #     return _validator
 
+        super().__init__(
+            items=items,
+            validators=[store.TypeValidator(_defaults_types)]
+        )
+        self._logger = logging.get_logger('arroyo.settings')
+
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
-        super().__init__()
 
         # Build and configure logger
         # handler = EncodedStreamHandler()
@@ -256,10 +261,6 @@ class ArroyoStore(store.Store):
 
         # self._logger = logging.getLogger('arroyo.settings')
         # self._logger.addHandler(handler)
-
-        self._logger = logging.get_logger('arroyo.settings')
-        self.add_validator(store.TypeValidator(_defaults_types))
-        self.update(items)
 
     def get(self, *args, **kwargs):
         try:
