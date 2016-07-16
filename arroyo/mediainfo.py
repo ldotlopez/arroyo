@@ -25,7 +25,7 @@ class Mediainfo:
 
     def get_mediainfo(self, source):
         """
-        Get guessed mediainfo from src (mostly from src.name)
+        Get guessed mediainfo from source (mostly from source.name)
         """
 
         # This table it used in a second phase to get a better guess
@@ -75,7 +75,7 @@ class Mediainfo:
         for k in ['language', 'part']:
             if isinstance(info.get(k), list):
                 msg = 'Drop multiple instances of {key} in {source}'
-                msg = msg.format(source=src, key=k)
+                msg = msg.format(source=source, key=k)
                 self._logger.warning(msg)
                 info[k] = info[k][0]
 
@@ -83,11 +83,13 @@ class Mediainfo:
         if 'part' in info:
             if info.get('type') == 'movie':
                 msg = "Movie '{source}' has 'part'"
+                msg = msg.format(source=source)
                 self._logger.warning(msg)
 
             elif info.get('type') == 'episode':
                 if 'season' in info:
-                    msg = "Episode '{source}' has 'part' and season '{type}'"
+                    msg = "Episode '{source}' has 'part' and 'season'"
+                    msg = msg.format(source=source)
                     self._logger.warning(msg)
                 else:
                     info['season'] = 0

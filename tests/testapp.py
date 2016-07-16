@@ -13,12 +13,13 @@ class TestApp(core.Arroyo):
         settings = {
             'auto-cron': False,
             'auto-import': False,
-            'fetcher': 'mock',
-            'fetcher.mock.basedir': mock_fetcher_basedir,
+            'fetcher.backend': 'mock',
+            'fetcher.options.basedir': mock_fetcher_basedir,
             'db-uri': 'sqlite:///:memory:',
-            'downloader': 'mock',
+            'downloader.backend': 'mock',
             'log-format': '%(message)s',
             'log-level': 'WARNING',
+            'selector.sorter': 'basic'
         }
         settings.update(d)
         settings = core.ArroyoStore(settings)
