@@ -5,6 +5,7 @@ from arroyo import importer
 
 
 from datetime import datetime
+import collections
 import functools
 import re
 import time
@@ -54,31 +55,39 @@ class EliteTorrent(plugin.Origin):
             yield url
             return
 
+        parsed = parse.urlparse(url)
+
+        # Split paths and params from parsed URL
+        tmp = [x for x in parsed.path.split('/') if x]
+        paths = []
+        params = collections.OrderedDict({
+            'orden': 'fecha',
+            'pag': 1
+        })
+
+        for c in tmp:
+            if ':' in c:
+                k, v = c.split(':', 1)
+                params[k] = v
+            else:
+                paths.append(c)
+
+        pag_n = params.pop('pag')
+        try:
+            pag_n = int(pag_n)
+        except ValueError:
+            pag_n  = 1
+
         while True:
-            parsed = parse.urlparse(url)
-            tmp = [x for x in parsed.path.split('/') if x]
+            params['pag'] = pag_n
+            pag_n += 1
 
-            paths = []
-            params = {}
-
-            for c in tmp:
-                if ':' in c:
-                    k, v = c.split(':', 1)
-                    params[k] = v
-                else:
-                    paths.append(c)
-
-            params['orden'] = params.get('orden', 'fecha')
-
-            try:
-                params['pag'] = int(params['pag']) + 1
-            except:
-                params['pag'] = 1
-
-            params = ['{}:{}'.format(k, v) for (k, v) in params.items()]
-            paths = paths + params
-
-            parsed = parsed._replace(path='/'.join(paths))
+            parsed = parsed._replace(
+                path='/'.join(
+                    paths +
+                    ['{}:{}'.format(k, v) for (k, v) in params.items()]
+                )
+            )
 
             yield parse.urlunparse(parsed)
 
