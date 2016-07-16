@@ -64,13 +64,31 @@ class Selector:
         return next(self.sort(matches))
 
     def select(self, matches):
+        def _entity_grouper(src):
+            if src.type == 'episode':
+                return "{}-{}-{}-{}".format(
+                    src.episode.series.lower(),
+                    src.episode.year or '-',
+                    src.episode.season or '-',
+                    src.episode.number or '-'
+                )
+
+            if src.type == 'movie':
+                return "{}-{}".format(
+                    src.movie.title.lower(),
+                    src.movie.year or '-'
+                )
+
+            else:
+                return src.entity
+
         # Sort matches by entity
         matches = sorted(
             matches,
             key=lambda x: -sys.maxsize
             if x.entity is None else x.entity.id)
 
-        groups = itertools.groupby(matches, lambda src: src.entity)
+        groups = itertools.groupby(matches, lambda src: _entity_grouper(src))
         for (entity, group) in groups:
             if entity is None:
                 yield from group

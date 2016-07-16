@@ -334,5 +334,40 @@ class EpisodeSelectorTest(SelectorTestCase):
             'True Detective S02E04 720p HDTV x264-0SEC [GloDLS]',
             'True Detective S02E04 720p HDTV x264-0SEC'])
 
+    def test_multicase_series(self):
+        s = testapp.mock_source
+        srcs = [
+            s('Foo s03e04.mp4', type='episode'),
+            s('The Last Man on Earth S02E16 Falling Slowly WEB-DL x264 AAC', type='episode'),
+            s('The Last Man On Earth S02E16 HDTV x264-FLEET[rartv]', type='episode'),
+            s('The last man on earth - S02E16 - 576P - SweSub.mp4', type='episode'),
+            s('The Last Man On Earth S02E17 HDTV XviD-AFG', type='episode'),
+            s('The Last Man on Earth S02E17 Smart and Stupid WEB-DL x264 AAC', type='episode'),
+            s('The last man on earth - S02E17 - 576P - SweSub.mp4', type='episode'),
+            s('The Last Man on Earth S02E18 720p HDTV x265 HEVC - YSTEAM', type='episode'),
+            s('The Last Man On Earth S02E18 FASTSUB VOSTFR HDTV XviD-ZT avi', type='episode'),
+            s('The last man on earth - S02E18 - 576P - SweSub.mp4', type='episode'),
+            s('The Last Man On Earth Season 2 1080/HDTV')
+        ]
+
+        app = testapp.TestApp({
+            'plugin.episodequery.enabled': True,
+            'plugin.sourcefilters.enabled': True,
+            'plugin.episodefilters.enabled': True,
+            'plugin.mediainfofilters.enabled': True,
+            'plugin.basicsorter.enabled': True,
+        })
+        app.insert_sources(*srcs)
+
+        spec = selector.QuerySpec('test', kind='episode', series='the last man on earth')
+
+        matches = list(app.selector.matches(spec))
+        self.assertEqual(len(matches), 9)
+
+        candidates = list(app.selector.select(matches))
+        self.assertEqual(len(candidates), 3)
+
+
+
 if __name__ == '__main__':
     unittest.main()
