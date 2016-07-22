@@ -57,10 +57,10 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'fetcher.backend': str,
-    'fetcher.options.enable-cache': bool,
-    'fetcher.options.cache-delta': int,
-    'fetcher.options.headers': dict,
+    'fetcher': dict,
+    'fetcher.enable-cache': bool,
+    'fetcher.cache-delta': int,
+    'fetcher.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float,
     'selector.sorter': str
@@ -335,13 +335,13 @@ class Arroyo:
             self.cron.run_all()
 
     def get_fetcher(self):
-        opts = self.settings.get('fetcher.options', default={})
+        opts = self.settings.get('fetcher', default={})
         opts = {k.replace('-', '_'): v
-                for (k, v) in fetcher_opts.items()}
+                for (k, v) in opts.items()}
 
         opts['logger'] = self.logger.getChild('fetcher')
 
-        return fetchers.Fetcher('urllib', **fetcher_opts)
+        return fetchers.Fetcher('urllib', **opts)
 
     def load_plugin(self, name):
         # Load module

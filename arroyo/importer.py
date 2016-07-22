@@ -476,7 +476,7 @@ class Origin(extension.Extension):
             logger=self.logger.getChild('fetcher'),
             **{
                 k.replace('-', '_'): v
-                for (k, v) in s.get('fetcher.options').items()
+                for (k, v) in s.get('fetcher').items()
             })
         buff = yield from fetcher.fetch(url)
 
