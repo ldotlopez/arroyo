@@ -1,5 +1,6 @@
 import contextlib
 import os
+import sys
 
 
 from arroyo import core, models
@@ -7,14 +8,11 @@ from arroyo import core, models
 
 class TestApp(core.Arroyo):
     def __init__(self, d={}):
-        basedir = os.path.dirname(__file__)
-        mock_fetcher_basedir = os.path.join(basedir, 'www-samples')
-
         settings = {
+            'async-max-concurrency': 1,
+            'async-timeout': sys.maxsize,
             'auto-cron': False,
             'auto-import': False,
-            'fetcher.backend': 'mock',
-            'fetcher.options.basedir': mock_fetcher_basedir,
             'db-uri': 'sqlite:///:memory:',
             'downloader.backend': 'mock',
             'log-format': '%(message)s',
