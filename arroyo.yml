@@ -23,17 +23,13 @@ auto-cron: false
 # Enable auto import feature
 auto-import: true
 
-# Fetcher backend to use
-# Check module ldotcommons.fetchers for more
+# Fetcher options
 fetcher:
-    backend: urllib
-    # Configure fetcher
-    options:
-        enable-cache: True
-        cache-delta: 1200
-        headers:
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
-          'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
+    enable-cache: True
+    cache-delta: 1200
+    headers:
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+      'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
 
 # Selector
 selector:

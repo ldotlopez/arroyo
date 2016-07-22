@@ -7,6 +7,74 @@ from arroyo import plugin
 import testapp
 
 
+class TestOrigin2:
+    def setUp(self):
+        settings = {}
+        settings.update(
+            {'plugin.' + x + '.enabled': True
+             for x in self.PLUGINS}
+        )
+        self.app = testapp.TestApp(settings)
+
+    def test_implementation(self):
+        impl = self.app.get_implementation(
+            plugin.Origin,
+            self.IMPLEMENTATION_NAME)
+
+        self.assertTrue(
+            hasattr(impl, 'paginate'),
+            msg='No paginate() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'process'),
+            msg='No process() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'BASE_URL'),
+            msg='No BASE_URL in {}'.format(impl))
+
+    def test_pagination(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+        for (start, expected) in self.PAGINATION_TEST:
+            g = origin.paginate(start or origin.BASE_URL)
+            collected = []
+
+            while len(collected) < len(expected):
+                try:
+                    collected.append(next(g))
+                except StopIteration:
+                    collected.append(None)
+
+            self.assertEqual(collected, expected,
+                             msg='Fail pagination for {}'.format(start))
+
+
+class EztvTest2(TestOrigin2, unittest.TestCase):
+    PLUGINS = ['eztv']
+    IMPLEMENTATION_NAME = 'eztv'
+
+    PAGINATION_TEST = [
+        # (baseurl, [page_n, page_n+1, ...])
+
+        (None, [
+            'https://eztv.ch/page_0'
+        ]),
+
+        ('https://eztv.ch/page_0', [
+            'https://eztv.ch/page_0',
+            'https://eztv.ch/page_1',
+            'https://eztv.ch/page_2'
+        ]),
+
+        ('https://eztv.ch/page_19', [
+            'https://eztv.ch/page_19',
+            'https://eztv.ch/page_20'
+        ]),
+
+        ('https://eztv.ch/foo', None),  # Not sure how to handle this
+    ]
+
+
 class TestOrigin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,7 +129,7 @@ class TestOrigin:
             spec = plugin.OriginSpec(
                 name='foo', backend=self.BACKEND, url=url)
 
-            srcs = self.app.importer.import_origin_spec(spec)
+            srcs = self.app.importer.process_spec(spec)
             srcs = srcs['added-sources'] + srcs['updated-sources']
             self.assertEqual(
                 len(srcs), n_expected,
@@ -129,7 +197,7 @@ class TestSpanishTracker(TestOrigin, unittest.TestCase):
 
 class TestTpb(TestOrigin, unittest.TestCase):
     PLUGINS = ['thepiratebay']
-    BACKEND = 'tpb'
+    BACKEND = 'thepiratebay'
     KEYS = ['leechers', 'name', 'seeds', 'size', 'timestamp', 'uri']
     PAGINATIONS = {
         'http://thepiratebay.com/recent/0/':

@@ -65,7 +65,7 @@ class Eztv(plugin.Origin):
             return
 
         try:
-            buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+            buff = self.app.get_fetcher.fetch('https://eztv.ch/showlist/')
         except fetchers.FetchError as e:
             msg = 'Unable to fetch {url}: {msg}'
             msg = msg.format(url='https://eztv.ch/showlist/', msg=str(e))
