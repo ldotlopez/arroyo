@@ -130,6 +130,34 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
             eztv.get_url_for_series(table, 'foo')
 
 
+class KATTest2(TestOrigin2, unittest.TestCase):
+    PLUGINS = ['kickass']
+    IMPLEMENTATION_NAME = 'kickass'
+
+    PAGINATION_TESTS = [
+        # (baseurl, [page_n, page_n+1, ...])
+
+        (None, [
+            'http://kat.am/new/',
+            'http://kat.am/new/2/'
+        ]),
+
+        ('http://kat.am/new/15/', [
+            'http://kat.am/new/16/',
+            'http://kat.am/new/17/'
+        ]),
+
+        ('https://kat.am/usearch/the%20walking%20dead/', [
+            'https://kat.am/usearch/the%20walking%20dead/',
+            'https://kat.am/usearch/the%20walking%20dead/2/'
+        ]),
+
+        # ('https://eztv.ag/foo', None),  # Not sure how to handle this
+    ]
+
+    PARSE_TESTS = []
+
+
 class TestOrigin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

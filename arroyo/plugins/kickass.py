@@ -13,7 +13,10 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
-    _BASE_DOMAIN = 'kat.am'
+    PROVIDER_NAME = 'kickass'
+    BASE_DOMAIN = 'https://kat.am'
+    BASE_URL = BASE_DOMAIN + '/new/'
+
     _TYPES = {
         'anime': 'other',
         'applications': 'application',
@@ -25,10 +28,6 @@ class KickAss(plugin.Origin):
         'tv': 'episode',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
-
-    BASE_URL = 'http://{domain}/new/?page=1'.format(
-        domain=_BASE_DOMAIN)
-    PROVIDER_NAME = 'kickass'
 
     def __init__(self, *args, **kwargs):
         super(KickAss, self).__init__(*args, **kwargs)
@@ -75,7 +74,7 @@ class KickAss(plugin.Origin):
 
         return ('http://{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
-                    domain=self._BASE_DOMAIN,
+                    domain=self.BASE_DOMAIN,
                     q=parse.quote(q))
 
     def parse(self, buff):
