@@ -16,6 +16,9 @@ class Eztv(plugin.Origin):
     BASE_URL = BASE_DOMAIN + '/page_0'
     PROVIDER_NAME = 'eztv'
 
+    BASE_DOMAIN = 'https://eztv.ag'
+    BASE_URL = BASE_DOMAIN + '/page_0'
+
     _table_mults = {
         's': 1,
         'm': 60,
@@ -31,12 +34,12 @@ class Eztv(plugin.Origin):
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
-        # https://eztv.ch/ -> 0
+        # https://eztv.ag/ -> 0 if not pathcomponents:
         if not pathcomponents:
             yield from self.paginate(url + '/page_0')
             return
 
-        # https://eztv.ch/shows/546/black-mirror/
+        # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
             yield url
             return
@@ -47,7 +50,7 @@ class Eztv(plugin.Origin):
             yield url
             return
 
-        # https://eztv.ch/page_0
+        # https://eztv.ag/page_0
         page = int(m[0])
         while True:
             yield '{scheme}://{netloc}/page_{page}'.format(
@@ -65,11 +68,12 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
+        showlist_url = self.BASE_DOMAIN + '/showlist/'
         try:
-            buff = self.app.get_fetcher().fetch(self.BASE_DOMAIN + '/showlist/')
+            buff = self.app.get_fetcher().fetch(showlist_url)
         except fetchers.FetchError as e:
             msg = 'Unable to fetch {url}: {msg}'
-            msg = msg.format(url=self.BASE_DOMAIN + '/showlist/', msg=str(e))
+            msg = msg.format(url=showlist_url, msg=str(e))
             self.logger.error(msg)
             return
 

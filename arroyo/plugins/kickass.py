@@ -13,7 +13,7 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
-    _BASE_DOMAIN = 'kat.cr'
+    _BASE_DOMAIN = 'kat.am'
     _TYPES = {
         'anime': 'other',
         'applications': 'application',
