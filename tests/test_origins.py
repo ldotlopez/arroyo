@@ -57,22 +57,57 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
         # (baseurl, [page_n, page_n+1, ...])
 
         (None, [
-            'https://eztv.ch/page_0'
+            'https://eztv.ag/page_0'
         ]),
 
-        ('https://eztv.ch/page_0', [
-            'https://eztv.ch/page_0',
-            'https://eztv.ch/page_1',
-            'https://eztv.ch/page_2'
+        ('https://eztv.ag/page_0', [
+            'https://eztv.ag/page_0',
+            'https://eztv.ag/page_1',
+            'https://eztv.ag/page_2'
         ]),
 
-        ('https://eztv.ch/page_19', [
-            'https://eztv.ch/page_19',
-            'https://eztv.ch/page_20'
+        ('https://eztv.ag/page_19', [
+            'https://eztv.ag/page_19',
+            'https://eztv.ag/page_20'
         ]),
 
-        ('https://eztv.ch/foo', None),  # Not sure how to handle this
+        # ('https://eztv.ag/foo', None),  # Not sure how to handle this
     ]
+
+    def test_series_index_parse(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+
+        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
+            res = eztv.parse_series_index(fh.read())
+
+        self.assertEqual(res['The Walking Dead'], '/shows/428/the-walking-dead/')
+        self.assertEqual(len(res), 1830)
+
+    def test_series_table_selector(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+
+        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
+            table = eztv.parse_series_index(fh.read())
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'Battlestar Galactica'),
+            'https://eztv.ag/shows/18/battlestar-galactica/'
+        )
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'battlestar galactica'),
+            'https://eztv.ag/shows/18/battlestar-galactica/'
+        )
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'the leftovers'),
+            'https://eztv.ag/shows/1060/the-leftovers/'
+        )
+
+        with self.assertRaises(KeyError):
+            eztv.get_url_for_series(table, 'foo')
 
 
 class TestOrigin:
@@ -142,7 +177,7 @@ class TestEztv(TestOrigin, unittest.TestCase):
     KEYS = ['language', 'name', 'timestamp', 'type', 'uri']
     PAGINATIONS = {
         # Default
-        None: ['https://eztv.ch/page_{}'.format(i) for i in [0, 1, 2]],
+        None: ['https://eztv.ag/page_{}'.format(i) for i in [0, 1, 2]],
 
         # TV Show page
         'http://eztv.it/shows/123/show-title/':
@@ -154,7 +189,7 @@ class TestEztv(TestOrigin, unittest.TestCase):
 
     }
     URL_TESTS = [
-        ('http://eztv.ch/page/0', 41)
+        ('http://eztv.ag/page/0', 41)
     ]
 
 

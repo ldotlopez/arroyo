@@ -52,3 +52,7 @@ class TestApp(core.Arroyo):
 
 def mock_source(name, **kwsrc):
     return models.Source.from_data(name, **kwsrc)
+
+def www_sample_path(sample):
+    thisfile = os.path.realpath(__file__)
+    return os.path.join(os.path.dirname(thisfile), "www-samples", sample)
