@@ -35,7 +35,7 @@ class TestOrigin2:
         spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
         origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-        for (start, expected) in self.PAGINATION_TEST:
+        for (start, expected) in self.PAGINATION_TESTS:
             g = origin.paginate(start or origin.BASE_URL)
             collected = []
 
@@ -48,12 +48,24 @@ class TestOrigin2:
             self.assertEqual(collected, expected,
                              msg='Fail pagination for {}'.format(start))
 
+    def test_parse(self):
+        for (sample, n_expected) in self.PARSE_TESTS:
+            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+            origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+            with open(testapp.www_sample_path(sample)) as fh:
+                results = list(origin.parse(fh.read()))
+
+            self.assertEqual(
+                n_expected,len(results),
+                msg="Parse missmatch for {}".format(sample)
+            )
 
 class EztvTest2(TestOrigin2, unittest.TestCase):
     PLUGINS = ['eztv']
     IMPLEMENTATION_NAME = 'eztv'
 
-    PAGINATION_TEST = [
+    PAGINATION_TESTS = [
         # (baseurl, [page_n, page_n+1, ...])
 
         (None, [
@@ -72,6 +84,11 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
         ]),
 
         # ('https://eztv.ag/foo', None),  # Not sure how to handle this
+    ]
+
+    PARSE_TESTS = [
+        ('eztv-page-0.html', 50),
+        ('eztv-hcf.html', 36)
     ]
 
     def test_series_index_parse(self):
