@@ -12,7 +12,7 @@ from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
-    BASE_URL = 'https://eztv.ch/page_0'
+    BASE_URL = 'https://eztv.am/page_0'
     PROVIDER_NAME = 'eztv'
 
     _table_mults = {
