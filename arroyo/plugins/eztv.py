@@ -12,8 +12,10 @@ from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
-    BASE_URL = 'https://eztv.am/page_0'
     PROVIDER_NAME = 'eztv'
+
+    BASE_DOMAIN = 'https://eztv.ag'
+    BASE_URL = BASE_DOMAIN + '/page_0'
 
     _table_mults = {
         's': 1,
@@ -30,12 +32,12 @@ class Eztv(plugin.Origin):
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
-        # https://eztv.ch/ -> 0
+        # https://eztv.ag/ -> 0 if not pathcomponents:
         if not pathcomponents:
             yield from self.paginate(url + '/page_0')
             return
 
-        # https://eztv.ch/shows/546/black-mirror/
+        # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
             yield url
             return
@@ -46,7 +48,7 @@ class Eztv(plugin.Origin):
             yield url
             return
 
-        # https://eztv.ch/page_0
+        # https://eztv.ag/page_0
         page = int(m[0])
         while True:
             yield '{scheme}://{netloc}/page_{page}'.format(
@@ -64,11 +66,12 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
+        showlist_url = self.BASE_DOMAIN + '/showlist/'
         try:
-            buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+            buff = self.app.fetcher.fetch(showlist_url)
         except fetchers.FetchError as e:
             msg = 'Unable to fetch {url}: {msg}'
-            msg = msg.format(url='https://eztv.ch/showlist/', msg=str(e))
+            msg = msg.format(url=showlist_url, msg=str(e))
             self.logger.error(msg)
             return
 
@@ -86,7 +89,7 @@ class Eztv(plugin.Origin):
         g = filter(lambda x: x.text.lower() == series, g)
 
         try:
-            return 'https://eztv.ch{}'.format(next(g).attrs['href'])
+            return self.BASE_DOMAIN + next(g).attrs['href']
         except (StopIteration, KeyError):
             return None
 
