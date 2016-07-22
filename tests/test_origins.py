@@ -81,7 +81,10 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
         with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
             res = eztv.parse_series_index(fh.read())
 
-        self.assertEqual(res['The Walking Dead'], '/shows/428/the-walking-dead/')
+        self.assertEqual(
+            res['The Walking Dead'],
+            'https://eztv.ag/shows/428/the-walking-dead/'
+        )
         self.assertEqual(len(res), 1830)
 
     def test_series_table_selector(self):

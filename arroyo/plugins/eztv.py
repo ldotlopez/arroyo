@@ -88,7 +88,7 @@ class Eztv(plugin.Origin):
             key += ' ({})'.format(year)
 
         try:
-            return self.BASE_DOMAIN + table_lower[key]
+            return table_lower[key]
         except KeyError as e:
             pass
 
@@ -105,7 +105,7 @@ class Eztv(plugin.Origin):
             if name.lower().endswith(', the'):
                 name = 'The ' + name[:-5]
 
-            return (name, href)
+            return (name, self.BASE_DOMAIN + href)
 
         soup = bs4.BeautifulSoup(buff, "html.parser")
         shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))
