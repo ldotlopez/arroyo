@@ -138,18 +138,35 @@ class KATTest2(TestOrigin2, unittest.TestCase):
         # (baseurl, [page_n, page_n+1, ...])
 
         (None, [
-            'http://kat.am/new/',
-            'http://kat.am/new/2/'
+            'https://kat.am/new/',
+            'https://kat.am/new/2/'
         ]),
 
-        ('http://kat.am/new/15/', [
-            'http://kat.am/new/16/',
-            'http://kat.am/new/17/'
+        ('https://kat.am/new/15/', [
+            'https://kat.am/new/15/',
+            'https://kat.am/new/16/',
+            'https://kat.am/new/17/'
         ]),
 
         ('https://kat.am/usearch/the%20walking%20dead/', [
             'https://kat.am/usearch/the%20walking%20dead/',
             'https://kat.am/usearch/the%20walking%20dead/2/'
+        ]),
+
+        ('https://kat.am/tv/?field=size&sorder=desc', [
+            'https://kat.am/tv/?field=size&sorder=desc',
+            'https://kat.am/tv/2/?field=size&sorder=desc',
+            'https://kat.am/tv/3/?field=size&sorder=desc'
+        ]),
+
+        ('https://kat.am/usearch/lost/?field=time_add&sorder=desc', [
+            'https://kat.am/usearch/lost/?field=time_add&sorder=desc',
+            'https://kat.am/usearch/lost/2/?field=time_add&sorder=desc'
+        ]),
+
+        ('https://kat.am/no-final-slash', [
+            'https://kat.am/no-final-slash/',
+            'https://kat.am/no-final-slash/2/',
         ]),
 
         # ('https://eztv.ag/foo', None),  # Not sure how to handle this

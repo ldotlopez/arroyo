@@ -34,7 +34,23 @@ class KickAss(plugin.Origin):
         self._logger = self.app.logger.getChild('kickass-importer')
 
     def paginate(self, url):
-        yield from self.paginate_by_query_param(url, 'page', default=1)
+        parsed = parse.urlparse(url)
+        paths = [x for x in parsed.path.split('/') if x]
+
+        try:
+            page = int(paths[-1])
+            paths = paths[:-1]
+        except (IndexError, ValueError):
+            page = 1
+
+        while True:
+            if page > 1:
+                tmp = paths + [str(page)]
+            else:
+                tmp = paths
+
+            yield parse.urlunparse(parsed._replace(path='/'.join(tmp) + '/'))
+            page += 1
 
     def get_query_url(self, query):
         selector = query.get('kind')
