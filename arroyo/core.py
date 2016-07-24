@@ -38,10 +38,9 @@ _defaults = {
     'legacy': False,
     'log-level': 'WARNING',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher.backend': 'urllib',
-    'fetcher.options.enable-cache': True,
-    'fetcher.options.cache-delta': 60 * 20,
-    'fetcher.options.headers': {
+    'fetcher.enable-cache': True,
+    'fetcher.cache-delta': 60 * 20,
+    'fetcher.headers': {
         'User-Agent':
             'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         },
@@ -58,10 +57,10 @@ _defaults_types = {
     'log-level': str,
     'log-format': str,
     'user-agent': str,
-    'fetcher.backend': str,
-    'fetcher.options.enable-cache': bool,
-    'fetcher.options.cache-delta': int,
-    'fetcher.options.headers': dict,
+    'fetcher': dict,
+    'fetcher.enable-cache': bool,
+    'fetcher.cache-delta': int,
+    'fetcher.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float,
     'selector.sorter': str
@@ -303,20 +302,6 @@ class Arroyo:
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
 
-        # Build and configure fetcher
-        fetcher = self.settings.get('fetcher.backend')
-        try:
-            fetcher_opts = self.settings.get('fetcher.options')
-            fetcher_opts = {k.replace('-', '_'): v
-                            for (k, v) in fetcher_opts.items()}
-        except KeyError:
-            fetcher_opts = {}
-
-        self.fetcher = fetchers.Fetcher(
-            fetcher,
-            logger=self.logger.getChild('fetcher.' + fetcher),
-            **fetcher_opts)
-
         # Built-in providers
         self.db = db.Db(self.settings.get('db-uri'))
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
@@ -348,6 +333,15 @@ class Arroyo:
         # Run cron tasks
         if self.settings.get('auto-cron'):
             self.cron.run_all()
+
+    def get_fetcher(self):
+        opts = self.settings.get('fetcher', default={})
+        opts = {k.replace('-', '_'): v
+                for (k, v) in opts.items()}
+
+        opts['logger'] = self.logger.getChild('fetcher')
+
+        return fetchers.Fetcher('urllib', **opts)
 
     def load_plugin(self, name):
         # Load module

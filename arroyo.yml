@@ -23,17 +23,13 @@ auto-cron: false
 # Enable auto import feature
 auto-import: true
 
-# Fetcher backend to use
-# Check module ldotcommons.fetchers for more
+# Fetcher options
 fetcher:
-    backend: urllib
-    # Configure fetcher
-    options:
-        enable-cache: True
-        cache-delta: 1200
-        headers:
-          'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
-          'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
+    enable-cache: True
+    cache-delta: 1200
+    headers:
+      'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+      'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
 
 # Selector
 selector:
@@ -114,19 +110,19 @@ origin: {}
     #     backend: kickass
     #     iterations: 3
     #     type: episode
-    #     url: https://kat.ct/user/EZTV/uploads/?field=time_add&sorder=desc
+    #     url: https://kat.am/user/EZTV/uploads/?field=time_add&sorder=desc
 
     # ka-episodes:
     #     backend: kickass
     #     iterations: 1
     #     type: movie
-    #     url: https://kat.cr/tv/
+    #     url: https://kat.am/tv/
 
     # ka-episodes:
     #     backend: kickass
     #     iterations: 1
     #     type: episode
-    #     url: https://kat.cr/movies/
+    #     url: https://kat.am/movies/
 
 # Queries are the way to download sources.
 # Using a query you are filtering sources from the database

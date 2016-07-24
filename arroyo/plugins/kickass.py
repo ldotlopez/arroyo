@@ -13,7 +13,10 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
-    _BASE_DOMAIN = 'kat.cr'
+    PROVIDER_NAME = 'kickass'
+    BASE_DOMAIN = 'https://kat.am'
+    BASE_URL = BASE_DOMAIN + '/new/'
+
     _TYPES = {
         'anime': 'other',
         'applications': 'application',
@@ -26,16 +29,28 @@ class KickAss(plugin.Origin):
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 
-    BASE_URL = 'http://{domain}/new/?page=1'.format(
-        domain=_BASE_DOMAIN)
-    PROVIDER_NAME = 'kickass'
-
     def __init__(self, *args, **kwargs):
         super(KickAss, self).__init__(*args, **kwargs)
         self._logger = self.app.logger.getChild('kickass-importer')
 
     def paginate(self, url):
-        yield from self.paginate_by_query_param(url, 'page', default=1)
+        parsed = parse.urlparse(url)
+        paths = [x for x in parsed.path.split('/') if x]
+
+        try:
+            page = int(paths[-1])
+            paths = paths[:-1]
+        except (IndexError, ValueError):
+            page = 1
+
+        while True:
+            if page > 1:
+                tmp = paths + [str(page)]
+            else:
+                tmp = paths
+
+            yield parse.urlunparse(parsed._replace(path='/'.join(tmp) + '/'))
+            page += 1
 
     def get_query_url(self, query):
         selector = query.get('kind')
@@ -75,7 +90,7 @@ class KickAss(plugin.Origin):
 
         return ('http://{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
-                    domain=self._BASE_DOMAIN,
+                    domain=self.BASE_DOMAIN,
                     q=parse.quote(q))
 
     def parse(self, buff):

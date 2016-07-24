@@ -19,7 +19,7 @@ class BaseTest:
     def setUp(self):
         settings = {'plugin.' + k + '.enabled': True for k in self.plugins}
         # settings['log-level'] = 'CRITICAL'
-        settings['downloader'] = self.downloader
+        settings['downloader.backend'] = self.downloader
         self.app = TestApp(settings)
 
     def tearDown(self):

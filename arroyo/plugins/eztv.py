@@ -12,8 +12,12 @@ from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
-    BASE_URL = 'https://eztv.ch/page_0'
+    BASE_DOMAIN = 'https://eztv.ag'
+    BASE_URL = BASE_DOMAIN + '/page_0'
     PROVIDER_NAME = 'eztv'
+
+    BASE_DOMAIN = 'https://eztv.ag'
+    BASE_URL = BASE_DOMAIN + '/page_0'
 
     _table_mults = {
         's': 1,
@@ -30,12 +34,12 @@ class Eztv(plugin.Origin):
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
-        # https://eztv.ch/ -> 0
+        # https://eztv.ag/ -> 0 if not pathcomponents:
         if not pathcomponents:
             yield from self.paginate(url + '/page_0')
             return
 
-        # https://eztv.ch/shows/546/black-mirror/
+        # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
             yield url
             return
@@ -46,7 +50,7 @@ class Eztv(plugin.Origin):
             yield url
             return
 
-        # https://eztv.ch/page_0
+        # https://eztv.ag/page_0
         page = int(m[0])
         while True:
             yield '{scheme}://{netloc}/page_{page}'.format(
@@ -64,31 +68,54 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
+        showlist_url = self.BASE_DOMAIN + '/showlist/'
         try:
-            buff = self.app.fetcher.fetch('https://eztv.ch/showlist/')
+            buff = self.app.get_fetcher().fetch(showlist_url)
         except fetchers.FetchError as e:
             msg = 'Unable to fetch {url}: {msg}'
-            msg = msg.format(url='https://eztv.ch/showlist/', msg=str(e))
+            msg = msg.format(url=showlist_url, msg=str(e))
             self.logger.error(msg)
             return
 
-        soup = bs4.BeautifulSoup(buff, "html.parser")
-
-        series = series.lower()
-        if series.startswith('the '):
-            series = '{}, the'.format(series[4:])
-
-        year = query.get('year')
-        if year:
-            series += ' ({})'.format(year)
-
-        g = (x for x in soup.select('tr td a.thread_link') if x.text)
-        g = filter(lambda x: x.text.lower() == series, g)
+        table = self.parse_series_index(buff)
 
         try:
-            return 'https://eztv.ch{}'.format(next(g).attrs['href'])
-        except (StopIteration, KeyError):
+            return self.get_url_for_series(table, series, query.get('year'))
+        except KeyError:
             return None
+
+    def get_url_for_series(self, table, series, year=None):
+        table_lower = {k.lower(): v for (k, v) in table.items()}
+
+        key = series.lower()
+        if year:
+            key += ' ({})'.format(year)
+
+        try:
+            return table_lower[key]
+        except KeyError as e:
+            pass
+
+        raise KeyError(series)
+
+    def parse_series_index(self, buff):
+        def parse_row(x):
+            name = x.text
+            href = x.attrs.get('href', '')
+
+            if not href.startswith('/shows/') or not name:
+                return None
+
+            if name.lower().endswith(', the'):
+                name = 'The ' + name[:-5]
+
+            return (name, self.BASE_DOMAIN + href)
+
+        soup = bs4.BeautifulSoup(buff, "html.parser")
+        shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))
+        shows = filter(lambda x: x, shows)
+
+        return {x[0]: x[1] for x in shows}
 
     def parse(self, buff):
         """

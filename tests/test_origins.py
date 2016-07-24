@@ -7,6 +7,174 @@ from arroyo import plugin
 import testapp
 
 
+class TestOrigin2:
+    def setUp(self):
+        settings = {}
+        settings.update(
+            {'plugin.' + x + '.enabled': True
+             for x in self.PLUGINS}
+        )
+        self.app = testapp.TestApp(settings)
+
+    def test_implementation(self):
+        impl = self.app.get_implementation(
+            plugin.Origin,
+            self.IMPLEMENTATION_NAME)
+
+        self.assertTrue(
+            hasattr(impl, 'paginate'),
+            msg='No paginate() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'process'),
+            msg='No process() in {}'.format(impl))
+        self.assertTrue(
+            hasattr(impl, 'BASE_URL'),
+            msg='No BASE_URL in {}'.format(impl))
+
+    def test_pagination(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+        for (start, expected) in self.PAGINATION_TESTS:
+            g = origin.paginate(start or origin.BASE_URL)
+            collected = []
+
+            while len(collected) < len(expected):
+                try:
+                    collected.append(next(g))
+                except StopIteration:
+                    collected.append(None)
+
+            self.assertEqual(collected, expected,
+                             msg='Fail pagination for {}'.format(start))
+
+    def test_parse(self):
+        for (sample, n_expected) in self.PARSE_TESTS:
+            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+            origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+            with open(testapp.www_sample_path(sample)) as fh:
+                results = list(origin.parse(fh.read()))
+
+            self.assertEqual(
+                n_expected,len(results),
+                msg="Parse missmatch for {}".format(sample)
+            )
+
+class EztvTest2(TestOrigin2, unittest.TestCase):
+    PLUGINS = ['eztv']
+    IMPLEMENTATION_NAME = 'eztv'
+
+    PAGINATION_TESTS = [
+        # (baseurl, [page_n, page_n+1, ...])
+
+        (None, [
+            'https://eztv.ag/page_0'
+        ]),
+
+        ('https://eztv.ag/page_0', [
+            'https://eztv.ag/page_0',
+            'https://eztv.ag/page_1',
+            'https://eztv.ag/page_2'
+        ]),
+
+        ('https://eztv.ag/page_19', [
+            'https://eztv.ag/page_19',
+            'https://eztv.ag/page_20'
+        ]),
+
+        # ('https://eztv.ag/foo', None),  # Not sure how to handle this
+    ]
+
+    PARSE_TESTS = [
+        ('eztv-page-0.html', 50),
+        ('eztv-hcf.html', 36)
+    ]
+
+    def test_series_index_parse(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+
+        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
+            res = eztv.parse_series_index(fh.read())
+
+        self.assertEqual(
+            res['The Walking Dead'],
+            'https://eztv.ag/shows/428/the-walking-dead/'
+        )
+        self.assertEqual(len(res), 1830)
+
+    def test_series_table_selector(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+
+        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
+            table = eztv.parse_series_index(fh.read())
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'Battlestar Galactica'),
+            'https://eztv.ag/shows/18/battlestar-galactica/'
+        )
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'battlestar galactica'),
+            'https://eztv.ag/shows/18/battlestar-galactica/'
+        )
+
+        self.assertEqual(
+            eztv.get_url_for_series(table, 'the leftovers'),
+            'https://eztv.ag/shows/1060/the-leftovers/'
+        )
+
+        with self.assertRaises(KeyError):
+            eztv.get_url_for_series(table, 'foo')
+
+
+class KATTest2(TestOrigin2, unittest.TestCase):
+    PLUGINS = ['kickass']
+    IMPLEMENTATION_NAME = 'kickass'
+
+    PAGINATION_TESTS = [
+        # (baseurl, [page_n, page_n+1, ...])
+
+        (None, [
+            'https://kat.am/new/',
+            'https://kat.am/new/2/'
+        ]),
+
+        ('https://kat.am/new/15/', [
+            'https://kat.am/new/15/',
+            'https://kat.am/new/16/',
+            'https://kat.am/new/17/'
+        ]),
+
+        ('https://kat.am/usearch/the%20walking%20dead/', [
+            'https://kat.am/usearch/the%20walking%20dead/',
+            'https://kat.am/usearch/the%20walking%20dead/2/'
+        ]),
+
+        ('https://kat.am/tv/?field=size&sorder=desc', [
+            'https://kat.am/tv/?field=size&sorder=desc',
+            'https://kat.am/tv/2/?field=size&sorder=desc',
+            'https://kat.am/tv/3/?field=size&sorder=desc'
+        ]),
+
+        ('https://kat.am/usearch/lost/?field=time_add&sorder=desc', [
+            'https://kat.am/usearch/lost/?field=time_add&sorder=desc',
+            'https://kat.am/usearch/lost/2/?field=time_add&sorder=desc'
+        ]),
+
+        ('https://kat.am/no-final-slash', [
+            'https://kat.am/no-final-slash/',
+            'https://kat.am/no-final-slash/2/',
+        ]),
+
+        # ('https://eztv.ag/foo', None),  # Not sure how to handle this
+    ]
+
+    PARSE_TESTS = []
+
+
 class TestOrigin:
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -61,7 +229,7 @@ class TestOrigin:
             spec = plugin.OriginSpec(
                 name='foo', backend=self.BACKEND, url=url)
 
-            srcs = self.app.importer.import_origin_spec(spec)
+            srcs = self.app.importer.process_spec(spec)
             srcs = srcs['added-sources'] + srcs['updated-sources']
             self.assertEqual(
                 len(srcs), n_expected,
@@ -74,7 +242,7 @@ class TestEztv(TestOrigin, unittest.TestCase):
     KEYS = ['language', 'name', 'timestamp', 'type', 'uri']
     PAGINATIONS = {
         # Default
-        None: ['https://eztv.ch/page_{}'.format(i) for i in [0, 1, 2]],
+        None: ['https://eztv.ag/page_{}'.format(i) for i in [0, 1, 2]],
 
         # TV Show page
         'http://eztv.it/shows/123/show-title/':
@@ -86,7 +254,7 @@ class TestEztv(TestOrigin, unittest.TestCase):
 
     }
     URL_TESTS = [
-        ('http://eztv.ch/page/0', 41)
+        ('http://eztv.ag/page/0', 41)
     ]
 
 
@@ -129,7 +297,7 @@ class TestSpanishTracker(TestOrigin, unittest.TestCase):
 
 class TestTpb(TestOrigin, unittest.TestCase):
     PLUGINS = ['thepiratebay']
-    BACKEND = 'tpb'
+    BACKEND = 'thepiratebay'
     KEYS = ['leechers', 'name', 'seeds', 'size', 'timestamp', 'uri']
     PAGINATIONS = {
         'http://thepiratebay.com/recent/0/':
