@@ -88,7 +88,7 @@ class KickAss(plugin.Origin):
         if not q:
             return
 
-        return ('http://{domain}/usearch/{q}/?'
+        return ('{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
                     domain=self.BASE_DOMAIN,
                     q=parse.quote(q))
