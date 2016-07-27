@@ -17,7 +17,13 @@ class TestApp(core.Arroyo):
             'downloader.backend': 'mock',
             'log-format': '%(message)s',
             'log-level': 'WARNING',
-            'selector.sorter': 'basic'
+            'selector.sorter': 'basic',
+            'fetcher.enable-cache': False,
+            'fetcher.cache-delta': 0,
+            'fetcher.headers': {
+                'User-Agent':
+                'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+            },
         }
         settings.update(d)
         settings = core.ArroyoStore(settings)
