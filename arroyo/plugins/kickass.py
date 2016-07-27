@@ -26,6 +26,7 @@ class KickAss(plugin.Origin):
         'music': 'music',
         'other': 'other',
         'tv': 'episode',
+        'video': 'other',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
     }
 

@@ -8,6 +8,10 @@ import testapp
 
 
 class TestOrigin2:
+    PARSE_TESTS = []
+    PAGINATION_TESTS = []
+    QUERY_TESTS = []
+
     def setUp(self):
         settings = {}
         settings.update(
@@ -31,6 +35,19 @@ class TestOrigin2:
             hasattr(impl, 'BASE_URL'),
             msg='No BASE_URL in {}'.format(impl))
 
+    def test_parse(self):
+        for (sample, n_expected) in self.PARSE_TESTS:
+            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+            origin = self.app.importer.get_origin_for_origin_spec(spec)
+
+            with open(testapp.www_sample_path(sample)) as fh:
+                results = list(origin.parse(fh.read()))
+
+            self.assertEqual(
+                n_expected,len(results),
+                msg="Parse missmatch for {}".format(sample)
+            )
+
     def test_pagination(self):
         spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
         origin = self.app.importer.get_origin_for_origin_spec(spec)
@@ -48,18 +65,20 @@ class TestOrigin2:
             self.assertEqual(collected, expected,
                              msg='Fail pagination for {}'.format(start))
 
-    def test_parse(self):
-        for (sample, n_expected) in self.PARSE_TESTS:
-            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-            origin = self.app.importer.get_origin_for_origin_spec(spec)
+    def test_query_url(self):
+        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+        origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-            with open(testapp.www_sample_path(sample)) as fh:
-                results = list(origin.parse(fh.read()))
+        for (query, url) in self.QUERY_TESTS:
+            if not isinstance(query, dict):
+                words = [x for x in query.split(' ') if x]
+                query = {'name-glob': '*' + '*'.join(words) + '*'}
 
             self.assertEqual(
-                n_expected,len(results),
-                msg="Parse missmatch for {}".format(sample)
-            )
+                url,
+                origin.get_query_url(query),
+                msg='Failed query for {}'.format(repr(query)))
+
 
 class EztvTest2(TestOrigin2, unittest.TestCase):
     PLUGINS = ['eztv']
@@ -89,6 +108,11 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
     PARSE_TESTS = [
         ('eztv-page-0.html', 50),
         ('eztv-hcf.html', 36)
+    ]
+
+    QUERY_TESTS = [
+        ('foo', None),
+        (dict(kind='episode', series='lost'), 'https://eztv.ag/shows/171/lost/')
     ]
 
     def test_series_index_parse(self):
@@ -173,6 +197,17 @@ class KATTest2(TestOrigin2, unittest.TestCase):
     ]
 
     PARSE_TESTS = []
+
+    QUERY_TESTS = [
+        (
+            'the big bang theory',
+            'https://kat.am/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'
+        ),
+        (
+            dict(kind='episode', series='the big bang theory'),
+            'https://kat.am/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'
+        )
+    ]
 
 
 class TestOrigin:
