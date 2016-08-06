@@ -14,7 +14,7 @@ from ldotcommons import utils
 
 class KickAss(plugin.Origin):
     PROVIDER_NAME = 'kickass'
-    BASE_DOMAIN = 'https://kat.am'
+    BASE_DOMAIN = 'https://kickass.cd'
     BASE_URL = BASE_DOMAIN + '/new/'
 
     _TYPES = {

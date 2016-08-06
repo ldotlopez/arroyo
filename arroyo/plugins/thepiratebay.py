@@ -35,7 +35,7 @@ class ThePirateBay(plugin.Origin):
     # 'Hydra' domains
     # _TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
 
-    BASE_URL = 'http://thepiratebay.{tld}/recent/0/'.format(tld=_TLD)
+    BASE_URL = 'https://thepiratebay.{tld}/recent/0/'.format(tld=_TLD)
 
     _TYPE_TABLE = {
         'applications': {
