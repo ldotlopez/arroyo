@@ -37,14 +37,16 @@ class TestOrigin:
 
     def test_parse(self):
         for (sample, n_expected) in self.PARSE_TESTS:
-            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+            spec = plugin.OriginSpec(
+                name='foo',
+                backend=self.IMPLEMENTATION_NAME)
             origin = self.app.importer.get_origin_for_origin_spec(spec)
 
             with open(testapp.www_sample_path(sample)) as fh:
                 results = list(origin.parse(fh.read()))
 
             self.assertEqual(
-                n_expected,len(results),
+                n_expected, len(results),
                 msg="Parse missmatch for {}".format(sample)
             )
 
@@ -67,14 +69,16 @@ class TestOrigin:
 
     def test_parse(self):
         for (sample, n_expected) in self.PARSE_TESTS:
-            spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
+            spec = plugin.OriginSpec(
+                name='foo',
+                backend=self.IMPLEMENTATION_NAME)
             origin = self.app.importer.get_origin_for_origin_spec(spec)
 
             with open(testapp.www_sample_path(sample)) as fh:
                 results = list(origin.parse(fh.read()))
 
             self.assertEqual(
-                n_expected,len(results),
+                n_expected, len(results),
                 msg="Parse missmatch for {}".format(sample)
             )
 
@@ -125,7 +129,7 @@ class EztvTest(TestOrigin, unittest.TestCase):
 
     QUERY_TESTS = [
         ('foo', None),
-        (dict(kind='episode', series='lost'), 'https://eztv.ag/shows/171/lost/')
+        (dict(kind='episode', series='lost'), 'https://eztv.ag/shows/171/lost/')  # nopep8
     ]
 
     def test_series_index_parse(self):
@@ -214,11 +218,11 @@ class KATTest(TestOrigin, unittest.TestCase):
     QUERY_TESTS = [
         (
             'the big bang theory',
-            'https://kat.am/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'
+            'https://kat.am/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'  # nopep8
         ),
         (
             dict(kind='episode', series='the big bang theory'),
-            'https://kat.am/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'
+            'https://kat.am/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'  # nopep8
         )
     ]
 
