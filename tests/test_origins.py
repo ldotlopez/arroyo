@@ -35,20 +35,6 @@ class TestOrigin:
             hasattr(impl, 'BASE_URL'),
             msg='No BASE_URL in {}'.format(impl))
 
-    def test_parse(self):
-        for (sample, n_expected) in self.PARSE_TESTS:
-            spec = plugin.OriginSpec(
-                name='foo',
-                backend=self.IMPLEMENTATION_NAME)
-            origin = self.app.importer.get_origin_for_origin_spec(spec)
-
-            with open(testapp.www_sample_path(sample)) as fh:
-                results = list(origin.parse(fh.read()))
-
-            self.assertEqual(
-                n_expected, len(results),
-                msg="Parse missmatch for {}".format(sample)
-            )
 
     def test_pagination(self):
         spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
@@ -74,7 +60,7 @@ class TestOrigin:
                 backend=self.IMPLEMENTATION_NAME)
             origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-            with open(testapp.www_sample_path(sample)) as fh:
+            with open(testapp.www_sample_path(sample), 'rb') as fh:
                 results = list(origin.parse(fh.read()))
 
             self.assertEqual(
@@ -179,50 +165,53 @@ class KATTest(TestOrigin, unittest.TestCase):
         # (baseurl, [page_n, page_n+1, ...])
 
         (None, [
-            'https://kat.am/new/',
-            'https://kat.am/new/2/'
+            'https://kickass.cd/new/',
+            'https://kickass.cd/new/2/'
         ]),
 
-        ('https://kat.am/new/15/', [
-            'https://kat.am/new/15/',
-            'https://kat.am/new/16/',
-            'https://kat.am/new/17/'
+        ('https://kickass.cd/new/15/', [
+            'https://kickass.cd/new/15/',
+            'https://kickass.cd/new/16/',
+            'https://kickass.cd/new/17/'
         ]),
 
-        ('https://kat.am/usearch/the%20walking%20dead/', [
-            'https://kat.am/usearch/the%20walking%20dead/',
-            'https://kat.am/usearch/the%20walking%20dead/2/'
+        ('https://kickass.cd/usearch/the%20walking%20dead/', [
+            'https://kickass.cd/usearch/the%20walking%20dead/',
+            'https://kickass.cd/usearch/the%20walking%20dead/2/'
         ]),
 
-        ('https://kat.am/tv/?field=size&sorder=desc', [
-            'https://kat.am/tv/?field=size&sorder=desc',
-            'https://kat.am/tv/2/?field=size&sorder=desc',
-            'https://kat.am/tv/3/?field=size&sorder=desc'
+        ('https://kickass.cd/tv/?field=size&sorder=desc', [
+            'https://kickass.cd/tv/?field=size&sorder=desc',
+            'https://kickass.cd/tv/2/?field=size&sorder=desc',
+            'https://kickass.cd/tv/3/?field=size&sorder=desc'
         ]),
 
-        ('https://kat.am/usearch/lost/?field=time_add&sorder=desc', [
-            'https://kat.am/usearch/lost/?field=time_add&sorder=desc',
-            'https://kat.am/usearch/lost/2/?field=time_add&sorder=desc'
+        ('https://kickass.cd/usearch/lost/?field=time_add&sorder=desc', [
+            'https://kickass.cd/usearch/lost/?field=time_add&sorder=desc',
+            'https://kickass.cd/usearch/lost/2/?field=time_add&sorder=desc'
         ]),
 
-        ('https://kat.am/no-final-slash', [
-            'https://kat.am/no-final-slash/',
-            'https://kat.am/no-final-slash/2/',
+        ('https://kickass.cd/no-final-slash', [
+            'https://kickass.cd/no-final-slash/',
+            'https://kickass.cd/no-final-slash/2/',
         ]),
 
         # ('https://eztv.ag/foo', None),  # Not sure how to handle this
     ]
 
-    PARSE_TESTS = []
+    PARSE_TESTS = [
+            ('kat-new.html', 30),
+            ('kat-tv.html', 30)
+    ]
 
     QUERY_TESTS = [
         (
             'the big bang theory',
-            'https://kat.am/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'  # nopep8
+            'https://kickass.cd/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'  # nopep8
         ),
         (
             dict(kind='episode', series='the big bang theory'),
-            'https://kat.am/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'  # nopep8
+            'https://kickass.cd/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'  # nopep8
         )
     ]
 
