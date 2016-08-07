@@ -3,7 +3,9 @@
 from arroyo import plugin
 
 
+import datetime
 import re
+import time
 from urllib import parse
 
 
@@ -18,6 +20,7 @@ class KickAss(plugin.Origin):
     BASE_URL = BASE_DOMAIN + '/new/'
 
     _TYPES = {
+        'audio': 'other',
         'anime': 'other',
         'applications': 'application',
         'books': 'book',
@@ -25,6 +28,7 @@ class KickAss(plugin.Origin):
         'movies': 'movie',
         'music': 'music',
         'other': 'other',
+        'porn': 'xxx',
         'tv': 'episode',
         'video': 'other',
         'xxx': 'xxx'  # ¯\_(ツ)_/¯
@@ -104,92 +108,146 @@ class KickAss(plugin.Origin):
             Your search «***» did not match any documents
         """
 
-        def process_row(row):
-            row_as_text = row.text
+        buff = buff.decode('utf-8')
 
-            # Check for name
+        rows = []
+        idx = 0
+
+        lowerbuff = buff.lower()
+        while True:
             try:
-                name = row.select('a.cellMainLink')[0].text
-            except IndexError:
-                name = None
-
-            try:
-                hrefs = (x.attrs.get('href') for x in row.select('a'))
-                magnets = filter(lambda x: x.startswith('magnet:?'), hrefs)
-                uri = list(magnets)[0]
-            except (IndexError, AttributeError):
-                uri = None
-
-            # Check for size
-            try:
-                size = row.select('td')[1].text.replace(' ', '')
-                size = humanfriendly.parse_size(size)
-            except (IndexError, ValueError):
-                size = None
-
-            # Check for seeds
-            try:
-                seeds = int(row.select('td')[-2].text)
-            except (IndexError, ValueError):
-                seeds = None
-
-            # Check for leechers
-            try:
-                leechers = int(row.select('td')[-1].text)
-            except (IndexError, ValueError):
-                leechers = None
-
-            # Check for type
-            typ = None
-
-            m = re.search('Posted by .+ in (.+)', row_as_text)
-            if m:
-                category = m.group(1).strip().lower()
-                idx = category.find(' > ')
-                if idx >= 0:
-                    category = category[0:idx]
-                    # subcategory = category[idx+3:]
-
-                try:
-                    typ = self._TYPES[category]
-                except IndexError:
-                    typ = None
-                    msg = "Unknow category: {category}"
-                    msg = msg.format(category=category)
-                    self._logger.warning(msg)
+                link = idx + lowerbuff[idx:].index('magnet:?')
+            except ValueError:
+                break
 
             try:
-                _table = {
-                    'sec': 1,
-                    'min': 60,
-                    'hour': 60*60,
-                    'day': 60*60*24,
-                    'week': 60*60*24*7,
-                    'month': 60*60*24*30,
-                    'year': 60*60*24*365,
-                }
-                created = row.select('td')[3].text
-                m = re.search(r'(\d+).+(sec|min|hour|day|week|month|year)',
-                              row.select('td')[3].text)
-                amount = int(m.group(1))
-                qual = m.group(2)
-                created = utils.now_timestamp() - (amount*_table[qual])
-            except IndexError:
-                created = None
+                pre = lowerbuff[:link].rindex('<tr')
+            except ValueError:
+                break
 
-            return {
-                'name': name,
-                'uri': uri,
-                'type': typ,
-                'size': size,
-                'seeds': seeds,
-                'leechers': leechers,
-                'created': created,
-            }
+            try:
+                post = link + lowerbuff[link:].index('</tr>') + 5
+            except ValueError:
+                pass
 
-        soup = bs4.BeautifulSoup(buff, "html.parser")
-        return map(process_row, soup.select('table.data tr')[1:])
+            idx = post
+            rows.append(bs4.BeautifulSoup(buff[pre:post], "html.parser"))
 
+        ret = map(self._process_row, rows)
+        ret = filter(lambda x: x, ret)
+        return list(ret)
+
+    def _process_row(self, row):
+        # Name
+        names = row.select('a.cellMainLink')
+        if len(names) != 1:
+            return None
+        name = names[0].text
+
+        # Link
+        magnets = row.select('a[href^=magnet:?]')
+        if len(magnets) != 1:
+            return None
+        uri = magnets[0].attrs['href']
+
+        # Check for size
+        try:
+            size = row.select('td')[1].text.replace(' ', '')
+            size = humanfriendly.parse_size(size)
+        except (IndexError, humanfriendly.InvalidSize):
+            size = None
+
+        # Check for seeds
+        try:
+            seeds = int(row.select('td')[-2].text)
+        except (IndexError, ValueError):
+            seeds = None
+
+        # Check for leechers
+        try:
+            leechers = int(row.select('td')[-1].text)
+        except (IndexError, ValueError):
+            leechers = None
+
+        return {
+            'name': name,
+            'uri': uri,
+            'type': self._parse_type(row),
+            'size': size,
+            'seeds': seeds,
+            'leechers': leechers,
+            'created': self._parse_created(row.select('td')[2]),
+        }
+
+    def _parse_type(self, typ):
+        m = re.search(r'posted by .+ in (.+)(\n+)?', typ.text.lower())
+
+        if not m:
+            msg = "Error parsing category: {category}"
+            msg = msg.format(category=typ.text.replace('\n', ''))
+            self._logger.error(msg)
+            return None
+
+        category = m.group(1).strip()
+        idx = category.find(' > ')
+        if idx >= 0:
+            category = category[0:idx]
+            # subcategory = category[idx+3:]
+
+        try:
+            return self._TYPES[category]
+        except KeyError:
+            msg = "Unknow category: {category}"
+            msg = msg.format(category=category)
+            self._logger.warning(msg)
+
+    def _parse_created(self, created):
+        _table = {
+            'sec': 1,
+            'min': 60,
+            'hour': 60*60,
+            'day': 60*60*24,
+            'week': 60*60*24*7,
+            'month': 60*60*24*30,
+            'year': 60*60*24*365,
+        }
+
+        created = created.text.lower()
+
+        m1 = re.search(r'(\d+).+(sec|min|hour|day|week|month|year)',
+                       created)
+        m2 = re.search(r'(\d+)-(\d+) (\d+):(\d+)', created)
+        m3 = re.search(r'today.+(\d+):(\d+)', created)
+
+        if m1:
+            amount = int(m1.group(1))
+            qual = m1.group(2)
+            created = utils.now_timestamp() - (amount*_table[qual])
+
+        elif m2:
+            today = datetime.date.today()
+            x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
+                today.year, m2.group(1), m2.group(2),
+                m2.group(3), m2.group(4)))
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            created = int(x)
+
+        elif m3:
+            today = datetime.date.today()
+            x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
+                today.year, today.month, today.day,
+                m3.group(1), m3.group(2)))
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            created = int(x)
+
+        else:
+            msg = "Invalid created format: {value}"
+            msg = msg.format(value=created)
+            self.app.logger.error(msg)
+
+        return created
 
 __arroyo_extensions__ = [
     ('kickass', KickAss)
