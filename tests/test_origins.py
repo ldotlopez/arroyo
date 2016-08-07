@@ -201,7 +201,8 @@ class KATTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
             ('kat-new.html', 30),
-            ('kat-tv.html', 30)
+            ('kat-tv.html', 30),
+            ('kat-full.html', 120)
     ]
 
     QUERY_TESTS = [

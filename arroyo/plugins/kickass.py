@@ -214,40 +214,59 @@ class KickAss(plugin.Origin):
 
         created = created.text.lower()
 
-        m1 = re.search(r'(\d+).+(sec|min|hour|day|week|month|year)',
-                       created)
-        m2 = re.search(r'(\d+)-(\d+) (\d+):(\d+)', created)
-        m3 = re.search(r'today.+(\d+):(\d+)', created)
-
-        if m1:
+        # 23 weeks ago
+        m = re.search(r'(?P<amount>\d+).+(?P<qual>sec|min|hour|day|week|month|year)',  # nopep8
+                      created)
+        if m:
             amount = int(m1.group(1))
             qual = m1.group(2)
             created = utils.now_timestamp() - (amount*_table[qual])
+            return created
 
-        elif m2:
+        # 02-22 12:30
+        m = re.search(r'(\d{2})-(\d{2})\s+(\d+):(\d+)',
+                      created)
+        if m:
             today = datetime.date.today()
-            x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
-                today.year, m2.group(1), m2.group(2),
-                m2.group(3), m2.group(4)))
+            created_str = '{}-{}-{} {}:{}:00'.format(
+                today.year, m.group(1), m.group(2),
+                m.group(3), m.group(4))
+
+            today = datetime.date.today()
+            x = humanfriendly.parse_date(created_str)
             x = datetime.datetime(*x).timetuple()
             x = time.mktime(x)
             created = int(x)
+            return created
 
-        elif m3:
+        # Today 13:30
+        m = re.search(r'today\s+(\d{2}):(\d{2})', created)
+        if m:
             today = datetime.date.today()
             x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
                 today.year, today.month, today.day,
-                m3.group(1), m3.group(2)))
+                m.group(1), m.group(2)))
             x = datetime.datetime(*x).timetuple()
             x = time.mktime(x)
             created = int(x)
+            return created
 
-        else:
-            msg = "Invalid created format: {value}"
-            msg = msg.format(value=created)
-            self.app.logger.error(msg)
+        # 08-31 2012
+        m = re.search(r'(\d{2})-(\d{2})\s+(\d{4})', created)
+        if m:
+            today = datetime.date.today()
+            x = humanfriendly.parse_date('{}-{}-{} 00:00:00'.format(
+                m.group(3), m.group(1), m.group(2)))
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            created = int(x)
+            return created
 
-        return created
+        msg = "Invalid created format: {value}"
+        msg = msg.format(value=created)
+        self.app.logger.error(msg)
+
+        return None
 
 __arroyo_extensions__ = [
     ('kickass', KickAss)
