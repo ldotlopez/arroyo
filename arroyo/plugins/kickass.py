@@ -31,7 +31,7 @@ class KickAss(plugin.Origin):
         'porn': 'xxx',
         'tv': 'episode',
         'video': 'other',
-        'xxx': 'xxx'  # ¯\_(ツ)_/¯
+        'xxx': 'xxx'
     }
 
     def __init__(self, *args, **kwargs):
@@ -218,8 +218,8 @@ class KickAss(plugin.Origin):
         m = re.search(r'(?P<amount>\d+).+(?P<qual>sec|min|hour|day|week|month|year)',  # nopep8
                       created)
         if m:
-            amount = int(m1.group(1))
-            qual = m1.group(2)
+            amount = int(m.group(1))
+            qual = m.group(2)
             created = utils.now_timestamp() - (amount*_table[qual])
             return created
 

@@ -7,6 +7,9 @@ from arroyo import plugin
 import testapp
 
 
+warnings.warn("This test doesn't validate keys")
+
+
 class TestOrigin:
     PARSE_TESTS = []
     PAGINATION_TESTS = []
@@ -34,7 +37,6 @@ class TestOrigin:
         self.assertTrue(
             hasattr(impl, 'BASE_URL'),
             msg='No BASE_URL in {}'.format(impl))
-
 
     def test_pagination(self):
         spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
