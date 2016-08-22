@@ -264,23 +264,45 @@ class ArroyoStore(store.Store):
     def get(self, *args, **kwargs):
         try:
             return super().get(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
+
+    def set(self, *args, **kwargs):
+        try:
+            return super().set(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
 
     def delete(self, *args, **kwargs):
         try:
             super().delete(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
 
     def children(self, *args, **kwargs):
         try:
             return super().children(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
 
 
 class Arroyo:
@@ -442,6 +464,7 @@ class Arroyo:
         ext = self.get_extension(extension.Command, args.subcommand)
         try:
             ext.run(args)
+
         except arroyo.exc.PluginArgumentError as e:
             subargparsers[args.subcommand].print_help()
             print("\nError message: {}".format(e), file=sys.stderr)
