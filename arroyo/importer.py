@@ -153,6 +153,88 @@ class Importer:
             Origin, backend,
             origin_spec=origin_spec)
 
+    def _organize_data_by_most_recent(self, *src_data):
+        """
+        Organizes the input list of source data into a dict.
+        Keys will be the urn or permalink of the 'proto-sources'.
+        In case of duplicates the oldest is discarted
+        """
+        tmp = dict()
+
+        for sd in src_data:
+            k = sd['_discriminator']
+            assert k is not None
+
+            # If we got a duplicated urn keep the most recent
+            if k in tmp and (sd['created'] < src_data[k]['created']):
+                continue
+
+            tmp[k] = sd
+
+        return tmp
+
+    def _get_sources_for_data(self, *psrcs):
+        # First thing to do is organize input data
+        psrcs = self._organize_data_by_most_recent(*psrcs)
+
+        # Check for existings sources
+        keys = list(psrcs.keys())
+        existing_srcs = self.app.db.session.query(models.Source).filter(
+            models.Source._discriminator.in_(keys)
+        ).all()
+
+        # Update existing sources with source data
+        need_mediainfo_rescan_srcs = []
+
+        for src in existing_srcs:
+            src_data = psrcs[src._discriminator]
+
+            if src.name != src_data['name']:
+                need_mediainfo_rescan_srcs.append(src)
+
+            # Override srcs's properties with src_data properties
+            for key in src_data:
+                if key == '_discriminator':
+                    continue
+
+                # …except for 'created'
+                # Some origins report created timestamps from heuristics,
+                # variable or fuzzy data that is degraded over time.
+                # For these reason we keep the first 'created' data as the most
+                # fiable
+                if key == 'created' and \
+                   src.created is not None and \
+                   src.created < src_data['created']:
+                    continue
+
+                setattr(src, key, src_data[key])
+
+        # Check for missing sources
+        missing_discriminators = (
+            set(psrcs) -
+            set([x._discriminator for x in existing_srcs])
+        )
+
+        # Create new sources
+        created_srcs = [
+            models.Source.from_data(**psrcs[x])
+            for x in missing_discriminators
+        ]
+
+        # Create return data
+        ret = {x: [] for x in chain(existing_srcs, created_srcs)}
+
+        for x in created_srcs:
+            ret[x].append('created')
+
+        for x in existing_srcs:
+            ret[x].append('updated')
+
+        for x in need_mediainfo_rescan_srcs:
+            ret[x].append('name-updated')
+
+        return list(ret.items())
+
     def process(self, *origins):
         """Core function for importer.Importer.
 
@@ -183,94 +265,61 @@ class Importer:
 
         self._sched.run()
 
-        # Remove duplicates
-        tmp = dict()
-        for src_data in self._sched.results:
-            k = src_data['urn']
+        # Keep the most recent data in case of duplicates
+        # psrcs = self._organize_data_by_most_recent(*self._sched.results)
 
-            if k in tmp and (src_data['created'] < tmp[k]['created']):
-                continue
+        # Get sources
+        srcs = self._get_sources_for_data(*self._sched.results)
 
-            tmp[k] = src_data
-
+        # Disable scheduler
         self._sched = None
-        results = tmp
 
-        # Check which sources are created and which ones are updated from data
-        #
-        urns = list(results.keys())
-
-        # Handle existing sources updating properties
-        q = self.app.db.session.query(models.Source)
-        if urns:
-            q = q.filter(models.Source.urn.in_(urns))
-            existing_srcs = q.all()
-        else:
-            existing_srcs = []
-
-        for src in existing_srcs:
-            src_data = results[src.urn]
-
-            # Override srcs's properties with src_data properties
-            for key in src_data:
-                # …except for 'created'
-                # Some origins report created timestamps from heuristics,
-                # variable or fuzzy data that is degraded over time.
-                # For these reason we keep the first 'created' data as the most
-                # fiable
-                if key == 'created' and \
-                   src.created is not None and \
-                   src.created < src_data['created']:
-                    continue
-
-                setattr(src, key, src_data[key])
-
-        # Handle newly created sources
-        missing_urns = set(urns) - set((x.urn for x in existing_srcs))
-        created_srcs = [models.Source.from_data(**results[urn])
-                        for urn in missing_urns]
-
-        all_srcs = chain(
-            ((x, False) for x in existing_srcs),
-            ((x, True) for x in created_srcs)
-        )
-
-        now = utils.now_timestamp()
-        ret = {
+        rev_srcs = {
             'added-sources': [],
             'updated-sources': [],
+            'name-updated-sources': [],
         }
 
-        for src, created in all_srcs:
-            src.last_seen = now
-
-            if created:
+        # Reverse source data structure
+        for (src, flags) in srcs:
+            if 'created' in flags:
                 self.app.db.session.add(src)
-                signal_name = 'source-added'
-                batch_key = 'added-sources'
-            else:
-                signal_name = 'source-updated'
-                batch_key = 'updated-sources'
+                rev_srcs['added-sources'].append(src)
 
-            self.app.signals.send(signal_name, source=src)
+            if 'updated' in flags:
+                rev_srcs['updated-sources'].append(src)
 
-            ret[batch_key].append(src)
+            if 'name-updated' in flags:
+                rev_srcs['name-updated-sources'].append(src)
 
-        self.app.signals.send('sources-added-batch',
-                              sources=ret['added-sources'])
-        self.app.signals.send('sources-updated-batch',
-                              sources=ret['updated-sources'])
+        updated = list(set(
+            rev_srcs['added-sources'] +
+            rev_srcs['updated-sources']
+            ))
+
+        if updated:
+            self.app.mediainfo.process(*updated)
 
         self.app.db.session.commit()
 
+        # Launch signals
+        self.app.signals.send('sources-added-batch',
+                              sources=rev_srcs['added-sources'])
+
+        self.app.signals.send('sources-updated-batch',
+                              sources=updated)
+
+        # Save data
+        self.app.db.session.commit()
+
         self.app.logger.info('{n} sources created'.format(
-            n=len(ret['added-sources'])
+            n=len(rev_srcs['added-sources'])
         ))
         self.app.logger.info('{n} sources updated'.format(
-            n=len(ret['updated-sources'])
+            n=len(rev_srcs['updated-sources'])
         ))
 
-        return ret
+        return srcs
 
     def process_spec(self, origin_spec):
         return self.process(
@@ -512,28 +561,43 @@ class Origin(extension.Extension):
             self.app.logger.critical(msg)
             raise
 
-        srcs_data = self.parse(buff)
+        psrcs = self.parse(buff)
 
-        ret = self._normalize_source_data(srcs_data)
-        if not isinstance(ret, list):
-            ret = list(ret)
+        psrcs = self._normalize_source_data(*psrcs)
+        if not isinstance(psrcs, list):
+            psrcs = list(psrcs)
 
         msg = "Found {n_srcs_data} sources in {url}"
-        msg = msg.format(n_srcs_data=len(ret), url=url)
+        msg = msg.format(n_srcs_data=len(psrcs), url=url)
         self.app.logger.info(msg)
 
-        return ret
+        return psrcs
 
-    def _normalize_source_data(self, data):
+    def _normalize_source_data(self, *psrcs):
+        required_keys = set([
+            'name',
+            'provider',
+            'uri',
+        ])
+        allowed_keys = required_keys.union(set([
+            'created',
+            'language',
+            'leechers',
+            'seeds',
+            'size',
+            'type'
+        ]))
+
+        ret = []
         now = utils.now_timestamp()
 
-        def _normalize(psrc):
+        for psrc in psrcs:
             if not isinstance(psrc, dict):
                 msg = "Origin «{name}» emits invalid data type: {datatype}"
                 msg = msg.format(name=self.PROVIDER_NAME,
                                  datatype=str(type(psrc)))
                 self.app.logger.error(msg)
-                return None
+                continue
 
             # Insert provider name
             psrc['provider'] = self.PROVIDER_NAME
@@ -542,21 +606,16 @@ class Origin(extension.Extension):
             psrc.update(self._overrides)
 
             # Check required keys
-            required_keys = set(['provider', 'uri', 'name'])
             missing_keys = required_keys - set(psrc.keys())
             if missing_keys:
                 msg = ("Origin «{name}» doesn't provide the required "
                        "following keys: {missing_keys}")
                 msg = msg.format(name=self.PROVIDER_NAME,
                                  missing_keys=missing_keys)
-                self.app.logg.error(msg)
-                return None
+                self.app.logger.error(msg)
+                continue
 
             # Only those keys are allowed
-            allowed_keys = required_keys.union(set([
-                'created', 'size', 'seeds', 'leechers', 'language', 'type'
-            ]))
-
             forbiden_keys = [k for k in psrc if k not in allowed_keys]
             if forbiden_keys:
                 msg = ("Origin «{name}» emits the following invalid "
@@ -569,15 +628,16 @@ class Origin(extension.Extension):
 
             # Check value types
             checks = [
-                ('name', str),
-                ('uri', str),
                 ('created', int),
-                ('size', int),
+                ('leechers', int),
+                ('name', str),
                 ('seeds', int),
-                ('leechers', int)
+                ('size', int),
+                ('permalink', str),
+                ('uri', str),
             ]
             for k, kt in checks:
-                if (psrc[k] is not None) and (not isinstance(psrc[k], kt)):
+                if (psrc.get(k) is not None) and (not isinstance(psrc[k], kt)):
                     try:
                         psrc[k] = kt(psrc[k])
                     except (TypeError, ValueError):
@@ -588,9 +648,9 @@ class Origin(extension.Extension):
                             name=self.PROVIDER_NAME, key=k,
                             expectedtype=kt, currtype=str(type(psrc[k])))
                         self.app.logger.error(msg)
-                        return None
+                        continue
 
-            # Calculate URN.
+            # Calculate URN from uri. If not found its a lazy source
             # IMPORTANT: URN is **lowercased** and **sha1-encoded**
             try:
                 qs = parse.urlparse(psrc['uri']).query
@@ -598,16 +658,20 @@ class Origin(extension.Extension):
                 urn = urn.lower()
                 sha1urn, b64urn = downloads.calculate_urns(urn)
                 psrc['urn'] = sha1urn
-            except (IndexError, KeyError):
-                return None
+            except KeyError:
+                pass
 
             # Fix created
             psrc['created'] = psrc.get('created', None) or now
 
-            return psrc
+            # Set discriminator
+            psrc['_discriminator'] = psrc.get('urn') or psrc.get('uri')
+            assert(psrc['_discriminator'] is not None)
 
-        # Normalize data structure
-        return filter(lambda x: x is not None, map(_normalize, data))
+            # Append to ret value
+            ret.append(psrc)
+
+        return ret
 
     def __repr__(self):
         return "<%s (%s)>" % (
