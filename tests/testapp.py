@@ -22,7 +22,8 @@ class TestApp(core.Arroyo):
             'fetcher.cache-delta': 0,
             'fetcher.headers': {
                 'User-Agent':
-                'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
+                    'Mozilla/5.0 (X11; Linux x86) Home software '
+                    '(KHTML, like Gecko)',
             },
         }
         settings.update(d)
@@ -58,6 +59,7 @@ class TestApp(core.Arroyo):
 
 def mock_source(name, **kwsrc):
     return models.Source.from_data(name, **kwsrc)
+
 
 def www_sample_path(sample):
     thisfile = os.path.realpath(__file__)

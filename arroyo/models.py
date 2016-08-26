@@ -5,15 +5,26 @@ import re
 from urllib import parse
 import sys
 
-
-from ldotcommons.sqlalchemy import Base
 from ldotcommons import keyvaluestore, utils
-from sqlalchemy import schema, Column, Integer, String, ForeignKey
+from ldotcommons.sqlalchemy import Base
+from sqlalchemy import (
+    func,
+    schema,
+    Column,
+    Integer,
+    String,
+    ForeignKey
+)
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import relationship, backref
+from sqlalchemy.orm import (
+    backref,
+    relationship,
+    validates
+)
 
 
 Variable = keyvaluestore.keyvaluemodel('Variable', Base, dict({
+    '__doc__': "Define variables.",
     '__table_args__': (schema.UniqueConstraint('key'),)
     }))
 
@@ -22,6 +33,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
     'SourceTag',
     Base,
     dict({
+        '__doc__': "Define custom data attached to a source.",
         '__tablename__': 'sourcetag',
         '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
         'source_id': Column(Integer, ForeignKey('source.id',
@@ -29,7 +41,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
         'source': relationship("Source",
                                backref=backref("tags",
                                                lazy='dynamic',
-                                               cascade="all, delete, delete-orphan"))  # nopep8
+                                               cascade="all, delete, delete-orphan")),  # nopep8
     }))
 
 
@@ -64,21 +76,25 @@ class Source(Base):
         State.ARCHIVED: '▣'
     }
 
+    # Required
     id = Column(Integer, primary_key=True)
-    urn = Column(String, unique=True)
+    provider = Column(String, nullable=False)
     name = Column(String, nullable=False)
-    uri = Column(String, nullable=False, unique=True)
     created = Column(Integer, nullable=False)
     last_seen = Column(Integer, nullable=False)
-    size = Column(Integer, nullable=True)
-    provider = Column(String, nullable=False)
 
+    # Real ID
+    urn = Column(String, nullable=True, unique=True)
+    uri = Column(String, nullable=True, unique=True)
+
+    # Other data
+    size = Column(Integer, nullable=True)
     seeds = Column(Integer, nullable=True)
     leechers = Column(Integer, nullable=True)
     state = Column(Integer, nullable=False, default=State.NONE)
 
-    _type = Column('type', String, nullable=True)
-    _language = Column('language', String, nullable=True)
+    type = Column(String, nullable=True)
+    language = Column(String, nullable=True)
 
     episode_id = Column(Integer,
                         ForeignKey('episode.id', ondelete="SET NULL"),
@@ -95,9 +111,8 @@ class Source(Base):
                          backref=backref("sources", lazy='dynamic'))
 
     @staticmethod
-    def from_data(name, sha1=None, **kwargs):
-        if not sha1:
-            sha1 = hashlib.sha1(name.encode('utf-8')).hexdigest()
+    def from_data(name, **kwargs):
+        kwargs.pop('_discriminator', None)
 
         now = utils.now_timestamp()
         kwargs['created'] = kwargs.get('created', now)
@@ -108,10 +123,11 @@ class Source(Base):
 
         ret = Source()
         ret.name = name
-        ret.urn = 'urn:btih:' + sha1
-        ret.uri = 'magnet:?xt={urn}&dn={dn}'.format(
-            urn=ret.urn,
-            dn=parse.quote_plus(name))
+
+        # ret.urn = 'urn:btih:' + sha1
+        # ret.uri = 'magnet:?xt={urn}&dn={dn}'.format(
+        #     urn=ret.urn,
+        #     dn=parse.quote_plus(name))
 
         for (attr, value) in kwargs.items():
             if hasattr(ret, attr):
@@ -124,6 +140,14 @@ class Source(Base):
         return {x.key: x.value for x in self.tags.all()}
 
     @hybrid_property
+    def _discriminator(self):
+        return self.urn or self.uri
+
+    @_discriminator.expression
+    def _discriminator(self):
+        return func.coalesce(self.urn, self.uri)
+
+    @hybrid_property
     def age(self):
         return utils.now_timestamp() - self.created
 
@@ -134,30 +158,39 @@ class Source(Base):
             self.movie
         )
 
-    @hybrid_property
-    def is_active(self):
-        return self.state not in [Source.State.NONE, Source.State.ARCHIVED]
+    # @entity.expression
+    # def entity(self):
+    #     return func.coalesce(self.episode, self.movie)
 
-    @hybrid_property
-    def language(self):
-        return self._language
+    # @hybrid_property
+    # def is_active(self):
+    #     return self.state not in [Source.State.NONE, Source.State.ARCHIVED]
 
-    @language.setter
-    def language(self, value):
-        if not _check_language(value):
+    @validates('language')
+    def validate_language(self, key, value):
+        if value is None:
+            return None
+
+        if not isinstance(value, str) or not _check_language(value):
             raise ValueError(value)
 
-        self._language = value.lower() if value else None
+        return value.lower()
 
     @hybrid_property
     def share_ratio(self):
-        if self.seeds is None or self.leechers is None:
-            return 0
+        if self.seeds is None and self.leechers is None:
+            return None
 
-        if self.leechers == 0:
-            return sys.maxsize
+        seeds = self.seeds if self.seeds is not None else 0
+        leechers = self.leechers if self.leechers is not None else 0
 
-        return self.seeds / self.leechers
+        if seeds and not leechers:
+            return float(sys.maxsize)
+
+        if not seeds and leechers:
+            return 0.0
+
+        return seeds / leechers
 
     @property
     def state_name(self):
@@ -170,19 +203,21 @@ class Source(Base):
     def state_symbol(self):
         return self._SYMBOL_TABLE.get(self.state, ' ')
 
-    @hybrid_property
-    def type(self):
-        return self._type
+    @validates('type')
+    def validate_type(self, key, value):
+        if value is None:
+            return None
 
-    @type.setter
-    def type(self, value):
-        if not _check_type(value):
+        if not isinstance(value, str) or not _check_type(value):
             raise ValueError(value)
 
-        self._type = value.lower() if value else None
+        return value.lower()
 
     def as_dict(self):
-        return {k: v for (k, v) in self}
+        ret = {k: v for (k, v) in self if k != 'tags'}
+        ret['tags'] = self.tag_dict
+
+        return ret
 
     def format(self, fmt=Formats.DEFAULT, extra_data={}):
         data = self.as_dict()
@@ -198,22 +233,18 @@ class Source(Base):
         return self.id.__eq__(other.id)
 
     def __hash__(self):
-        return self.id.__hash__()
+        return hash((self.id, self.urn, self.uri))
 
     def __iter__(self):
         keys = [
             'age', 'created', 'entity', 'episode', 'episode_id', 'id',
-            'is_active', 'language', 'last_seen', 'leechers', 'movie',
-            'movie_id', 'name', 'provider', 'seeds', 'share_ratio', 'size',
-            'state', 'state_symbol', 'tags', 'type', 'type', 'uri', 'urn'
+            'language', 'last_seen', 'leechers', 'movie', 'movie_id', 'name',
+            'provider', 'seeds', 'share_ratio', 'size', 'state',
+            'state_symbol', 'tags', 'type', 'type', 'uri', 'urn'
         ]
 
         for k in keys:
             yield (k, getattr(self, k))
-
-        # if self.entity:
-        #     yield ('entity', self.entity.__class__.__name__.lower())
-        #     yield ('entity_id', self.entity.id)
 
     def __lt__(self, other):
         return self.id.__lt__(other.id)
