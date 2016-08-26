@@ -139,6 +139,12 @@ class SourceModelTest(unittest.TestCase):
         s = mock_source(name='s', seeds=0, leechers=10)
         self.assertEqual(s.share_ratio, 0.0)
 
+        s = mock_source(name='s', seeds=0, leechers=0)
+        self.assertEqual(s.share_ratio, None)
+
+        s = mock_source(name='s')
+        self.assertEqual(s.share_ratio, None)
+
         s1 = mock_source(name='s1', seeds=10, leechers=1)
         s2 = mock_source(name='s2', seeds=1, leechers=10)
         s3 = mock_source(name='s2')

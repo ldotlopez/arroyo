@@ -178,16 +178,16 @@ class Source(Base):
 
     @hybrid_property
     def share_ratio(self):
-        if self.seeds is None and self.leechers is None:
-            return None
-
         seeds = self.seeds if self.seeds is not None else 0
         leechers = self.leechers if self.leechers is not None else 0
 
-        if seeds and not leechers:
+        if not self.seeds and not self.leechers:
+            return None
+
+        if seeds and leechers == 0:
             return float(sys.maxsize)
 
-        if not seeds and leechers:
+        if seeds == 0 and leechers:
             return 0.0
 
         return seeds / leechers
