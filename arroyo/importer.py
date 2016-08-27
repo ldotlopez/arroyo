@@ -166,7 +166,7 @@ class Importer:
             assert k is not None
 
             # If we got a duplicated urn keep the most recent
-            if k in tmp and (sd['created'] < src_data[k]['created']):
+            if k in tmp and (sd['created'] < tmp[k]['created']):
                 continue
 
             tmp[k] = sd
@@ -183,14 +183,14 @@ class Importer:
             models.Source._discriminator.in_(keys)
         ).all()
 
-        # Update existing sources with source data
-        need_mediainfo_rescan_srcs = []
+        # Name change is special
+        name_updated_srcs = []
 
         for src in existing_srcs:
             src_data = psrcs[src._discriminator]
 
             if src.name != src_data['name']:
-                need_mediainfo_rescan_srcs.append(src)
+                name_updated_srcs.append(src)
 
             # Override srcs's properties with src_data properties
             for key in src_data:
@@ -230,8 +230,8 @@ class Importer:
         for x in existing_srcs:
             ret[x].append('updated')
 
-        for x in need_mediainfo_rescan_srcs:
-            ret[x].append('name-updated')
+        for x in created_srcs + name_updated_srcs:
+            ret[x].append('mediainfo-process-needed')
 
         return list(ret.items())
 
@@ -277,7 +277,7 @@ class Importer:
         rev_srcs = {
             'added-sources': [],
             'updated-sources': [],
-            'name-updated-sources': [],
+            'mediainfo-process-needed': [],
         }
 
         # Reverse source data structure
@@ -289,16 +289,11 @@ class Importer:
             if 'updated' in flags:
                 rev_srcs['updated-sources'].append(src)
 
-            if 'name-updated' in flags:
-                rev_srcs['name-updated-sources'].append(src)
+            if 'mediainfo-process-needed' in flags:
+                rev_srcs['mediainfo-process-needed'].append(src)
 
-        updated = list(set(
-            rev_srcs['added-sources'] +
-            rev_srcs['updated-sources']
-            ))
-
-        if updated:
-            self.app.mediainfo.process(*updated)
+        if rev_srcs['mediainfo-process-needed']:
+            self.app.mediainfo.process(*rev_srcs['mediainfo-process-needed'])
 
         self.app.db.session.commit()
 
@@ -307,7 +302,7 @@ class Importer:
                               sources=rev_srcs['added-sources'])
 
         self.app.signals.send('sources-updated-batch',
-                              sources=updated)
+                              sources=rev_srcs['updated-sources'])
 
         # Save data
         self.app.db.session.commit()
@@ -317,6 +312,9 @@ class Importer:
         ))
         self.app.logger.info('{n} sources updated'.format(
             n=len(rev_srcs['updated-sources'])
+        ))
+        self.app.logger.info('{n} sources parsed'.format(
+            n=len(rev_srcs['mediainfo-process-needed'])
         ))
 
         return srcs
@@ -562,9 +560,8 @@ class Origin(extension.Extension):
             raise
 
         psrcs = self.parse(buff)
-
         psrcs = self._normalize_source_data(*psrcs)
-        if not isinstance(psrcs, list):
+        if isinstance(psrcs, (filter, map)):
             psrcs = list(psrcs)
 
         msg = "Found {n_srcs_data} sources in {url}"

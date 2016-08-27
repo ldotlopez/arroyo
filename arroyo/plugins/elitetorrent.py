@@ -10,6 +10,7 @@ import functools
 import re
 import time
 from urllib import parse
+import warnings
 
 
 import bs4
