@@ -8,7 +8,9 @@ import sys
 from ldotcommons import keyvaluestore, utils
 from ldotcommons.sqlalchemy import Base
 from sqlalchemy import (
+    and_,
     func,
+    or_,
     schema,
     Column,
     Integer,
@@ -157,6 +159,14 @@ class Source(Base):
             self.episode or
             self.movie
         )
+
+    @hybrid_property
+    def needs_postprocessing(self):
+        return self.urn is None and self.uri is not None
+
+    @needs_postprocessing.expression
+    def needs_postprocessing(self):
+        return and_(self.urn.is_(None), ~self.uri.is_(None))
 
     # @entity.expression
     # def entity(self):
