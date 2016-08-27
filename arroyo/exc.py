@@ -1,15 +1,19 @@
 # -*- coding: utf-8 -*-
 
 
-class SettingError(Exception):
+class _BaseException(Exception):
+    def __init__(self, msg, **kwargs):
+        super().__init__(msg)
+        for (k, v) in kwargs.items():
+            setattr(self, k, v)
+
+
+class SettingError(_BaseException):
     def __init__(self, key, value, original=None):
         msg = "Invalid setting '{key}': '{value}'"
         msg = msg.format(key=key, value=value)
-        super().__init__(msg)
 
-        self.key = key
-        self.value = value
-        self.original = original
+        super().__init__(msg, key=key, value=value, original=original)
 
 
 class PluginArgumentError(Exception):

@@ -7,17 +7,20 @@ import re
 from urllib import parse
 
 import bencodepy
-from arroyo import models, extension, cron
+from arroyo import (
+    cron,
+    exc,
+    extension,
+    importer,
+    models
+)
 
 
-class _BaseException(Exception):
-    def __init__(self, msg, **kwargs):
-        super().__init__(msg)
-        for (k, v) in kwargs.items():
-            setattr(self, k, v)
+class BackendError(exc._BaseException):
+    pass
 
 
-class BackendError(_BaseException):
+class ResolveError(exc._BaseException):
     pass
 
 
@@ -53,9 +56,12 @@ class Downloads:
         assert isinstance(source, models.Source)
 
         if source.needs_postprocessing:
-            msg = "Downloading lazy-sources is not implemented ({src})"
-            msg = msg.format(src=source)
-            raise NotImplementedError(msg)
+            try:
+                self.app.importer.resolve_source(source)
+            except (importer.ResolveError, NotImplementedError) as e:
+                msg = "Unable to resolve source"
+                raise ResolveError(msg, original_exception=e, source=source) \
+                    from e
 
         try:
             self.backend.add(source)
@@ -63,7 +69,7 @@ class Downloads:
         except Exception as e:
             msg = "Downloader '{name}' error"
             msg.format(name=self.backend_name)
-            raise BackendError(msg, original_exception=e)
+            raise BackendError(msg, original_exception=e) from e
 
         source.state = models.Source.State.INITIALIZING
 

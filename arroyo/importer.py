@@ -1,15 +1,32 @@
 # -*- coding: utf-8 -*-
 
+
 import asyncio
 from itertools import chain
 import traceback
 from urllib import parse
 
-import aiohttp
-from ldotcommons import fetchers, store, utils
 
-from arroyo import asyncscheduler
-from arroyo import downloads, cron, extension, models
+import aiohttp
+from ldotcommons import (
+    fetchers,
+    store,
+    utils
+)
+
+
+from arroyo import (
+    asyncscheduler,
+    cron,
+    downloads,
+    exc,
+    extension,
+    models
+)
+
+
+class ResolveError(exc._BaseException):
+    pass
 
 
 class IncompatibleQueryError(Exception):
@@ -234,6 +251,11 @@ class Importer:
             ret[x].append('mediainfo-process-needed')
 
         return list(ret.items())
+
+    def resolve_source(self, source):
+        msg = "Resolve lazy-sources is not implemented yet (src)"
+        msg = msg.format(src=source)
+        raise ResolveError(msg)
 
     def process(self, *origins):
         """Core function for importer.Importer.
