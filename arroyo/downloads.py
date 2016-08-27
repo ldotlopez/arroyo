@@ -10,57 +10,94 @@ import bencodepy
 from arroyo import models, extension, cron
 
 
+class _BaseException(Exception):
+    def __init__(self, msg, **kwargs):
+        super().__init__(msg)
+        for (k, v) in kwargs.items():
+            setattr(self, k, v)
+
+
+class BackendError(_BaseException):
+    pass
+
+
 class Downloads:
     """Downloads API.
 
     Handles operations between core.Arroyo and the different downloaders.
     """
-    def __init__(self, app):
+
+    def __init__(self, app, logger=None):
         app.signals.register('source-state-change')
         app.register_extension('download-sync', DownloadSyncCronTask)
         app.register_extension('download-queries', DownloadQueriesCronTask)
 
         self.app = app
-        self.logger = app.logger.getChild('downloads')
+        self.logger = logger or app.logger.getChild('downloads')
         self._backend = None
 
     @property
     def backend(self):
         if self._backend is None:
-            name = self.app.settings.get('downloader.backend')
-            self._backend = self.app.get_extension(Downloader, name)
+            self._backend = self.app.get_extension(
+                Downloader, self.backend_name
+            )
 
         return self._backend
 
-    def add(self, *sources):
-        """Adds (and starts) one or more sources to backend
-        """
-        if not sources:
-            msg = "Missing parameter sources"
-            raise TypeError(msg)
+    @property
+    def backend_name(self):
+        return self.app.settings.get('downloader')
 
-        for src in sources:
-            self.backend.add(src)
-            src.state = models.Source.State.INITIALIZING
+    def add(self, source):
+        assert isinstance(source, models.Source)
 
-            if src.entity:
+        if source.needs_postprocessing:
+            msg = "Downloading lazy-sources is not implemented ({src})"
+            msg = msg.format(src=source)
+            raise NotImplementedError(msg)
 
-                if src.entity.selection:
-                    self.app.db.session.delete(src.entity.selection)
+        try:
+            self.backend.add(source)
 
-                src.entity.selection = \
-                    src.entity.SELECTION_MODEL(source=src)
+        except Exception as e:
+            msg = "Downloader '{name}' error"
+            msg.format(name=self.backend_name)
+            raise BackendError(msg, original_exception=e)
+
+        source.state = models.Source.State.INITIALIZING
+
+        if source.entity:
+            if source.entity.selection:
+                self.app.db.session.delete(source.entity.selection)
+            source.entity.selection = source.entity.SELECTION_MODEL(
+                source=source
+            )
 
         self.app.db.session.commit()
+        self.app.signals.send('source-state-change', source=source)
+
+    def add_all(self, *sources):
+        assert \
+            len(sources) > 0 and \
+            all([isinstance(x, models.Source) for x in sources])
+
+        ret = []
         for src in sources:
-            self.app.signals.send('source-state-change', source=src)
+            try:
+                added = self.add(src)
+                ret.append((src, True, None))
+            except _BaseException as e:
+                ret.append((src, False, e))
+
+        return ret
 
     def remove(self, *sources):
-        """Remove (and delete) one or more sources from backend
-        """
-        if not sources:
-            msg = "Missing parameter sources"
-            raise TypeError(msg)
+        """Remove (and delete from disk) one or more sources from backend."""
+
+        assert \
+            len(sources) > 0 and \
+            all([isinstance(x, models.Source) for x in sources])
 
         translations = self.get_translations()
 
@@ -74,11 +111,12 @@ class Downloads:
                 continue
 
     def get_translations(self):
+        """Build a dict with bidirectional mapping between known sources and
+        backend objects.
         """
-        Build a dict with bidirectional mapping between
-        known sources and backend objects.
-        """
+
         table = {}
+
         for dler_item in self.backend.list():
             source = self.backend.translate_item(dler_item)
 
@@ -98,7 +136,7 @@ class Downloads:
         return table
 
     def list(self):
-        """Return a list of models.Source of current downloads
+        """Return a list of models.Source of current downloads.
 
         Note: internally downloads.Downloader uses the method
         downloads.Downloader.sync which emits signals and has side effects on
