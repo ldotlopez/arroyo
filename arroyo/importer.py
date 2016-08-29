@@ -462,6 +462,11 @@ class Origin(extension.Extension):
                                     parse.urlencode(qsl, doseq=True),
                                     parsed.fragment))
 
+    def add_process_task(self, url):
+        spec = OriginSpec(name=url, backend=self.PROVIDER_NAME, url=url)
+        origin = self.app.importer.get_origin_for_origin_spec(spec)
+        self.app.importer.push_to_sched(*origin.get_tasks())
+
     def get_query_url(self, query):
         return
 

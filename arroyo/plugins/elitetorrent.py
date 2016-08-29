@@ -146,13 +146,8 @@ class EliteTorrent(plugin.Origin):
             lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'],
             links)
 
-        specs = [importer.OriginSpec(name=x, backend=self.PROVIDER_NAME, url=x)
-                 for x in links]
-        origins = [self.app.importer.get_origin_for_origin_spec(x)
-                   for x in specs]
-
-        for x in origins:
-            self.app.importer.push_to_sched(*x.get_tasks())
+        for x in links:
+            self.add_process_task(x)
 
         return []
 
