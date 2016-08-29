@@ -96,12 +96,14 @@ class AsyncScheduler:
         """
         self._loop.stop()
 
-    def run(self):
+    def run(self, *coros):
         """
         Starts execution of scheduled tasks
         """
+        self.sched(*coros)
         self._loop.call_soon(self.feed)
         self._loop.run_forever()
+        return self.results
 
     def _have_slots(self):
         return len(self._pending_tasks()) < self._maxtasks

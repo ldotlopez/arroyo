@@ -63,7 +63,7 @@ class ImportCommand(plugin.Command):
                 ('language', str)
             ]
 
-            origin_data = {}
+            origin_data = dict(display_name='command line')
             for (k, t) in keys:
                 v = getattr(arguments, k, None)
 
@@ -78,9 +78,10 @@ class ImportCommand(plugin.Command):
 
                     origin_data[k] = v
 
-            origin = self.app.importer.get_origin_for_origin_spec(
-                importer.OriginSpec(name='command-line', **origin_data))
-
+            origin_name = origin_data.pop('backend')
+            origin = self.app.get_extension(
+                plugin.Origin, origin_name, **origin_data
+            )
             self.app.importer.process(origin)
 
         elif arguments.from_config:
