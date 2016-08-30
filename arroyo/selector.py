@@ -120,7 +120,7 @@ class Selector:
 
         impls_and_uris = []
         for (name, impl) in impls.items():
-            uri = impl.get_query_uri(query)
+            uri = impl(self.app).get_query_uri(query)
             if uri:
                 msg = " Found compatible origin '{name}'"
                 msg = msg.format(name=name)

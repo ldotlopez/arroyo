@@ -32,6 +32,8 @@ class Origin(extension.Extension):
     def __init__(self, *args, logger=None, display_name=None, uri=None,
                  iterations=1, overrides={}, **kwargs):
 
+        uri = uri or self.DEFAULT_URI
+
         # Check strs
         strs = [
             ('display_name', display_name, True),
@@ -113,10 +115,14 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def get_sources_data(self, task_manager):
+        self._task_manager = task_manager  # FIXME
         for url in self.get_uris():
             task_manager.sched(self.process(url))
 
         return []
+
+    def add_process_task(self, url):
+        self._task_manager.sched(self.process(url))
 
     @asyncio.coroutine
     def process(self, url):
@@ -150,8 +156,6 @@ class Origin(extension.Extension):
 
         psrcs = self.parse(buff)
         psrcs = self._normalize_source_data(*psrcs)
-        if isinstance(psrcs, (filter, map)):
-            psrcs = list(psrcs)
 
         msg = "Found {n_srcs_data} sources in {url}"
         msg = msg.format(n_srcs_data=len(psrcs), url=url)
@@ -194,8 +198,8 @@ class Origin(extension.Extension):
     def parse(self, buffer):
         pass
 
-    @abc.abstractclassmethod
-    def get_query_uri(cls, query):
+    @abc.abstractmethod
+    def get_query_uri(self, query):
         return None
 
     def _normalize_source_data(self, *psrcs):
@@ -219,13 +223,13 @@ class Origin(extension.Extension):
         for psrc in psrcs:
             if not isinstance(psrc, dict):
                 msg = "Origin «{name}» emits invalid data type: {datatype}"
-                msg = msg.format(name=self.PROVIDER,
+                msg = msg.format(name=self.provider,
                                  datatype=str(type(psrc)))
                 self.logger.error(msg)
                 continue
 
             # Insert provider name
-            psrc['provider'] = self.PROVIDER
+            psrc['provider'] = self.provider
 
             # Apply overrides
             psrc.update(self._overrides)
@@ -235,7 +239,7 @@ class Origin(extension.Extension):
             if missing_keys:
                 msg = ("Origin «{name}» doesn't provide the required "
                        "following keys: {missing_keys}")
-                msg = msg.format(name=self.PROVIDER,
+                msg = msg.format(name=self.provider,
                                  missing_keys=missing_keys)
                 self.logger.error(msg)
                 continue
@@ -270,7 +274,7 @@ class Origin(extension.Extension):
                                "Expected {expectedtype} (or compatible), got "
                                "{currtype}")
                         msg = msg.format(
-                            name=self.PROVIDER_NAME, key=k,
+                            name=self.provider, key=k,
                             expectedtype=kt, currtype=str(type(psrc[k])))
                         self.logger.error(msg)
                         continue
@@ -356,7 +360,7 @@ class Importer:
         self._sched = ImporterRunner(
              maxtasks=self.app.settings.get('async-max-concurrency'),
              timeout=self.app.settings.get('async-timeout'),
-             logger=self.app.logger.getChild('asyncsched'))     
+             logger=self.app.logger.getChild('asyncsched'))
 
         # Weird but temporal
         srcs_data = self._sched.run(*[
