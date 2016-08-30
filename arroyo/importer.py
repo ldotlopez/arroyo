@@ -173,6 +173,36 @@ class Origin(extension.Extension):
     def paginate(self):
         yield self._uri
 
+    @staticmethod
+    def paginate_by_query_param(url, key, default=1):
+        """
+        Utility generator for easy pagination
+        """
+        def alter_param(k, v):
+            if k == key:
+                try:
+                    v = int(v) + 1
+                except ValueError:
+                    v = default
+
+                v = str(v)
+
+            return k, v
+
+        yield url
+
+        parsed = parse.urlparse(url)
+        qsl = parse.parse_qsl(parsed.query)
+        if key not in [x[0] for x in qsl]:
+            qsl = qsl + [(key, default)]
+
+        while True:
+            qsl = [alter_param(*x) for x in qsl]
+            yield parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path,
+                                    parsed.params,
+                                    parse.urlencode(qsl, doseq=True),
+                                    parsed.fragment))
+
     @asyncio.coroutine
     def fetch(self, url, params={}):
 
