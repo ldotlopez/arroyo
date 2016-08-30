@@ -386,20 +386,22 @@ class Importer:
         ret = [x for x in ret if x is not None]
         return ret
 
-    def process(self, *origins):
-        self._sched = ImporterRunner(
+    def _create_task_manager(self):
+        return ImporterRunner(
              maxtasks=self.app.settings.get('async-max-concurrency'),
              timeout=self.app.settings.get('async-timeout'),
              logger=self.app.logger.getChild('asyncsched'))
 
+    def process(self, *origins):
         # Weird but temporal
-        srcs_data = self._sched.run(*[
-            x.get_sources_data(self._sched) for x in origins
+        task_manager = self._create_task_manager()
+        srcs_data = task_manager.run(*[
+            x.get_sources_data(task_manager) for x in origins
         ])
 
-        # Disable task manager
-        self._sched = None
+        return self.process_source_data(*srcs_data)
 
+    def process_source_data(*srcs_data):
         srcs = self.get_sources_for_data(*srcs_data)
 
         rev_srcs = {
@@ -509,6 +511,35 @@ class Importer:
 
         return list(ret.items())
 
+    def resolve_source(self, source):
+        def _update_source(data):
+            keys = 'language leechers seeds size type uri urn'.split()
+            for k in keys:
+                if k in data:
+                    setattr(source, k, data[k])
+
+        origin = self.app.get_extension(
+            Origin,
+            source.provider,
+            uri=source.uri)
+        task_manager = self._create_task_manager()
+        psrcs = task_manager.run(origin.get_sources_data(task_manager))
+        psrcs = self.organize_data_by_most_recent(*psrcs)
+
+        for (disc, psrc) in psrcs.items():
+            if source.name != psrc['name']:
+                continue
+
+            _update_source(psrc)
+
+        if not source.urn:
+            raise ResolveError()
+
+        del(psrcs[source.urn])
+        if psrcs:
+            self.process_source_data(*psrcs.values())
+
+
     @staticmethod
     def organize_data_by_most_recent(*src_data):
         """
@@ -559,3 +590,7 @@ class ImporterCronTask(cron.CronTask):
     def run(self):
         self.app.importer.run()
         super().run()
+
+
+class ResolveError(Exception):
+    pass
