@@ -12,12 +12,10 @@ from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
-    BASE_DOMAIN = 'https://eztv.ag'
-    BASE_URL = BASE_DOMAIN + '/page_0'
-    PROVIDER_NAME = 'eztv'
+    _BASE_DOMAIN = 'https://eztv.ag'
 
-    BASE_DOMAIN = 'https://eztv.ag'
-    BASE_URL = BASE_DOMAIN + '/page_0'
+    DEFAULT_URI = _BASE_DOMAIN + '/page_0'
+    PROVIDER = 'eztv'
 
     _table_mults = {
         's': 1,
@@ -29,8 +27,8 @@ class Eztv(plugin.Origin):
         'y': 60*60*24*365,
     }
 
-    def paginate(self, url):
-        parsed = parse.urlparse(url)
+    def paginate(self):
+        parsed = parse.urlparse(self.uri)
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
@@ -41,13 +39,13 @@ class Eztv(plugin.Origin):
 
         # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
-            yield url
+            yield self.uri
             return
 
         # Anything non standard
         m = re.findall(r'^page_(\d+)$', pathcomponents[0])
         if not m:
-            yield url
+            yield self.uri
             return
 
         # https://eztv.ag/page_0
@@ -59,7 +57,7 @@ class Eztv(plugin.Origin):
                 page=page)
             page += 1
 
-    def get_query_url(self, query):
+    def get_query_uri(self, query):
         selector = query.get('kind')
         if selector != 'episode':
             return
@@ -68,7 +66,7 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
-        showlist_url = self.BASE_DOMAIN + '/showlist/'
+        showlist_url = self._BASE_DOMAIN + '/showlist/'
         try:
             buff = self.app.get_fetcher().fetch(showlist_url)
         except fetchers.FetchError as e:
@@ -109,7 +107,7 @@ class Eztv(plugin.Origin):
             if name.lower().endswith(', the'):
                 name = 'The ' + name[:-5]
 
-            return (name, self.BASE_DOMAIN + href)
+            return (name, self._BASE_DOMAIN + href)
 
         soup = bs4.BeautifulSoup(buff, "html.parser")
         shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))

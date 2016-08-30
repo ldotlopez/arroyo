@@ -15,13 +15,14 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
-    PROVIDER_NAME = 'kickass'
-    BASE_DOMAIN = 'https://kickass.cd'
-    BASE_URL = BASE_DOMAIN + '/new/'
+    PROVIDER = 'kickass'
+
+    _BASE_URI = 'https://kickass.cd'
+    DEFAULT_URI = _BASE_URI + '/new/'
 
     _TYPES = {
         'audio': 'other',
-        'anime': 'other',
+        'anime': None,
         'applications': 'application',
         'books': 'book',
         'games': 'game',
@@ -30,7 +31,7 @@ class KickAss(plugin.Origin):
         'other': 'other',
         'porn': 'xxx',
         'tv': 'episode',
-        'video': 'other',
+        'video': None,  # Try to auto detect
         'xxx': 'xxx'
     }
 
@@ -38,8 +39,8 @@ class KickAss(plugin.Origin):
         super(KickAss, self).__init__(*args, **kwargs)
         self._logger = self.app.logger.getChild('kickass-importer')
 
-    def paginate(self, url):
-        parsed = parse.urlparse(url)
+    def paginate(self):
+        parsed = parse.urlparse(self.uri)
         paths = [x for x in parsed.path.split('/') if x]
 
         try:
@@ -57,7 +58,7 @@ class KickAss(plugin.Origin):
             yield parse.urlunparse(parsed._replace(path='/'.join(tmp) + '/'))
             page += 1
 
-    def get_query_url(self, query):
+    def get_query_uri(self, query):
         selector = query.get('kind')
 
         if selector == 'episode':
@@ -95,7 +96,7 @@ class KickAss(plugin.Origin):
 
         return ('{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
-                    domain=self.BASE_DOMAIN,
+                    domain=self._BASE_URI,
                     q=parse.quote(q))
 
     def parse(self, buff):
