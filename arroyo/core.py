@@ -314,9 +314,6 @@ class Arroyo:
         self._services = {}
         self._registry = {}
 
-        # Resource access control
-        self.network_access = asyncio.Semaphore(5)
-
         # Build and configure logger
         # handler = EncodedStreamHandler()
         # handler.setFormatter(logging.Formatter(
@@ -327,6 +324,26 @@ class Arroyo:
 
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
+
+        # Configure fetcher object
+        fetcher_opts = self.settings.get('fetcher')
+        fetcher_opts = {
+            k.replace('-', '_'): v
+            for (k, v) in fetcher_opts.items()
+        }
+
+        enable_cache = fetcher_opts.pop('enable_cache')
+        cache_delta = fetcher_opts.pop('cache_delta')
+        logger = self.logger.getChild('fetcher')
+
+        self.fetcher = fetchers.AIOHttpFetcherWithAcessControl(
+            logger=logger,
+            enable_cache=enable_cache,
+            cache_delta=cache_delta,
+            max_reqs=self.settings.get('async-max-concurrency'),
+            timeout=self.settings.get('async-timeout'),
+            **fetcher_opts
+        )
 
         # Built-in providers
         self.db = db.Db(self.settings.get('db-uri'))

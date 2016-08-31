@@ -117,15 +117,23 @@ class Origin(extension.Extension):
         ret = []
 
         @asyncio.coroutine
-        def get_data_for_url(url):
-            data = yield from self.process(url)
-            if data and isinstance(data, list):
-                ret.extend(data)
-            else:
-                # Handle error
-                pass
+        def get_data_for_uri(uri):
+            data = yield from self.process(uri)
 
-        tasks = [get_data_for_url(url) for url in self.get_uris()]
+            # process got and exception and handled it, move on
+            if data is None:
+                return
+
+            # check returned data
+            if not isinstance(data, list):
+                msg = "Invalid data type for URI «{uri}»: '{type}'"
+                msg = msg.format(uri=uri, type=data.__class__.__name__)
+                self.logger.error(msg)
+                return
+
+            ret.extend(data)
+
+        tasks = [get_data_for_uri(uri) for uri in self.get_uris()]
         yield from asyncio.gather(*tasks)
 
         return ret
@@ -137,18 +145,8 @@ class Origin(extension.Extension):
         """
         try:
             buff = yield from self.fetch(url)
-
-        except asyncio.CancelledError as e:
-            msg = "Fetch cancelled '{url}' (possibly timeout)"
-            msg = msg.format(url=url)
-            self.logger.error(msg)
-            return []
-
-        except aiohttp.errors.ClientOSError as e:
-            msg = "Client error fetching {url}: {e}"
-            msg = msg.format(url=url, e=e)
-            self.logger.error(msg)
-            return []
+            if not buff:
+                return None
 
         except Exception as e:
             msg = "Unhandled exception {type}: {e}"
@@ -207,29 +205,18 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def fetch(self, url, params={}):
+        try:
+            return (yield from self.app.fetcher.fetch(url, **params))
 
-        """
-        Coroutine that fetches and parses an URL
-        """
-        s = self.app.settings
-        opts = {
-            k.replace('-', '_'): v
-            for (k, v) in s.get('fetcher').items()
-        }
-
-        opts = {'headers': opts.get('headers', {})}
-
-        with (yield from self.app.network_access):
-            msg = "Fetching «{url}»"
-            msg = msg.format(url=url)
-            self.logger.info(msg)
-
-            with aiohttp.ClientSession(**opts) as client:
-                resp = yield from client.get(url)
-                buff = yield from resp.content.read()
-                yield from resp.release()
-
-        return buff
+        except (
+            asyncio.CancelledError,
+            asyncio.TimeoutError,
+            aiohttp.errors.ClientOSError,
+            ValueError # url=foo (just 'foo')
+        ) as e:
+            msg = "{type} fetching «{url}»: {msg}"
+            msg = msg.format(url=url, type=e.__class__.__name__, msg=str(e) or 'no reason')
+            self.logger.error(msg)
 
     @abc.abstractmethod
     def parse(self, buffer):
@@ -460,10 +447,14 @@ class Importer:
         psrcs = self.organize_data_by_most_recent(*psrcs)
 
         # Check for existings sources
-        keys = list(psrcs.keys())
-        existing_srcs = self.app.db.session.query(models.Source).filter(
-            models.Source._discriminator.in_(keys)
-        ).all()
+        # Check psrcs to prevent SQLAlchemy error for using .in_ with an empty
+        # list.
+        existing_srcs = []
+        if psrcs:
+            keys = list(psrcs.keys())
+            existing_srcs = self.app.db.session.query(models.Source).filter(
+                models.Source._discriminator.in_(keys)
+            ).all()
 
         # Name change is special
         name_updated_srcs = []
