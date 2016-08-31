@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import asyncio
 import importlib
 import sys
 import warnings
@@ -312,6 +313,9 @@ class Arroyo:
         # Support structures for plugins
         self._services = {}
         self._registry = {}
+
+        # Resource access control
+        self.network_access = asyncio.Semaphore(5)
 
         # Build and configure logger
         # handler = EncodedStreamHandler()

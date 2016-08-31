@@ -16,7 +16,6 @@ from ldotcommons import (
 
 
 from arroyo import (
-    asyncscheduler,
     cron,
     downloads,
     exc,
@@ -114,25 +113,28 @@ class Origin(extension.Extension):
         return self._overrides
 
     @asyncio.coroutine
-    def get_sources_data(self, task_manager):
-        self._task_manager = task_manager  # FIXME
-        for url in self.get_uris():
-            task_manager.sched(self.process(url))
+    def get_data(self):
+        ret = []
 
-        return []
+        @asyncio.coroutine
+        def get_data_for_url(url):
+            data = yield from self.process(url)
+            if data and isinstance(data, list):
+                ret.extend(data)
+            else:
+                # Handle error
+                pass
 
-    def add_process_task(self, url):
-        self._task_manager.sched(self.process(url))
+        tasks = [get_data_for_url(url) for url in self.get_uris()]
+        yield from asyncio.gather(*tasks)
+
+        return ret
 
     @asyncio.coroutine
     def process(self, url):
         """
         Coroutine that fetches and parses an URL
         """
-        msg = "Fetching «{url}»"
-        msg = msg.format(url=url)
-        self.logger.info(msg)
-
         try:
             buff = yield from self.fetch(url)
 
@@ -209,18 +211,23 @@ class Origin(extension.Extension):
         """
         Coroutine that fetches and parses an URL
         """
-        msg = "Fetching «{url}»"
-        msg = msg.format(url=url)
-        self.logger.info(msg)
-
         s = self.app.settings
-        fetcher = fetchers.AIOHttpFetcher(
-            logger=self.logger.getChild('fetcher'),
-            **{
-                k.replace('-', '_'): v
-                for (k, v) in s.get('fetcher').items()
-            })
-        buff = yield from fetcher.fetch(url)
+        opts = {
+            k.replace('-', '_'): v
+            for (k, v) in s.get('fetcher').items()
+        }
+
+        opts = {'headers': opts.get('headers', {})}
+
+        with (yield from self.app.network_access):
+            msg = "Fetching «{url}»"
+            msg = msg.format(url=url)
+            self.logger.info(msg)
+
+            with aiohttp.ClientSession(**opts) as client:
+                resp = yield from client.get(url)
+                buff = yield from resp.content.read()
+                yield from resp.release()
 
         return buff
 
@@ -386,22 +393,21 @@ class Importer:
         ret = [x for x in ret if x is not None]
         return ret
 
-    def _create_task_manager(self):
-        return ImporterRunner(
-             maxtasks=self.app.settings.get('async-max-concurrency'),
-             timeout=self.app.settings.get('async-timeout'),
-             logger=self.app.logger.getChild('asyncsched'))
-
     def process(self, *origins):
-        # Weird but temporal
-        task_manager = self._create_task_manager()
-        srcs_data = task_manager.run(*[
-            x.get_sources_data(task_manager) for x in origins
-        ])
+        data = []
 
-        return self.process_source_data(*srcs_data)
+        @asyncio.coroutine
+        def get_contents_for_origin(origin):
+            origin_data = yield from origin.get_data()
+            data.extend(origin_data)
 
-    def process_source_data(*srcs_data):
+        tasks = [get_contents_for_origin(o) for o in origins]
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+        return self.process_source_data(*data)
+
+    def process_source_data(self, *srcs_data):
         srcs = self.get_sources_for_data(*srcs_data)
 
         rev_srcs = {
@@ -539,7 +545,6 @@ class Importer:
         if psrcs:
             self.process_source_data(*psrcs.values())
 
-
     @staticmethod
     def organize_data_by_most_recent(*src_data):
         """
@@ -563,24 +568,6 @@ class Importer:
 
     def run(self):
         return self.process(*self.get_configured_origins())
-
-
-class ImporterRunner(asyncscheduler.AsyncScheduler):
-    def result_handler(self, result):
-        self.results.extend(result)
-
-    def exception_handler(self, loop, ctx):
-        msg = 'Exception raised: {msg}'
-        msg = msg.format(msg=ctx['message'])
-
-        e = ctx.get('exception')
-        if e:
-            msg += ' {exctype}: {excstr}'
-            msg = msg.format(exctype=type(e), excstr=e)
-            self._logger.error(msg)
-            traceback.print_exc()
-
-        self.feed()
 
 
 class ImporterCronTask(cron.CronTask):
