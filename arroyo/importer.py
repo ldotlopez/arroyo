@@ -361,7 +361,7 @@ class Importer:
 
             except TypeError as e:
                 msg = "Invalid origin {name}: {msg}"
-                msg = msg.format(name=name, msg=str(e))
+                msg = msg.format(name=impl_name, msg=str(e))
                 self.app.logger.error(msg)
                 return None
 
