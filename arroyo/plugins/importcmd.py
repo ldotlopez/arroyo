@@ -13,11 +13,11 @@ class ImportCommand(plugin.Command):
             type=str,
             help='backend to use'),
         plugin.argument(
-            '-u', '--url',
-            dest='url',
+            '-u', '--uri',
+            dest='uri',
             type=str,
             default=None,
-            help='Seed URL'),
+            help='Seed URI'),
         plugin.argument(
             '-i', '--iterations',
             dest='iterations',
@@ -57,7 +57,7 @@ class ImportCommand(plugin.Command):
             # Build origin data
             keys = [
                 ('backend', str),
-                ('url', str),
+                ('uri', str),
                 ('iterations', int),
                 ('type', str),
                 ('language', str)
