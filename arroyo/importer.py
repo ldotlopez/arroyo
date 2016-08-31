@@ -345,25 +345,25 @@ class Importer:
         """Validates settings"""
         return value
 
+    def get_origin_from_params(self, **params):
+        p = params.copy()
+
+        impl_name = p.pop('backend')
+        return self.app.get_extension(
+            Origin, impl_name,
+            logger=logging.get_logger(impl_name),
+            uri=p.pop('uri', None),
+            iterations=p.pop('iterations', 1),
+            display_name=p.pop('display_name', None),
+            overrides=p
+        )
+
     def get_configured_origins(self):
         """Returns a list of configured origins in a specification form.
 
         This list is composed by importer.OriginSpec objects which are
         data-only structures. To get some usable object you may want to use
         importer.Importer.get_origins method"""
-
-        def _build_origin(**params):
-            try:
-                impl_name = params.pop('backend')
-                return self.app.get_extension(
-                    Origin, impl_name, logger=logging.get_logger(impl_name),
-                    **params)
-
-            except TypeError as e:
-                msg = "Invalid origin {name}: {msg}"
-                msg = msg.format(name=impl_name, msg=str(e))
-                self.app.logger.error(msg)
-                return None
 
         specs = self.app.settings.get('origin', default={})
         if not specs:
@@ -372,7 +372,7 @@ class Importer:
             return []
 
         ret = [
-            _build_origin(
+            self.get_origin_from_params(
                 display_name=name,
                 **params)
             for (name, params) in specs.items()
