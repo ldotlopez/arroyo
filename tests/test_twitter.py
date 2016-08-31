@@ -5,7 +5,7 @@ from arroyo import models
 from testapp import TestApp, mock_source
 
 
-from ldotcommons.messaging import twitter as ldottwitter
+from appkit.messaging import twitter as ldottwitter
 
 
 class TwitterTest(unittest.TestCase):

@@ -4,7 +4,9 @@ from arroyo import plugin
 models = plugin.models
 
 
-class Command(plugin.Command):
+class DatabaseCommand(plugin.Command):
+    __extension_name__ = 'database-command'
+
     help = 'manage database'
 
     arguments = (
@@ -100,5 +102,5 @@ class Command(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('db', Command)
+    DatabaseCommand
 ]

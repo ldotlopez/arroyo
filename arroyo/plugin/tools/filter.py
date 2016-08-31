@@ -1,5 +1,5 @@
 import re
-from ldotcommons import sqlalchemy as ldotsa
+from appkit import sqlalchemy as ldotsa
 
 
 def alter_query_for_model_attr(q, model, key, value):

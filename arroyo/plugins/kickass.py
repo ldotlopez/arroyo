@@ -11,10 +11,12 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
-class KickAss(plugin.Origin):
+class KickassOrigin(plugin.Origin):
+    __extension_name__ = 'kickass-origin'
+
     PROVIDER = 'kickass'
 
     _BASE_URI = 'https://kickass.cd'
@@ -270,5 +272,5 @@ class KickAss(plugin.Origin):
         return None
 
 __arroyo_extensions__ = [
-    ('kickass', KickAss)
+    KickassOrigin
 ]

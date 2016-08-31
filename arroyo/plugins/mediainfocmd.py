@@ -5,6 +5,8 @@ models = plugin.models
 
 
 class MediainfoCommand(plugin.Command):
+    __extension_name__ = 'mediainfo-command'
+
     help = 'guess mediainfo for sources.'
 
     arguments = (
@@ -51,5 +53,5 @@ class MediainfoCommand(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('mediainfo', MediainfoCommand)
+     MediainfoCommand
 ]

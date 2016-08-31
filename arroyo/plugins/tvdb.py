@@ -6,8 +6,8 @@ from arroyo import models
 import json
 from sqlalchemy import and_
 import tvdb_api
-from ldotcommons import utils
-from ldotcommons.sqlalchemy import Base
+from appkit import utils
+from appkit.sqlalchemy import Base
 from sqlalchemy import schema, Column, Integer, String, ForeignKey
 
 

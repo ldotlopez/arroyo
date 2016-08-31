@@ -3,10 +3,12 @@
 from arroyo import plugin
 
 
-from ldotcommons import utils
+from appkit import utils
 
 
 class CronCommand(plugin.Command):
+    __extension_name__ = 'cron-command'
+
     help = 'Run cron tasks'
 
     arguments = (
@@ -82,5 +84,5 @@ class CronCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
 __arroyo_extensions__ = [
-    ('cron', CronCommand),
+    CronCommand
 ]

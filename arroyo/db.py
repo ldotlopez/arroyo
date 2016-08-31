@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from ldotcommons import sqlalchemy as ldotsa
+from appkit import sqlalchemy as ldotsa
 import arroyo.exc
 from arroyo import models
 

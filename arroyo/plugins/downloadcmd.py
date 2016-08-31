@@ -4,13 +4,15 @@ from arroyo import plugin
 
 
 import humanfriendly
-from ldotcommons import logging, utils
+from appkit import logging, utils
 
 
 models = plugin.models
 
 
 class DownloadCommand(plugin.Command):
+    __extension_name__ = 'download-command'
+
     help = 'manage downloads'
 
     arguments = (
@@ -167,5 +169,5 @@ class DownloadCommand(plugin.Command):
                 conditional_logger(logging.INFO, msg)
 
 __arroyo_extensions__ = [
-    ('download', DownloadCommand)
+    DownloadCommand
 ]

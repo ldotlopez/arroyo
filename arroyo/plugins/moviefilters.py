@@ -7,7 +7,9 @@ from arroyo.plugin.tools import filter
 import functools
 
 
-class Filter(plugin.Filter):
+class MovieFilters(plugin.Filter):
+    __extension_name__ = 'movie-filters'
+
     _strs = ['title', 'title-glob']
     _nums = ['year']
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
@@ -31,5 +33,5 @@ class Filter(plugin.Filter):
 
 
 __arroyo_extensions__ = [
-    ('movie', Filter)
+    MovieFilters
 ]

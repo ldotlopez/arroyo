@@ -7,20 +7,15 @@ import re
 from urllib import parse
 
 import bencodepy
+
+
+from appkit import extension
 from arroyo import (
     cron,
     exc,
     extension,
     models
 )
-
-
-class BackendError(exc._BaseException):
-    pass
-
-
-class ResolveError(exc._BaseException):
-    pass
 
 
 class Downloads:
@@ -31,8 +26,8 @@ class Downloads:
 
     def __init__(self, app, logger=None):
         app.signals.register('source-state-change')
-        app.register_extension('download-sync', DownloadSyncCronTask)
-        app.register_extension('download-queries', DownloadQueriesCronTask)
+        app.register_extension_class(DownloadSyncCronTask)
+        app.register_extension_class(DownloadQueriesCronTask)
 
         self.app = app
         self.logger = logger or app.logger.getChild('downloads')
@@ -195,7 +190,7 @@ class Downloader(extension.Extension):
 
 
 class DownloadSyncCronTask(cron.CronTask):
-    NAME = 'download-sync'
+    __extension_name__ = 'download-sync-task'
     INTERVAL = '5M'
 
     def run(self):
@@ -204,7 +199,7 @@ class DownloadSyncCronTask(cron.CronTask):
 
 
 class DownloadQueriesCronTask(cron.CronTask):
-    NAME = 'download-queries'
+    __extension_name__ = 'download-queries-task'
     INTERVAL = '3H'
 
     def run(self):

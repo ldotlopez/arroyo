@@ -5,17 +5,17 @@ import re
 from urllib import parse
 import sys
 
-from ldotcommons import keyvaluestore, utils
-from ldotcommons.sqlalchemy import Base
+from appkit import keyvaluestore, utils
+from appkit.sqlalchemy import Base
 from sqlalchemy import (
     and_,
     func,
     or_,
     schema,
     Column,
+    ForeignKey
     Integer,
     String,
-    ForeignKey
 )
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (

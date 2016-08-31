@@ -4,13 +4,10 @@ import itertools
 import sys
 
 
-from ldotcommons import utils
-
-
 import arroyo.exc
-from arroyo import (
+from appkit import (
     extension,
-    importer
+    utils
 )
 
 

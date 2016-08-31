@@ -8,11 +8,15 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import fetchers, utils
+from appkit import fetchers, utils
 
 
-class Eztv(plugin.Origin):
-    _BASE_DOMAIN = 'https://eztv.ag'
+class EztvOrigin(plugin.Origin):
+    __extension_name__ = 'eztv-origin'
+
+    BASE_DOMAIN = 'https://eztv.ag'
+    BASE_URL = BASE_DOMAIN + '/page_0'
+    PROVIDER_NAME = 'eztv'
 
     DEFAULT_URI = _BASE_DOMAIN + '/page_0'
     PROVIDER = 'eztv'
@@ -172,5 +176,5 @@ class Eztv(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('eztv', Eztv)
+    EztvOrigin
 ]

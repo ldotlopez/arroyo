@@ -5,7 +5,7 @@ import unittest
 
 import os
 
-from ldotcommons import fetchers
+from appkit import fetchers
 
 import testapp
 from arroyo.importer import OriginSpec

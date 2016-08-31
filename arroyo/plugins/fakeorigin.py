@@ -4,6 +4,8 @@ from arroyo import plugin
 
 
 class FakeOrigin(plugin.Origin):
+    __extension_name__ = 'fake-origin'
+
     BASE_URL = 'http://example.com/?page=1'
     PROVIDER_NAME = 'fake'
 
@@ -26,5 +28,5 @@ class FakeOrigin(plugin.Origin):
         return data
 
 __arroyo_extensions__ = [
-    ('fake', FakeOrigin)
+    FakeOrigin
 ]

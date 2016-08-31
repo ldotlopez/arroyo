@@ -11,7 +11,9 @@ from urllib import parse
 import bs4
 
 
-class Spanishtracker(plugin.Origin):
+class SpanishtrackerOrigin(plugin.Origin):
+    __extension_name__ = 'spanishtracker-origin'
+
     BASE_URL = 'http://www.spanishtracker.com/torrents.php?page=0'
     PROVIDER_NAME = 'spanishtracker'
 
@@ -146,5 +148,5 @@ class Spanishtracker(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('spanishtracker', Spanishtracker)
+    SpanishtrackerOrigin
 ]

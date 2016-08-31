@@ -4,6 +4,8 @@ from arroyo import importer, plugin
 
 
 class ImportCommand(plugin.Command):
+    __extension_name__ = 'import-command'
+
     help = 'Import an origin.'
 
     arguments = (
@@ -92,5 +94,5 @@ class ImportCommand(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('import', ImportCommand)
+    ImportCommand
 ]

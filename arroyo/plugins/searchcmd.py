@@ -8,10 +8,12 @@ import sys
 
 
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class SearchCommand(plugin.Command):
+    __extension_name__ = 'search-command'
+
     help = 'Search sources'
 
     arguments = (
@@ -110,5 +112,5 @@ class SearchCommand(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('search', SearchCommand)
+    SearchCommand
 ]

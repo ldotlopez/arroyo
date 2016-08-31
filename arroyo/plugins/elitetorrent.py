@@ -16,7 +16,9 @@ import bs4
 import humanfriendly
 
 
-class EliteTorrent(plugin.Origin):
+class EliteTorrentOrigin(plugin.Origin):
+    __extension_name__ = 'elitetorrent-origin'
+
     PROVIDER = 'elitetorrent'
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
 
@@ -236,5 +238,5 @@ class EliteTorrent(plugin.Origin):
         return [ret]
 
 __arroyo_extensions__ = [
-    ('elitetorrent', EliteTorrent)
+    EliteTorrentOrigin
 ]

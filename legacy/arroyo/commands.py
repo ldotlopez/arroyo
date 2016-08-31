@@ -12,9 +12,9 @@ from sqlalchemy.orm import exc
 from flask import request, url_for, redirect
 from flask.ext.api import FlaskAPI, status
 
-from ldotcommons import logging
-from ldotcommons import sqlalchemy as ldotsa
-from ldotcommons import utils
+from appkit import logging
+from appkit import sqlalchemy as ldotsa
+from appkit import utils
 
 from arroyo import Arroyo, ArgumentError
 from arroyo import models

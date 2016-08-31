@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from ldotcommons import utils
-
-
-from arroyo import extension
+from appkit import (
+    extension,
+    utils
+)
 
 
 class CronManager:

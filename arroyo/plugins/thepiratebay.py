@@ -15,15 +15,15 @@ import time
 import bs4
 import feedparser
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class _CategoryUnknowError(Exception):
     pass
 
 
-class ThePirateBay(plugin.Origin):
-    PROVIDER = 'thepiratebay'
+class ThePirateBayOrigin(plugin.Origin):
+    __extension_name__ = 'thepiratebay-origin'
 
     # URL structure:
     # https://thepiratebay.cr/search.php?q={q}&page={page}&orderby=99
@@ -37,6 +37,7 @@ class ThePirateBay(plugin.Origin):
     PROTO = 'https'
     TLD = 'cr'
 
+    PROVIDER = 'thepiratebay'
     DEFAULT_URI = '{proto}://thepiratebay.{tld}/recent/0/'.format(
         proto=PROTO, tld=TLD
     )
@@ -258,8 +259,13 @@ class ThePirateBay(plugin.Origin):
             'movie': 'title'
         }
 
+<<<<<<< Updated upstream
         type_ = query.get('kind')
         prop = types_prop_map.get(type_, 'other')
+=======
+class ThePirateBayRSSOrigin(plugin.Origin):
+    __extension_name__ = 'thepiratebayrss-origin'
+>>>>>>> Stashed changes
 
         if not prop:
             return None
@@ -303,6 +309,11 @@ class ThePirateBayRSS(plugin.Origin):
 
 
 __arroyo_extensions__ = [
+<<<<<<< Updated upstream
     ('thepiratebay', ThePirateBay),
     ('thepiratebayrss', ThePirateBayRSS),
+=======
+    ThePirateBayOrigin,
+    ThePirateBayRSSOrigin
+>>>>>>> Stashed changes
 ]

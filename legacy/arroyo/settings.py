@@ -1,7 +1,7 @@
 import configparser
 
-from ldotcommons import logging
-from ldotcommons import utils
+from appkit import logging
+from appkit import utils
 
 
 _logger = logging.get_logger('settings')

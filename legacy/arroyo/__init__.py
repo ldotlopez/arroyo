@@ -13,10 +13,10 @@ from flask.ext.api import FlaskAPI, status
 
 from sqlalchemy.orm import exc
 
-from ldotcommons import fetchers
-from ldotcommons import logging
-from ldotcommons import sqlalchemy as ldotsa
-from ldotcommons import utils
+from appkit import fetchers
+from appkit import logging
+from appkit import sqlalchemy as ldotsa
+from appkit import utils
 
 from arroyo import models, downloaders, importers
 

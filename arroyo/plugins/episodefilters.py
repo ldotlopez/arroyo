@@ -7,7 +7,9 @@ from arroyo.plugin.tools import filter
 import functools
 
 
-class Filter(plugin.Filter):
+class EpisodeFilters(plugin.Filter):
+    __extension_name__ = 'episode-filters'
+
     _strs = ['series', 'series-glob']
     _nums = ('year', 'season', 'episode')
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
@@ -31,5 +33,5 @@ class Filter(plugin.Filter):
 
 
 __arroyo_extensions__ = [
-    ('episode', Filter)
+    EpisodeFilters
 ]

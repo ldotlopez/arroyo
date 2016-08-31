@@ -8,7 +8,8 @@ import traceback
 from urllib import parse
 
 
-from ldotcommons import (
+from appkit import (
+    extension,
     fetchers,
     logging,
     utils
@@ -19,7 +20,6 @@ from arroyo import (
     cron,
     downloads,
     exc,
-    extension,
     models
 )
 

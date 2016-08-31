@@ -9,10 +9,12 @@ import functools
 import time
 
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
-class Filter(plugin.Filter):
+class SourceFilters(plugin.Filter):
+    __extension_name__ = 'source-filters'
+
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
              'state-name')
     _strs = [[x, x + '-glob', x + '-regexp', x + '-in'] for x in _strs]
@@ -60,5 +62,5 @@ class Filter(plugin.Filter):
 
 
 __arroyo_extensions__ = [
-    ('source', Filter)
+    SourceFilters
 ]

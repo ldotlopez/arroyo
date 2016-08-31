@@ -5,7 +5,7 @@ from arroyo.plugin.tools import downloads
 
 from urllib import parse
 
-from ldotcommons import store
+from appkit import store
 from sqlalchemy import orm
 import transmissionrpc
 
@@ -13,6 +13,8 @@ models = plugin.models
 
 
 class TransmissionDownloader(plugin.Downloader):
+    __extension_name__ = 'transmission-downloader'
+
     _SETTINGS_NS = 'plugin.transmission'
 
     _STATE_MAP = {
@@ -176,5 +178,5 @@ class TransmissionDownloader(plugin.Downloader):
             raise store.ValidationError(key, value, 'Unknow property')
 
 __arroyo_extensions__ = [
-    ('transmission', TransmissionDownloader)
+    TransmissionDownloader
 ]
