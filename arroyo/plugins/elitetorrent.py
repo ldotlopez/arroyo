@@ -161,17 +161,7 @@ class EliteTorrent(plugin.Origin):
         links = [parse_link(x) for x in soup.select('a')]
         links = [x for x in links if x]
 
-        if self.app.settings.get(self._SETTINGS_NS + ".deep-import"):
-            for (name, url) in links:
-                    self.add_process_task(url)
-
-            return []
-
-        else:
-            return [{
-                'name': x[0],
-                'uri': x[1]
-            } for x in links]
+        return [dict(name=name, uri=uri) for (name, uri) in links]
 
     def parse_detailed(self, soup):
         info = soup.select_one('.info-tecnica')
