@@ -9,7 +9,7 @@ log-format: '[%(levelname)s] [%(name)s] %(message)s'
 
 # Async options
 async-max-concurrency: 5
-async-timeout : 10
+async-timeout: 10
 
 # Downloader backend to use
 # Check arroyo/downloaders folder for available downloaders
