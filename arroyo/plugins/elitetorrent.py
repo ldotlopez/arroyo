@@ -17,8 +17,10 @@ import humanfriendly
 
 
 class EliteTorrent(plugin.Origin):
-    BASE_URL = 'http://www.elitetorrent.net/descargas/'
-    PROVIDER_NAME = 'elitetorrent'
+    PROVIDER = 'elitetorrent'
+    DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
+
+    _SETTINGS_NS = "plugin.elitetorrent"
 
     _time_table = {
         'seg': 1,
@@ -50,14 +52,14 @@ class EliteTorrent(plugin.Origin):
     def re_cache(re_str):
         return re.compile(re_str)
 
-    def paginate(self, url):
-        if self.re_cache(r'/torrent/\d+/').search(url):
-            yield url
+    def paginate(self):
+        if self.re_cache(r'/torrent/\d+/').search(self.uri):
+            yield self.uri
             return
 
-        parsed = parse.urlparse(url)
+        parsed = parse.urlparse(self.uri)
 
-        # Split paths and params from parsed URL
+        # Split paths and params from parsed URI
         tmp = [x for x in parsed.path.split('/') if x]
         paths = []
         params = collections.OrderedDict({
@@ -76,7 +78,7 @@ class EliteTorrent(plugin.Origin):
         try:
             pag_n = int(pag_n)
         except ValueError:
-            pag_n  = 1
+            pag_n = 1
 
         while True:
             params['pag'] = pag_n
@@ -91,7 +93,7 @@ class EliteTorrent(plugin.Origin):
 
             yield parse.urlunparse(parsed)
 
-    def get_query_url(self, query):
+    def get_query_uri(self, query):
         q = ''
 
         if query.get('language', None) not in self._langs:
@@ -137,19 +139,28 @@ class EliteTorrent(plugin.Origin):
             return self.parse_listing(soup)
 
     def parse_listing(self, soup):
-        links = soup.select('a')
-        links = filter(
-            lambda x: self.re_cache(r'/torrent/\d+/').search(
-                x.attrs.get('href', '')),
-            links)
-        links = map(
-            lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'],
-            links)
+        torrent_href_re = re.compile(r'(https?://(www.)?elitetorrent.net)?/torrent/\d+/')  # nopep8
 
-        for x in links:
-            self.add_process_task(x)
+        def parse_link(x):
+            href = x.attrs.get('href', '')
+            text = x.text
 
-        return []
+            if text == '' or href == '':
+                return None
+
+            if not torrent_href_re.search(href):
+                return None
+
+            if href[0] == '/':
+                href = 'http://www.elitetorrent.net' + href
+
+            return (text, href)
+
+        # Filter and torrent links that point to this site.
+        links = [parse_link(x) for x in soup.select('a')]
+        links = [x for x in links if x]
+
+        return [dict(name=name, uri=uri) for (name, uri) in links]
 
     def parse_detailed(self, soup):
         info = soup.select_one('.info-tecnica')

@@ -13,8 +13,8 @@ import guessit
 
 class Mediainfo:
     def __init__(self, app):
-        app.signals.connect('sources-added-batch', self._on_source_batch)
-        app.signals.connect('sources-updated-batch', self._on_source_batch)
+        # app.signals.connect('sources-added-batch', self._on_source_batch)
+        # app.signals.connect('sources-updated-batch', self._on_source_batch)
         self._app = app
         self._logger = app.logger.getChild('mediainfo')
 

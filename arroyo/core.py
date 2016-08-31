@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import asyncio
 import importlib
 import sys
 import warnings
@@ -323,6 +324,26 @@ class Arroyo:
 
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
+
+        # Configure fetcher object
+        fetcher_opts = self.settings.get('fetcher')
+        fetcher_opts = {
+            k.replace('-', '_'): v
+            for (k, v) in fetcher_opts.items()
+        }
+
+        enable_cache = fetcher_opts.pop('enable_cache')
+        cache_delta = fetcher_opts.pop('cache_delta')
+        logger = self.logger.getChild('fetcher')
+
+        self.fetcher = fetchers.AIOHttpFetcherWithAcessControl(
+            logger=logger,
+            enable_cache=enable_cache,
+            cache_delta=cache_delta,
+            max_reqs=self.settings.get('async-max-concurrency'),
+            timeout=self.settings.get('async-timeout'),
+            **fetcher_opts
+        )
 
         # Built-in providers
         self.db = db.Db(self.settings.get('db-uri'))

@@ -35,15 +35,17 @@ class TestOrigin:
             hasattr(impl, 'process'),
             msg='No process() in {}'.format(impl))
         self.assertTrue(
-            hasattr(impl, 'BASE_URL'),
-            msg='No BASE_URL in {}'.format(impl))
+            hasattr(impl, 'DEFAULT_URI'),
+            msg='No DEFAULT_URI in {}'.format(impl))
 
     def test_pagination(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        origin = self.app.importer.get_origin_for_origin_spec(spec)
-
         for (start, expected) in self.PAGINATION_TESTS:
-            g = origin.paginate(start or origin.BASE_URL)
+            origin = self.app.get_extension(
+                plugin.Origin,
+                self.IMPLEMENTATION_NAME,
+                uri=start)
+
+            g = origin.paginate()
             collected = []
 
             while len(collected) < len(expected):
@@ -56,11 +58,12 @@ class TestOrigin:
                              msg='Fail pagination for {}'.format(start))
 
     def test_parse(self):
+        return
+
         for (sample, n_expected) in self.PARSE_TESTS:
-            spec = plugin.OriginSpec(
-                name='foo',
-                backend=self.IMPLEMENTATION_NAME)
-            origin = self.app.importer.get_origin_for_origin_spec(spec)
+            origin = self.app.get_extension(
+                plugin.Origin,
+                self.IMPLEMENTATION_NAME)
 
             with open(testapp.www_sample_path(sample), 'rb') as fh:
                 results = list(origin.parse(fh.read()))
@@ -70,18 +73,19 @@ class TestOrigin:
                 msg="Parse missmatch for {}".format(sample)
             )
 
-    def test_query_url(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        origin = self.app.importer.get_origin_for_origin_spec(spec)
+    def test_query_uri(self):
+        origin = self.app.get_extension(
+            plugin.Origin, self.IMPLEMENTATION_NAME
+        )
 
-        for (query, url) in self.QUERY_TESTS:
+        for (query, uri) in self.QUERY_TESTS:
             if not isinstance(query, dict):
                 words = [x for x in query.split(' ') if x]
                 query = {'name-glob': '*' + '*'.join(words) + '*'}
 
             self.assertEqual(
-                url,
-                origin.get_query_url(query),
+                uri,
+                origin.get_query_uri(query),
                 msg='Failed query for {}'.format(repr(query)))
 
 
@@ -90,7 +94,7 @@ class EztvTest(TestOrigin, unittest.TestCase):
     IMPLEMENTATION_NAME = 'eztv'
 
     PAGINATION_TESTS = [
-        # (baseurl, [page_n, page_n+1, ...])
+        # (baseuri, [page_n, page_n+1, ...])
 
         (None, [
             'https://eztv.ag/page_0'
@@ -121,9 +125,10 @@ class EztvTest(TestOrigin, unittest.TestCase):
     ]
 
     def test_series_index_parse(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        eztv = self.app.importer.get_origin_for_origin_spec(spec)
-
+        eztv = self.app.get_extension(
+            plugin.Origin,
+            self.IMPLEMENTATION_NAME
+        )
         with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
             res = eztv.parse_series_index(fh.read())
 
@@ -134,8 +139,10 @@ class EztvTest(TestOrigin, unittest.TestCase):
         self.assertEqual(len(res), 1830)
 
     def test_series_table_selector(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+        eztv = self.app.get_extension(
+            plugin.Origin,
+            self.IMPLEMENTATION_NAME
+        )
 
         with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
             table = eztv.parse_series_index(fh.read())
@@ -159,12 +166,12 @@ class EztvTest(TestOrigin, unittest.TestCase):
             eztv.get_url_for_series(table, 'foo')
 
 
-class KATTest(TestOrigin, unittest.TestCase):
+class KickassTest(TestOrigin, unittest.TestCase):
     PLUGINS = ['kickass']
     IMPLEMENTATION_NAME = 'kickass'
 
     PAGINATION_TESTS = [
-        # (baseurl, [page_n, page_n+1, ...])
+        # (baseuri, [page_n, page_n+1, ...])
 
         (None, [
             'https://kickass.cd/new/',
@@ -219,6 +226,22 @@ class KATTest(TestOrigin, unittest.TestCase):
     ]
 
 
+class ElitetorrentTest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['elitetorrent']
+    IMPLEMENTATION_NAME = 'elitetorrent'
+
+    PAGINATION_TESTS = [
+        # (baseuri, [page_n, page_n+1, ...])
+    ]
+
+    PARSE_TESTS = [
+            ('elitetorrent-listing.html', 42),
+    ]
+
+    QUERY_TESTS = [
+    ]
+
+
 # class TestOrigin:
 #     def __init__(self, *args, **kwargs):
 #         super().__init__(*args, **kwargs)
@@ -241,22 +264,22 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             hasattr(impl, 'process'),
 #             msg='No process() in {}'.format(impl))
 #         self.assertTrue(
-#             hasattr(impl, 'BASE_URL'),
-#             msg='No BASE_URL in {}'.format(impl))
+#             hasattr(impl, 'BASE_URI'),
+#             msg='No BASE_URI in {}'.format(impl))
 
 #     def test_initial_seed(self):
 #         spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
 #         origin = self.app.importer.get_origin_for_origin_spec(spec)
 
-#         g = origin.paginate(origin.BASE_URL)
-#         self.assertEqual(next(g), origin.BASE_URL)
+#         g = origin.paginate(origin.BASE_URI)
+#         self.assertEqual(next(g), origin.BASE_URI)
 
 #     def test_pagination(self):
 #         spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
 #         origin = self.app.importer.get_origin_for_origin_spec(spec)
 
 #         for (start, expected) in self.PAGINATIONS.items():
-#             start = start or origin.BASE_URL
+#             start = start or origin.BASE_URI
 #             g = origin.paginate(start)
 #             collected = []
 
@@ -269,15 +292,15 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             self.assertEqual(collected, expected)
 
 #     def test_processors(self):
-#         for (url, n_expected) in self.URL_TESTS:
+#         for (uri, n_expected) in self.URI_TESTS:
 #             spec = plugin.OriginSpec(
-#                 name='foo', backend=self.BACKEND, url=url)
+#                 name='foo', backend=self.BACKEND, uri=uri)
 
 #             srcs = self.app.importer.process_spec(spec)
 #             srcs = srcs['added-sources'] + srcs['updated-sources']
 #             self.assertEqual(
 #                 len(srcs), n_expected,
-#                 msg='From {}'.format(url))
+#                 msg='From {}'.format(uri))
 
 
 # class TestEztv(TestOrigin, unittest.TestCase):
@@ -297,7 +320,7 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             ['https://eztv.xx/page_{}'.format(i) for i in [2, 3]]
 
 #     }
-#     URL_TESTS = [
+#     URI_TESTS = [
 #         ('http://eztv.ag/page/0', 41)
 #     ]
 
@@ -319,7 +342,7 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             ['http://kat.cr/usearch/category%3Atv%200sec/?page={}'.format(i)
 #              for i in range(1, 5)]
 #     }
-#     URL_TESTS = [
+#     URI_TESTS = [
 #         (r'http://kat.cr/usearch/category%3Atv%200sec/', 25)
 #     ]
 
@@ -336,7 +359,7 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             ['http://spanishtracker.com/torrents.php?aaa=bbb&foo=bar&page={}'.format(i)
 #              for i in [3, 4, 5]]
 #     }
-#     URL_TESTS = []
+#     URI_TESTS = []
 
 
 # class TestTpb(TestOrigin, unittest.TestCase):
@@ -356,7 +379,7 @@ class KATTest(TestOrigin, unittest.TestCase):
 #             ['http://thepiratebay.com/recent/{}/b/'.format(i)
 #              for i in [8, 9]]
 #     }
-#     URL_TESTS = [
+#     URI_TESTS = [
 #         ('https://thepiratebay.am/recent', 30),
 #         ('https://thepiratebay.am/search/a/0/99/0', 30)
 #     ]
@@ -367,7 +390,7 @@ class KATTest(TestOrigin, unittest.TestCase):
 #     BACKEND = 'tpbrss'
 #     KEYS = ['name', 'size', 'timestamp', 'uri']
 #     PAGINATIONS = {}
-#     URL_TESTS = []
+#     URI_TESTS = []
 
 
 #     def test_processing(self):
