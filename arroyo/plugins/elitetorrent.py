@@ -94,18 +94,17 @@ class EliteTorrent(plugin.Origin):
             yield parse.urlunparse(parsed)
 
     def get_query_uri(self, query):
-        q = ''
+        kind = query.kind
+        params = query.params
 
-        if query.get('language', None) not in self._langs:
+        if params.get('language', None) not in self._langs:
             return
 
-        kind = query.get('kind')
-
         if kind == 'episode':
-            q = query.get('series')
-            year = query.get('year', None)
-            season = query.get('season', None)
-            episode = query.get('episode', None)
+            q = params.get('series')
+            year = params.get('year', None)
+            season = params.get('season', None)
+            episode = params.get('episode', None)
 
             if year:
                 q += ' ({year})'.format(year=year)
@@ -115,19 +114,22 @@ class EliteTorrent(plugin.Origin):
                     season=season, episode=episode)
 
         elif kind == 'movie':
-            q = query.get('title')
+            q = params.get('title')
             if year:
                 q += ' ({year})'.format(year)
 
         elif kind == 'source':
-            q = query.get('name', None) or \
-                query.get('name-like', None) or \
-                query.get('name-glob', None)
+            q = params.get('name', None) or \
+                params.get('name-like', None) or \
+                params.get('name-glob', None)
             if q:
                 q = q.replace('*', ' ')
 
-        q = parse.quote_plus(q.lower().strip())
+        else:
+            return
+
         if q:
+            q = parse.quote_plus(q.lower().strip())
             return 'http://www.elitetorrent.net/busqueda/' + q
 
     def parse(self, buff):

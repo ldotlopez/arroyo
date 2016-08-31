@@ -212,10 +212,12 @@ class Origin(extension.Extension):
             asyncio.CancelledError,
             asyncio.TimeoutError,
             aiohttp.errors.ClientOSError,
-            ValueError # url=foo (just 'foo')
+            ValueError  # url=foo (just 'foo')
         ) as e:
             msg = "{type} fetching «{url}»: {msg}"
-            msg = msg.format(url=url, type=e.__class__.__name__, msg=str(e) or 'no reason')
+            msg = msg.format(
+                url=url, type=e.__class__.__name__, msg=str(e) or 'no reason'
+            )
             self.logger.error(msg)
 
     @abc.abstractmethod

@@ -58,11 +58,13 @@ class Eztv(plugin.Origin):
             page += 1
 
     def get_query_uri(self, query):
-        selector = query.get('kind')
-        if selector != 'episode':
+        kind = query.kind
+        params = query.params
+
+        if kind != 'episode':
             return
 
-        series = query.get('series')
+        series = params.get('series')
         if not series:
             return
 
@@ -78,7 +80,7 @@ class Eztv(plugin.Origin):
         table = self.parse_series_index(buff)
 
         try:
-            return self.get_url_for_series(table, series, query.get('year'))
+            return self.get_url_for_series(table, series, params.get('year'))
         except KeyError:
             return None
 

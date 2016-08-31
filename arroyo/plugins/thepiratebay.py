@@ -252,21 +252,23 @@ class ThePirateBay(plugin.Origin):
         return now
 
     def get_query_uri(self, query):
+        kind = query.kind
+        params = query.params
+
         types_prop_map = {
             'source': 'name',
             'episode': 'series',
             'movie': 'title'
         }
 
-        type_ = query.get('kind')
-        prop = types_prop_map.get(type_, 'other')
+        prop = types_prop_map.get(kind, 'other')
 
         if not prop:
             return None
 
         q = 'other'
         for suffix in ['', '-glob', '-like', '-regexp']:
-            q = query.get(prop + suffix, 'other')
+            q = params.get(prop + suffix, 'other')
             if q is not 'other':
                 q = q.replace('%', ' ').replace('*', ' ')
                 q = q.strip()

@@ -14,44 +14,100 @@ from arroyo import (
 )
 
 
+class Query(extension.Extension):
+    KIND = None
+
+    def __init__(self, app, params={}, display_name=None):
+
+        def _normalize_key(key):
+            for x in [' ', '_']:
+                key = key.replace(x, '-')
+            return key
+
+        if not isinstance(params, dict) or not dict:
+            raise TypeError("params must be a non empty dict")
+
+        params = {_normalize_key(k): v for (k, v) in params.items()}
+
+        # FIXME: Remove this specific stuff out of here
+
+        if 'language' in params:
+            params['language'] = params['language'].lower()
+
+        if 'type' in params:
+            params['type'] = params['type'].lower()
+
+        super().__init__(app)
+
+        self.params = params
+        self.display_name = display_name
+
+    def matches(self, include_all=False):
+        raise NotImplementedError()
+
+    @property
+    def kind(self):
+        if self.KIND is None:
+            msg = "Class {clsname} must override KIND attribute"
+            msg = msg.format(clsname=self.__class__.__name__)
+            raise NotImplementedError(msg)
+
+        return self.KIND
+
+    def __repr__(self):
+        if self.display_name:
+            s = "'{name}', {params})".format(
+                name=self.display_name, params=repr(self.params)
+            )
+        else:
+            s = repr(self.params)
+
+        return "{}({})".format(self.__class__.__name__, s)
+
+    def __str__(self):
+        return self.__unicode__()
+
+    def __unicode__(self):
+        return self.display_name or repr(self)
+
+
 class Selector:
     def __init__(self, app):
         self.app = app
 
-    def get_queries_specs(self):
-        return [QuerySpec(x, **params) for (x, params) in
-                self.app.settings.get('query', default={}).items()]
+    def get_query_from_params(self, params={}, display_name=None):
+        impl_name = params.pop('kind', 'source')
+        return self.app.get_extension(  # FIX: Handle exceptions
+            Query, impl_name,
+            params=params,
+            display_name=display_name
+        )
 
-    def get_queries(self):
-        return list(map(self.get_query_for_spec, self.get_queries_specs()))
+    def get_configured_queries(self):
+        specs = self.app.settings.get('query', default={})
+        if not specs:
+            msg = "No queries defined"
+            self.app.logger.warning(msg)
+            return []
 
-    def get_query_for_spec(self, spec):
-        base = self.app.settings.get(
-            'selector.query-defaults',
-            default={})
-        specific = self.app.settings.get(
-            'selector.query-{}-defaults'.format(spec.get('kind')),
-            default={})
+        ret = [
+            self.get_query_from_params(
+                params=params, display_name=name
+            )
+            for (name, params) in specs.items()
+        ]
+        ret = [x for x in ret if x is not None]
 
-        base.update(specific)
-        base.update(spec)
-        spec = QuerySpec(spec.name, **base)
+        return ret
 
-        return self.app.get_extension(Query, spec.get('kind'), spec=spec)
+    def matches(self, query, everything=True):
+        if not isinstance(query, Query):
+            raise TypeError('query is not a Query')
 
-    def matches(self, spec, everything=False):
-        """
-        Returns an iterable with sources matching QuerySpec spec
-        TODO: explain everything argument
-        """
-        if not isinstance(spec, QuerySpec):
-            raise TypeError('spec is not a QuerySpec')
-
-        msg = "Search matches for spec: {spec}"
-        msg = msg.format(spec=str(spec))
+        msg = "Search matches for query: {query}"
+        msg = msg.format(query=str(query.params))
         self.app.logger.debug(msg)
 
-        query = self.get_query_for_spec(spec)
         self._auto_import(query)
 
         yield from query.matches(everything=everything)
@@ -138,7 +194,7 @@ class Selector:
 
     def _auto_import(self, query):
         if self.app.settings.get('auto-import'):
-            origins = self.get_origins_for_query(query.spec)
+            origins = self.get_origins_for_query(query)
             self.app.importer.process(*origins)
 
     def get_filters(self, models, params):
@@ -233,48 +289,6 @@ class Selector:
             self.app.logger.debug(msg)
 
         return items, missing
-
-
-class Query(extension.Extension):
-    def __init__(self, app, spec):
-        super().__init__(app)
-        self._spec = spec
-        self.params = utils.InmutableDict(spec.exclude('kind'))
-
-    @property
-    def name(self):
-        return self.spec.name
-
-    @property
-    def spec(self):
-        return self._spec
-
-    def matches(self, include_all=False):
-        raise NotImplementedError()
-
-
-class QuerySpec(utils.InmutableDict):
-    def __init__(self, query_name, **kwargs):
-        def _normalize_key(key):
-            for x in [' ', '_']:
-                key = key.replace(x, '-')
-            return key
-
-        kwargs = {_normalize_key(k): v for (k, v) in kwargs.items()}
-        kwargs['kind'] = kwargs.get('kind', 'source')
-
-        if 'language' in kwargs:
-            kwargs['language'] = kwargs['language'].lower()
-
-        if 'type' in kwargs:
-            kwargs['type'] = kwargs['type'].lower()
-
-        super().__init__(**kwargs)
-        self._name = query_name
-
-    @property
-    def name(self):
-        return self._name
 
 
 class Filter(extension.Extension):
