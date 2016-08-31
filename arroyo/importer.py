@@ -519,8 +519,9 @@ class Importer:
             Origin,
             source.provider,
             uri=source.uri)
-        task_manager = self._create_task_manager()
-        psrcs = task_manager.run(origin.get_sources_data(task_manager))
+
+        loop = asyncio.get_event_loop()
+        psrcs = loop.run_until_complete(origin.get_data())
         psrcs = self.organize_data_by_most_recent(*psrcs)
 
         for (disc, psrc) in psrcs.items():
