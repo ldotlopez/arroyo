@@ -78,10 +78,18 @@ class ImportCommand(plugin.Command):
 
                     origin_data[k] = v
 
-            origin_name = origin_data.pop('backend')
+            impl_name = origin_data.pop('backend')
+            display_name = origin_data.pop('display_name', None)
+            uri = origin_data.pop('uri', None)
+            iterations = origin_data.pop('iterations', None)
+            overrides = origin_data
+
             origin = self.app.get_extension(
-                plugin.Origin, origin_name, **origin_data
+                plugin.Origin, impl_name,
+                display_name=display_name,
+                uri=uri, iterations=iterations, overrides=overrides
             )
+
             self.app.importer.process(origin)
 
         elif arguments.from_config:
