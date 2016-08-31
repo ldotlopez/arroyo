@@ -27,8 +27,8 @@ fetcher:
     enable-cache: True
     cache-delta: 1200
     headers:
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
-      'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+        'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
 
 # Selector
 selector:
