@@ -11,7 +11,6 @@ from arroyo import (
     cron,
     exc,
     extension,
-    importer,
     models
 )
 
@@ -56,16 +55,10 @@ class Downloads:
         assert isinstance(source, models.Source)
 
         if source.needs_postprocessing:
-            try:
-                self.app.importer.resolve_source(source)
-            except (importer.ResolveError, NotImplementedError) as e:
-                msg = "Unable to resolve source"
-                raise ResolveError(msg, original_exception=e, source=source) \
-                    from e
+            self.app.importer.resolve_source(source)
 
         try:
             self.backend.add(source)
-
         except Exception as e:
             msg = "Downloader '{name}' error"
             msg.format(name=self.backend_name)

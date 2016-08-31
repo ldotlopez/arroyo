@@ -531,7 +531,7 @@ class Importer:
             _update_source(psrc)
 
         if not source.urn:
-            raise ResolveError()
+            raise exc.SourceResolveError(source)
 
         del(psrcs[source.urn])
         if psrcs:
@@ -569,7 +569,3 @@ class ImporterCronTask(cron.CronTask):
     def run(self):
         self.app.importer.run()
         super().run()
-
-
-class ResolveError(Exception):
-    pass

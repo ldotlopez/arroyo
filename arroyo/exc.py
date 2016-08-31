@@ -16,6 +16,10 @@ class SettingError(_BaseException):
         super().__init__(msg, key=key, value=value, original=original)
 
 
+class SourceResolveError(_BaseException):
+    pass
+
+
 class PluginArgumentError(Exception):
     pass
 
