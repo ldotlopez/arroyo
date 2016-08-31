@@ -34,7 +34,7 @@ class Eztv(plugin.Origin):
 
         # https://eztv.ag/ -> 0 if not pathcomponents:
         if not pathcomponents:
-            yield from self.paginate(url + '/page_0')
+            yield self.DEFAULT_URI
             return
 
         # https://eztv.ag/shows/546/black-mirror/
