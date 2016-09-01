@@ -58,62 +58,75 @@ class Eztv(plugin.Origin):
             page += 1
 
     def get_query_uri(self, query):
-        selector = query.get('kind')
-        if selector != 'episode':
+        kind = query.get('kind')
+        if kind != 'episode':
             return
 
         series = query.get('series')
         if not series:
             return
 
-        showlist_url = self._BASE_DOMAIN + '/showlist/'
-        try:
-            buff = self.app.get_fetcher().fetch(showlist_url)
-        except fetchers.FetchError as e:
-            msg = 'Unable to fetch {url}: {msg}'
-            msg = msg.format(url=showlist_url, msg=str(e))
-            self.logger.error(msg)
-            return
+        return '{base}/search/{q}'.format(
+            base=self._BASE_DOMAIN, q=series.strip().replace(' ', '-')
+        )
 
-        table = self.parse_series_index(buff)
+    # def get_query_uri_(self, query):
+    #     selector = query.get('kind')
+    #     if selector != 'episode':
+    #         return
 
-        try:
-            return self.get_url_for_series(table, series, query.get('year'))
-        except KeyError:
-            return None
+    #     series = query.get('series')
+    #     if not series:
+    #         return
 
-    def get_url_for_series(self, table, series, year=None):
-        table_lower = {k.lower(): v for (k, v) in table.items()}
+    #     showlist_url = self._BASE_DOMAIN + '/showlist/'
+    #     try:
+    #         buff = self.app.get_fetcher().fetch(showlist_url)
+    #     except fetchers.FetchError as e:
+    #         msg = 'Unable to fetch {url}: {msg}'
+    #         msg = msg.format(url=showlist_url, msg=str(e))
+    #         self.logger.error(msg)
+    #         return
 
-        key = series.lower()
-        if year:
-            key += ' ({})'.format(year)
+    #     table = self.parse_series_index(buff)
 
-        try:
-            return table_lower[key]
-        except KeyError as e:
-            pass
+    #     try:
+    #         return self.get_url_for_series(table, series, query.get('year'))
+    #     except KeyError:
+    #         return None
 
-        raise KeyError(series)
+    # def get_url_for_series(self, table, series, year=None):
+    #     table_lower = {k.lower(): v for (k, v) in table.items()}
 
-    def parse_series_index(self, buff):
-        def parse_row(x):
-            name = x.text
-            href = x.attrs.get('href', '')
+    #     key = series.lower()
+    #     if year:
+    #         key += ' ({})'.format(year)
 
-            if not href.startswith('/shows/') or not name:
-                return None
+    #     try:
+    #         return table_lower[key]
+    #     except KeyError as e:
+    #         pass
 
-            if name.lower().endswith(', the'):
-                name = 'The ' + name[:-5]
+    #     raise KeyError(series)
 
-            return (name, self._BASE_DOMAIN + href)
+    # def parse_series_index(self, buff):
+    #     def parse_row(x):
+    #         name = x.text
+    #         href = x.attrs.get('href', '')
 
-        soup = bs4.BeautifulSoup(buff, "html.parser")
-        shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))
-        shows = filter(lambda x: x, shows)
+    #         if not href.startswith('/shows/') or not name:
+    #             return None
 
-        return {x[0]: x[1] for x in shows}
+    #         if name.lower().endswith(', the'):
+    #             name = 'The ' + name[:-5]
+
+    #         return (name, self._BASE_DOMAIN + href)
+
+    #     soup = bs4.BeautifulSoup(buff, "html.parser")
+    #     shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))
+    #     shows = filter(lambda x: x, shows)
+
+    #     return {x[0]: x[1] for x in shows}
 
     def parse(self, buff):
         """
