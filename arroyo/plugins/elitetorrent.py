@@ -107,6 +107,7 @@ class EliteTorrent(plugin.Origin):
 
         elif kind == 'movie':
             q = params.get('title')
+            year = params.get('year')
             if year:
                 q += ' ({year})'.format(year)
 
