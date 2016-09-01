@@ -58,8 +58,6 @@ class TestOrigin:
                              msg='Fail pagination for {}'.format(start))
 
     def test_parse(self):
-        return
-
         for (sample, n_expected) in self.PARSE_TESTS:
             origin = self.app.get_extension(
                 plugin.Origin,
@@ -236,10 +234,19 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
     ]
 
     PARSE_TESTS = [
-        ('elitetorrent-listing.html', 42),
+        ('elitetorrent-list.html', 48),
+        ('elitetorrent-detail.html', 1),
     ]
 
     QUERY_TESTS = [
+        (
+            'new girl',  # language=esp-es required
+            None,
+        ),
+        (
+            dict(name='new girl', language='spa-es'),
+            'http://www.elitetorrent.net/busqueda/new+girl',
+        ),
     ]
 
 

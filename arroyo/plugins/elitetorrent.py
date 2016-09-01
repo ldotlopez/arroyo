@@ -91,7 +91,7 @@ class EliteTorrent(plugin.Origin):
         if query.get('language', None) not in self._langs:
             return
 
-        kind = query.get('kind')
+        kind = query.get('kind', 'source')
 
         if kind == 'episode':
             q = query.get('series')
@@ -120,8 +120,8 @@ class EliteTorrent(plugin.Origin):
             if q:
                 q = q.replace('*', ' ')
 
-        q = parse.quote_plus(q.lower().strip())
         if q:
+            q = parse.quote_plus(q.lower().strip())
             return 'http://www.elitetorrent.net/busqueda/' + q
 
     def parse(self, buff):
