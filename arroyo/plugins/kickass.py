@@ -59,35 +59,36 @@ class KickAss(plugin.Origin):
             page += 1
 
     def get_query_uri(self, query):
-        selector = query.get('kind')
+        kind = query.kind
+        params = query.params
 
-        if selector == 'episode':
-            series = query.get('series')
+        if kind == 'episode':
+            series = params.get('series')
             if not series:
                 return
 
             q = '{} category:tv'.format(series)
 
-            season = query.get('season')
+            season = params.get('season')
             if season:
                 q += ' season:{}'.format(season)
 
-            episode = query.get('episode')
+            episode = params.get('episode')
             if episode:
                 q += ' episode:{}'.format(episode)
 
-        elif selector == 'movie':
-            title = query.get('title', '')
+        elif kind == 'movie':
+            title = params.get('title', '')
             if not title:
                 return
 
             q = '{} category:movies'.format(title)
 
         else:
-            q = query.get('name') or \
-                query.get('name-glob') or \
-                query.get('name-like') or \
-                query.get('name-regexp') or ''
+            q = params.get('name') or \
+                params.get('name-glob') or \
+                params.get('name-like') or \
+                params.get('name-regexp') or ''
             q = q.replace('%', ' ').replace('*', ' ')
             q = q.strip()
 

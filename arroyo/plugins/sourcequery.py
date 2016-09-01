@@ -4,7 +4,9 @@ from arroyo import plugin
 models = plugin.models
 
 
-class Query(plugin.Query):
+class SourceQuery(plugin.Query):
+    KIND = 'source'
+
     def matches(self, everything):
         qs = self.app.db.session.query(models.Source)
 
@@ -26,5 +28,5 @@ class Query(plugin.Query):
 
 
 __arroyo_extensions__ = [
-    ('source', Query)
+    ('source', SourceQuery)
 ]

@@ -16,7 +16,11 @@ class TestOrigin:
     QUERY_TESTS = []
 
     def setUp(self):
-        settings = {}
+        settings = {
+            'plugin.sourcequery.enabled': True,
+            'plugin.episodequery.enabled': True,
+            'plugin.moviequery.enabled': True
+        }
         settings.update(
             {'plugin.' + x + '.enabled': True
              for x in self.PLUGINS}
@@ -80,6 +84,8 @@ class TestOrigin:
             if not isinstance(query, dict):
                 words = [x for x in query.split(' ') if x]
                 query = {'name-glob': '*' + '*'.join(words) + '*'}
+
+            query = self.app.selector.get_query_from_params(query)
 
             self.assertEqual(
                 uri,

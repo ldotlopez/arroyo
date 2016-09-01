@@ -140,21 +140,23 @@ class DownloadCommand(plugin.Command):
             return
 
         if query:
-            specs = [plugin.QuerySpec('command-line', **query)]
+            queries = [self.app.selector.get_query_from_params(
+                params=query, display_name='command-line'
+            )]
 
         elif from_config:
-            specs = self.app.selector.get_queries_specs()
+            queries = self.app.selector.get_configured_queries()
 
-        if not specs:
+        if not queries:
             msg = "No queries specified"
             raise plugin.exc.PluginArgumentError(msg)
 
-        for spec in specs:
-            matches = self.app.selector.matches(spec)
+        for query in queries:
+            matches = self.app.selector.matches(query)
             srcs = list(self.app.selector.select(matches))
             if not srcs:
                 msg = "No results for {name}"
-                msg = msg.format(name=spec.name)
+                msg = msg.format(name=str(query))
                 self.app.logger.error(msg)
                 continue
 
