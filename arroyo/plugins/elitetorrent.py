@@ -21,7 +21,9 @@ from ldotcommons import utils
 class EliteTorrent(plugin.Origin):
     PROVIDER = 'elitetorrent'
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
-
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]+\.)?elitetorrent.net/'
+    ]
     _SETTINGS_NS = "plugin.elitetorrent"
 
     type_map = {

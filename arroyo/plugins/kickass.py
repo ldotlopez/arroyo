@@ -19,6 +19,10 @@ class KickAss(plugin.Origin):
 
     _BASE_URI = 'https://kickass.cd'
     DEFAULT_URI = _BASE_URI + '/new/'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?kickass.[^.]{2,3}/',
+        r'^http(s)?://([^.]\.)?kat.[^.]{2,3}/',
+    ]
 
     _TYPES = {
         'audio': 'other',

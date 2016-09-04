@@ -40,6 +40,10 @@ class ThePirateBay(plugin.Origin):
     DEFAULT_URI = '{proto}://thepiratebay.{tld}/recent/0/'.format(
         proto=PROTO, tld=TLD
     )
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]+.)?thepiratebay\.[^.]{2,3}/(?!rss/)'
+    ]
+
     SEARCH_URL_PATTERN = (
         "{proto}://thepiratebay.{tld}".format(proto=PROTO, tld=TLD) +
         "/search/{q}/0/99/0"
@@ -287,6 +291,9 @@ class ThePirateBayRSS(plugin.Origin):
 
     DEFAULT_URI = _BASE_URL + "/top100/0"
     PROVIDER = 'thepiratebayrss'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
+    ]
 
     def paginate(self):
         yield self.uri

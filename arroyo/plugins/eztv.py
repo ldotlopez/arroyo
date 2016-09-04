@@ -16,6 +16,9 @@ class Eztv(plugin.Origin):
 
     DEFAULT_URI = _BASE_DOMAIN + '/page_0'
     PROVIDER = 'eztv'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?eztv\.[^.]{2,3}/'
+    ]
 
     _table_mults = {
         's': 1,
