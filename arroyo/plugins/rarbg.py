@@ -5,15 +5,34 @@ import asyncio
 from urllib import parse
 
 from arroyo import plugin
-from ldotcommons import fetchers
 
 
 class Rarbg(plugin.Origin):
-    BASE_URL = 'https://rarbg.to/torrents.php'
-    PROVIDER_NAME = 'rarbg'
+    DEFAULT_URI = 'https://rarbg.to/torrents.php'
+    PROVIDER = 'rarbg'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]+\.)?rarbg.to.*',
+    ]
+
     CATEGORY_TYPE_IDS = {
         'episode': ('18', '41', ),
         'movie': ('44', '45', ),
+    }
+
+    REQ_HEADERS = {
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Encoding': 'gzip, deflate, sdch, br',
+        'Accept-Language': 'en,es;q=0.8,fr;q=0.6,ca;q=0.4',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Host': 'rarbg.to',
+        'Cookie': '',
+        'Pragma': 'no-cache',
+        'Upgrade-Insecure-Requests': '1',
+        'Referer': 'https://rarbg.to',
+        'User-Agent': ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_6) '
+                       'AppleWebKit/537.36(KHTML, like Gecko), '
+                       'Chrome/52.0.2743.116 Safari/537.36'),
     }
 
     def __init__(self, *args, **kwargs):
@@ -21,52 +40,62 @@ class Rarbg(plugin.Origin):
         self._throttle = asyncio.Semaphore(5)
 
     def _build_url(self, path=None, query=None):
-        parsed = parse.urlparse(self.BASE_URL)
+        parsed = parse.urlparse(self.DEFAULT_URI)
         return '{scheme}://{netloc}{path}?{query}'.format(
             scheme=parsed.scheme, netloc=parsed.netloc,
             path=path or parsed.path, query=parse.urlencode(query or {})
         )
 
-    def paginate(self, url):
-        yield from self.paginate_by_query_param(url, 'page', default=1)
+    def paginate(self):
+        yield from self.paginate_by_query_param(self.uri, 'page', default=1)
 
-    def get_query_url(self, query):
-        selector = query.get('kind')
+    def get_query_uri(self, query):
+        selector = query.kind
+        params = query.params
 
         if selector == 'episode':
-            season = query.get('season', '')
+            season = params.get('season', '')
             if season:
                 season = 's{:02d}'.format(season)
 
-            episode = query.get('episode', '')
+            episode = params.get('episode', '')
             if episode:
                 episode = 'e{:02d}'.format(episode)
 
-            search_str = '{} {}{}'.format(query.get('series', ''), season, episode)
+            search_str = '{} {}{}'.format(params.get('series', ''), season, episode)
             search_params = {
                 'search': search_str.strip(),
                 'categories': ';'.join(self.CATEGORY_TYPE_IDS['episode'])
             }
 
         elif selector == 'movie':
-            search_str = '{} {}'.format(query.get('title'), query.get('year'))
+            search_str = '{} {}'.format(params.get('title'), params.get('year'))
             search_params = {
                 'search': search_str.strip(),
                 'categories': ';'.join(self.CATEGORY_TYPE_IDS['movie'])
             }
 
         else:
-            name = (query.get('name') or
-                    query.get('name-glob') or
-                    query.get('name-like') or
-                    query.get('name-regexp') or '')
+            name = (params.get('name') or
+                    params.get('name-glob') or
+                    params.get('name-like') or
+                    params.get('name-regexp') or '')
             qs = name.replace('%', ' ').replace('*', ' ').strip()
             search_params = {'search': qs, }
 
         return self._build_url(query=search_params)
 
+    def set_spambot_cookie(self):
+        # index = self.app.fetcher.fetch(self.DEFAULT_URI)
+        self.REQ_HEADERS['Cookie'] = 'vDVPaqSe=r9jSB2Wk;skt=C4HVQe2a;LastVisit=1473097598;expla=1'
+
+    @asyncio.coroutine
+    def get_data(self):
+        self.set_spambot_cookie()
+        return super().get_data()
+
     def parse(self, buff):
-        html = bs4.BeautifulSoup(buff, "lxml")
+        html = bs4.BeautifulSoup(buff, 'lxml')
         info = html.select_one('table.lista')
         if info:
             return self.parse_detailed(info)
@@ -95,18 +124,9 @@ class Rarbg(plugin.Origin):
 
     @asyncio.coroutine
     def fetch(self, url):
-        s = self.app.settings
-
-        fetcher = fetchers.AIOHttpFetcher(
-            logger=self.logger.getChild('fetcher'),
-            **{
-                k.replace('-', '_'): v
-                for (k, v) in s.get('fetcher').items()
-            })
-
         with (yield from self._throttle):
             yield from asyncio.sleep(1)
-            return (yield from fetcher.fetch(url))
+            return (yield from super().fetch(url, params={'headers': self.REQ_HEADERS}))
 
 
 __arroyo_extensions__ = [
