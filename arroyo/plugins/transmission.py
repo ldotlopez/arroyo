@@ -104,21 +104,24 @@ class TransmissionDownloader(plugin.Downloader):
             except orm.exc.MultipleResultsFound:
                 msg = "Multiple results found for urn '{urn}'"
                 msg = msg.format(urn=u)
-                self._logger.error(msg)
+                self._logger.critical(msg)
+                raise
 
-                # There shouldn't be multiple results !!
-                # Trying to do my best
-                by_state = q.filter(models.Source.is_active is True)
-                if by_state.count() == 1:
-                    msg = ("Exception saved using state property but this is "
-                           "a bug")
-                    self._logger.error(msg)
-                    ret = by_state.first()
-                    break
-                else:
-                    msg = ("Unable to rescue invalid state. Multiple sources "
-                           "found, fix this.")
-                    self._logger.error(msg)
+                # # This code was used to workaroung this exception.
+                # # Delete it since its better to fix this bug!
+                # # There shouldn't be multiple results !!
+                # # Trying to do my best
+                # by_state = q.filter(models.Source.is_active is True)
+                # if by_state.count() == 1:
+                #     msg = ("Exception saved using state property but this "
+                #            "is a bug")
+                #     self._logger.error(msg)
+                #     ret = by_state.first()
+                #     break
+                # else:
+                #     msg = ("Unable to rescue invalid state. Multiple "
+                #            "sources found, fix this.")
+                #     self._logger.error(msg)
 
             except orm.exc.NoResultFound:
                 pass

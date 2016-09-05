@@ -1,6 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import (
+    importer,
+    plugin
+)
 
 
 from datetime import datetime
@@ -20,7 +23,7 @@ class _CategoryUnknowError(Exception):
 
 
 class ThePirateBay(plugin.Origin):
-    PROVIDER_NAME = 'thepiratebay'
+    PROVIDER = 'thepiratebay'
 
     # URL structure:
     # https://thepiratebay.cr/search.php?q={q}&page={page}&orderby=99
@@ -31,11 +34,20 @@ class ThePirateBay(plugin.Origin):
     # order_by=9 leechers
     # order_by=11 uploaded by
 
-    _TLD = 'cr'
-    # 'Hydra' domains
-    # _TLD = random.sample(['am', 'gs', 'mn', 'la', 'vg'], 1)[0]
+    PROTO = 'https'
+    TLD = 'cr'
 
-    BASE_URL = 'https://thepiratebay.{tld}/recent/0/'.format(tld=_TLD)
+    DEFAULT_URI = '{proto}://thepiratebay.{tld}/recent/0/'.format(
+        proto=PROTO, tld=TLD
+    )
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]+.)?thepiratebay\.[^.]{2,3}/(?!rss/)'
+    ]
+
+    SEARCH_URL_PATTERN = (
+        "{proto}://thepiratebay.{tld}".format(proto=PROTO, tld=TLD) +
+        "/search/{q}/0/99/0"
+    )
 
     _TYPE_TABLE = {
         'applications': {
@@ -112,47 +124,24 @@ class ThePirateBay(plugin.Origin):
         }
     }
 
-    def paginate(self, url):
-        if not url.endswith('/'):
-            url += '/'
+    def paginate(self):
+        uri = self.uri
+
+        if not uri.endswith('/'):
+            uri += '/'
 
         # Get page
         try:
-            page = int(re.findall(r'/(\d+)/', url)[0])
+            page = int(re.findall(r'/(\d+)/', uri)[0])
         except IndexError:
             page = 0
-            url += '0/'
+            uri += '0/'
 
-        pre, post = re.split(r'/\d+/', url, maxsplit=1)
+        pre, post = re.split(r'/\d+/', uri, maxsplit=1)
 
         while True:
             yield pre + '/' + str(page) + '/' + post
             page += 1
-
-    def get_query_url(self, query):
-        t = {
-            'source': 'name',
-            'episode': 'series',
-            'movie': 'title'
-        }
-        selector = query.get('kind')
-        field = t.get(selector, 'other')
-        if not field:
-            return
-
-        q = 'other'
-        for suffix in ['', '-glob', '-like', '-regexp']:
-            q = query.get(field + suffix, 'other')
-            if q is not 'other':
-                q = q.replace('%', ' ').replace('*', ' ')
-                q = q.strip()
-                q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
-                break
-
-        if q:
-            return "https://thepiratebay.{tld}/search/{q}/0/99/0".format(
-                   tld=self._TLD,
-                   q=q)
 
     def parse(self, buff):
         def parse_row(row):
@@ -196,7 +185,7 @@ class ThePirateBay(plugin.Origin):
         soup = bs4.BeautifulSoup(buff, "html.parser")
         rows = soup.select('tr')
         rows = filter(filter_row, rows)
-        return map(parse_row, rows)
+        return list(map(parse_row, rows))
 
     @classmethod
     def parse_category(cls, text):
@@ -266,29 +255,50 @@ class ThePirateBay(plugin.Origin):
 
         return now
 
+    def get_query_uri(self, query):
+        kind = query.kind
+        params = query.params
+
+        types_prop_map = {
+            'source': 'name',
+            'episode': 'series',
+            'movie': 'title'
+        }
+
+        prop = types_prop_map.get(kind, 'other')
+
+        if not prop:
+            return None
+
+        q = 'other'
+        for suffix in ['', '-glob', '-like', '-regexp']:
+            q = params.get(prop + suffix, 'other')
+            if q is not 'other':
+                q = q.replace('%', ' ').replace('*', ' ')
+                q = q.strip()
+                q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
+                break
+
+        if not q:
+            return None
+
+        return self.SEARCH_URL_PATTERN.format(q=q)
+
 
 class ThePirateBayRSS(plugin.Origin):
+    _TLD = 'cr'
+    _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
 
-    PROVIDER_NAME = 'thepiratebayrss'
-    BASE_URL = 'http://thepiratebay.{tld}/rss/'.format(
-        tld=random.sample([
-            'am', 'gs', 'mn', 'la', 'vg'
-        ], 1)[0])
+    DEFAULT_URI = _BASE_URL + "/top100/0"
+    PROVIDER = 'thepiratebayrss'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
+    ]
 
-    def paginate(self, url):
-        yield url
+    def paginate(self):
+        yield self.uri
 
-    # def url_generator(self, url='other'):
-    #     """Generates URLs for the current website,
-    #     TPB doesn't support pagination on feeds
-    #     """
-    #     if url is 'other':
-    #         url = self.BASE_URL
-
-    #     yield url
-    #     raise StopIteration()
-
-    def process_buffer(self, buff):
+    def parse(self, buff):
         def _build_source(entry):
             return {
                 'uri': entry['link'],
@@ -297,10 +307,11 @@ class ThePirateBayRSS(plugin.Origin):
                 'size': int(entry['contentlength'])
             }
 
-        return map(_build_source, feedparser.parse(buff)['entries'])
+        ret = [_build_source(x) for x in feedparser.parse(buff)['entries']]
+        return ret
 
 
 __arroyo_extensions__ = [
     ('thepiratebay', ThePirateBay),
-    ('thepiratebayrss', ThePirateBayRSS)
+    ('thepiratebayrss', ThePirateBayRSS),
 ]

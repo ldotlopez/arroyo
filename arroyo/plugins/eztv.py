@@ -12,12 +12,13 @@ from ldotcommons import fetchers, utils
 
 
 class Eztv(plugin.Origin):
-    BASE_DOMAIN = 'https://eztv.ag'
-    BASE_URL = BASE_DOMAIN + '/page_0'
-    PROVIDER_NAME = 'eztv'
+    _BASE_DOMAIN = 'https://eztv.ag'
 
-    BASE_DOMAIN = 'https://eztv.ag'
-    BASE_URL = BASE_DOMAIN + '/page_0'
+    DEFAULT_URI = _BASE_DOMAIN + '/page_0'
+    PROVIDER = 'eztv'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?eztv\.[^.]{2,3}/'
+    ]
 
     _table_mults = {
         's': 1,
@@ -29,25 +30,25 @@ class Eztv(plugin.Origin):
         'y': 60*60*24*365,
     }
 
-    def paginate(self, url):
-        parsed = parse.urlparse(url)
+    def paginate(self):
+        parsed = parse.urlparse(self.uri)
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
         # https://eztv.ag/ -> 0 if not pathcomponents:
         if not pathcomponents:
-            yield from self.paginate(url + '/page_0')
+            yield self.DEFAULT_URI
             return
 
         # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
-            yield url
+            yield self.uri
             return
 
         # Anything non standard
         m = re.findall(r'^page_(\d+)$', pathcomponents[0])
         if not m:
-            yield url
+            yield self.uri
             return
 
         # https://eztv.ag/page_0
@@ -59,63 +60,20 @@ class Eztv(plugin.Origin):
                 page=page)
             page += 1
 
-    def get_query_url(self, query):
-        selector = query.get('kind')
-        if selector != 'episode':
+    def get_query_uri(self, query):
+        kind = query.kind
+        params = query.params
+
+        if kind != 'episode':
             return
 
-        series = query.get('series')
+        series = params.get('series')
         if not series:
             return
 
-        showlist_url = self.BASE_DOMAIN + '/showlist/'
-        try:
-            buff = self.app.get_fetcher().fetch(showlist_url)
-        except fetchers.FetchError as e:
-            msg = 'Unable to fetch {url}: {msg}'
-            msg = msg.format(url=showlist_url, msg=str(e))
-            self.logger.error(msg)
-            return
-
-        table = self.parse_series_index(buff)
-
-        try:
-            return self.get_url_for_series(table, series, query.get('year'))
-        except KeyError:
-            return None
-
-    def get_url_for_series(self, table, series, year=None):
-        table_lower = {k.lower(): v for (k, v) in table.items()}
-
-        key = series.lower()
-        if year:
-            key += ' ({})'.format(year)
-
-        try:
-            return table_lower[key]
-        except KeyError as e:
-            pass
-
-        raise KeyError(series)
-
-    def parse_series_index(self, buff):
-        def parse_row(x):
-            name = x.text
-            href = x.attrs.get('href', '')
-
-            if not href.startswith('/shows/') or not name:
-                return None
-
-            if name.lower().endswith(', the'):
-                name = 'The ' + name[:-5]
-
-            return (name, self.BASE_DOMAIN + href)
-
-        soup = bs4.BeautifulSoup(buff, "html.parser")
-        shows = (parse_row(x) for x in soup.select('tr td a.thread_link'))
-        shows = filter(lambda x: x, shows)
-
-        return {x[0]: x[1] for x in shows}
+        return '{base}/search/{q}'.format(
+            base=self._BASE_DOMAIN, q=series.strip().replace(' ', '-')
+        )
 
     def parse(self, buff):
         """

@@ -45,7 +45,7 @@ El comando 'import' puede usar el archivo de configuracion para obtener los par√
 origin:
   nombre:
     backend: kickass
-    url: http://kat.am/usearch/category:tv
+    uri: https://kickass.cd/usearch/category:tv
     type: episode
 ```
 

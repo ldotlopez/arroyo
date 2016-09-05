@@ -15,13 +15,18 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
-    PROVIDER_NAME = 'kickass'
-    BASE_DOMAIN = 'https://kickass.cd'
-    BASE_URL = BASE_DOMAIN + '/new/'
+    PROVIDER = 'kickass'
+
+    _BASE_URI = 'https://kickass.cd'
+    DEFAULT_URI = _BASE_URI + '/new/'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?kickass.[^.]{2,3}/',
+        r'^http(s)?://([^.]\.)?kat.[^.]{2,3}/',
+    ]
 
     _TYPES = {
         'audio': 'other',
-        'anime': 'other',
+        'anime': None,
         'applications': 'application',
         'books': 'book',
         'games': 'game',
@@ -30,7 +35,7 @@ class KickAss(plugin.Origin):
         'other': 'other',
         'porn': 'xxx',
         'tv': 'episode',
-        'video': 'other',
+        'video': None,  # Try to auto detect
         'xxx': 'xxx'
     }
 
@@ -38,8 +43,8 @@ class KickAss(plugin.Origin):
         super(KickAss, self).__init__(*args, **kwargs)
         self._logger = self.app.logger.getChild('kickass-importer')
 
-    def paginate(self, url):
-        parsed = parse.urlparse(url)
+    def paginate(self):
+        parsed = parse.urlparse(self.uri)
         paths = [x for x in parsed.path.split('/') if x]
 
         try:
@@ -57,36 +62,37 @@ class KickAss(plugin.Origin):
             yield parse.urlunparse(parsed._replace(path='/'.join(tmp) + '/'))
             page += 1
 
-    def get_query_url(self, query):
-        selector = query.get('kind')
+    def get_query_uri(self, query):
+        kind = query.kind
+        params = query.params
 
-        if selector == 'episode':
-            series = query.get('series')
+        if kind == 'episode':
+            series = params.get('series')
             if not series:
                 return
 
             q = '{} category:tv'.format(series)
 
-            season = query.get('season')
+            season = params.get('season')
             if season:
                 q += ' season:{}'.format(season)
 
-            episode = query.get('episode')
+            episode = params.get('episode')
             if episode:
                 q += ' episode:{}'.format(episode)
 
-        elif selector == 'movie':
-            title = query.get('title', '')
+        elif kind == 'movie':
+            title = params.get('title', '')
             if not title:
                 return
 
             q = '{} category:movies'.format(title)
 
         else:
-            q = query.get('name') or \
-                query.get('name-glob') or \
-                query.get('name-like') or \
-                query.get('name-regexp') or ''
+            q = params.get('name') or \
+                params.get('name-glob') or \
+                params.get('name-like') or \
+                params.get('name-regexp') or ''
             q = q.replace('%', ' ').replace('*', ' ')
             q = q.strip()
 
@@ -95,7 +101,7 @@ class KickAss(plugin.Origin):
 
         return ('{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
-                    domain=self.BASE_DOMAIN,
+                    domain=self._BASE_URI,
                     q=parse.quote(q))
 
     def parse(self, buff):
@@ -234,6 +240,19 @@ class KickAss(plugin.Origin):
 
             today = datetime.date.today()
             x = humanfriendly.parse_date(created_str)
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            created = int(x)
+            return created
+
+        # y-day 04:41
+        m = re.search(r'y-day\s+(\d{2}):(\d{2})', created)
+        if m:
+            today = datetime.date.today()
+            yday = today - datetime.timedelta(days=1)
+            x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
+                yday.year, yday.month, yday.day,
+                m.group(1), m.group(2)))
             x = datetime.datetime(*x).timetuple()
             x = time.mktime(x)
             created = int(x)

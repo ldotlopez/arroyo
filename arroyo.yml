@@ -9,14 +9,13 @@ log-format: '[%(levelname)s] [%(name)s] %(message)s'
 
 # Async options
 async-max-concurrency: 5
-async-timeout : 10
+async-timeout: 10
 
 # Downloader backend to use
 # Check arroyo/downloaders folder for available downloaders
 # Downloader options are located under its respective plugin section
 # ex. plugin.mock or plugin.transmission
-downloader:
-    backend: mock
+downloader: mock
 
 # Execute crontask at startup
 auto-cron: false
@@ -28,8 +27,8 @@ fetcher:
     enable-cache: True
     cache-delta: 1200
     headers:
-      'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
-      'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
+        'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
 
 # Selector
 selector:
