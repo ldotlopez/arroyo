@@ -208,9 +208,9 @@ class DownloadQueriesCronTask(cron.CronTask):
     INTERVAL = '3H'
 
     def run(self):
-        specs = self.app.selector.get_queries_specs()
-        for spec in specs:
-            matches = self.app.selector.matches(spec)
+        queries = self.app.selector.get_configured_queries()
+        for q in queries :
+            matches = self.app.selector.matches(q)
             srcs = self.app.selector.select(matches)
 
             if srcs is None:
