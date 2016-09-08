@@ -100,7 +100,7 @@ class Selector:
 
         return ret
 
-    def matches(self, query, everything=True):
+    def matches(self, query, everything=False):
         if not isinstance(query, Query):
             raise TypeError('query is not a Query')
 
