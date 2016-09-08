@@ -281,6 +281,10 @@ class Selection(Base):
                        nullable=False)
     source = relationship("Source")
 
+    __mapper_args__ = {
+        'polymorphic_on': 'type'
+    }
+
 
 class EpisodeSelection(Selection):
     episode_id = Column(Integer,
