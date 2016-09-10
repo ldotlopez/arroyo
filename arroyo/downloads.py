@@ -209,7 +209,7 @@ class DownloadQueriesCronTask(cron.CronTask):
 
     def run(self):
         queries = self.app.selector.get_configured_queries()
-        for q in queries :
+        for q in queries:
             matches = self.app.selector.matches(q)
             srcs = self.app.selector.select(matches)
 
