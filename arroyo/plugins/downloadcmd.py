@@ -101,7 +101,7 @@ class DownloadCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if show:
-            for src in self.app.downloads.list():
+            for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
                 print(self.format_source(src, self.LIST_FMT))
 
             return
