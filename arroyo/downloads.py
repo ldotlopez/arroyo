@@ -60,8 +60,8 @@ class Downloads:
         try:
             self.backend.add(source)
         except Exception as e:
-            msg = "Downloader '{name}' error"
-            msg.format(name=self.backend_name)
+            msg = "Downloader '{name}' error: {e}"
+            msg = msg.format(name=self.backend_name, e=e)
             raise BackendError(msg, original_exception=e) from e
 
         source.state = models.Source.State.INITIALIZING
