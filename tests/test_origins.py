@@ -120,7 +120,7 @@ class EztvTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
         ('eztv-page-0.html', 50),
-        ('eztv-hcf.html', 36)
+        ('eztv-hcf.html', 50),
     ]
 
     QUERY_TESTS = [

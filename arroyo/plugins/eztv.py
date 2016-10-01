@@ -20,15 +20,9 @@ class Eztv(plugin.Origin):
         r'^http(s)?://([^.]\.)?eztv\.[^.]{2,3}/'
     ]
 
-    _table_mults = {
-        's': 1,
-        'm': 60,
-        'h': 60*60,
-        'd': 60*60*24,
-        'w': 60*60*24*7,
-        'mo': 60*60*24*30,
-        'y': 60*60*24*365,
-    }
+    COUNT_NONE = 0
+    COUNT_ONE = 1
+    COUNT_MULTIPLE = 2
 
     def paginate(self):
         parsed = parse.urlparse(self.uri)
@@ -80,55 +74,139 @@ class Eztv(plugin.Origin):
         Finds referentes to sources in buffer.
         Returns a list with source infos
         """
-
-        def parse_row(row):
-            children = row.findChildren('td')
-            if len(row.findChildren('td')) != 6:
-                return None
-
-            try:
-                ret = {
-                    'name': children[1].text.strip(),
-                    'uri': children[2].select('a.magnet')[0]['href'],
-                    'language': 'eng-us',
-                    'type': 'episode'
-                }
-            except (IndexError, AttributeError):
-                return None
-
-            try:
-                ret['size'] = int(humanfriendly.parse_size(
-                    children[3].text.strip()))
-            except (IndexError, ValueError, humanfriendly.InvalidSize):
-                pass
-
-            created = children[4].text
-            diff = 0
-
-            m = re.search(r'(\d+)([mhd]) (\d+)([smhd])', created)
-            if m:
-                amount1 = int(m.group(1))
-                qual1 = m.group(2)
-                amount2 = int(m.group(3))
-                qual2 = m.group(4)
-                diff = (
-                    amount1 * self._table_mults[qual1] +
-                    amount2 * self._table_mults[qual2])
-
-            else:
-                m = re.search(r'(\d+) (w|mo|y)', created)
-                if m:
-                    diff = int(m.group(1)) * self._table_mults[m.group(2)]
-
-            ret['created'] = utils.now_timestamp() - diff
-
-            return ret
-
         soup = bs4.BeautifulSoup(buff, "html.parser")
-        ret = map(parse_row, soup.select('tr'))
-        ret = filter(lambda x: x is not None, ret)
+        rows = soup.select('tr')
+        rows = [x for x in rows
+                if self.pseudocount_magnet_links(x) == self.COUNT_ONE]
+        # magnet_links = soup.select('a[href^=magnet:?]')
+        # rows = [self.find_convenient_parent(x) for x in magnet_links]
+        ret = [self.parse_row(x) for x in rows]
 
         return ret
+
+    @classmethod
+    def pseudocount_magnet_links(cls, node):
+        """Count if node has 0, 1 or more magnet links"""
+
+        node_str = str(node)
+        idx1 = node_str.find('magnet:?')
+        if idx1 == -1:
+            return cls.COUNT_NONE
+
+        idx2 = node_str[idx1+1:].find('magnet:?')
+        if idx2 == -1:
+            return cls.COUNT_ONE
+
+        return cls.COUNT_MULTIPLE
+
+    @classmethod
+    def find_convenient_parent(cls, node):
+        """
+        Find the parent (or grantparent, etc) of the node that has all the
+        information needed.
+        Currently this method searches for the most top node that has one (and
+        only) magnet link
+        """
+
+        curr_count = cls.pseudocount_magnet_links(node)
+
+        while True:
+            parent = node.parent
+            if parent is None:
+                if curr_count == cls.COUNT_ONE:
+                    return node
+                else:
+                    return None
+
+            parent_count = cls.pseudocount_magnet_links(node.parent)
+            if parent_count == cls.COUNT_MULTIPLE:
+                return node
+
+            curr_count = parent_count
+            node = node.parent
+
+    @classmethod
+    def parse_name_and_uri(cls, node):
+        magnet = node.select_one('a[href^=magnet:?]')
+        parsed = parse.urlparse(magnet.attrs['href'])
+        name = parse.parse_qs(parsed.query)['dn']
+
+        return (name, magnet.attrs['href'])
+
+    @classmethod
+    def parse_size(cls, node):
+        s = str(node)
+
+        m = re.search(
+            r'(\d+(\.\d+)?\s+[TGMK]B)',
+            s,
+            re.IGNORECASE)
+        if not m:
+            raise ValueError('No size value found')
+
+        try:
+            return humanfriendly.parse_size(m.group(0))
+        except humanfriendly.InvalidSize as e:
+            raise ValueError('Invalid size') from e
+
+    @classmethod
+    def parse_created(cls, node):
+        _table_mults = {
+            's': 1,
+            'm': 60,
+            'h': 60*60,
+            'd': 60*60*24,
+            'w': 60*60*24*7,
+            'mo': 60*60*24*30,
+            'y': 60*60*24*365,
+        }
+
+        s = str(node)
+
+        def _do_diff(diff):
+            return utils.now_timestamp() - diff
+
+        m = re.search(r'(\d+)([mhd]) (\d+)([smhd])', s)
+        if m:
+            amount1 = int(m.group(1))
+            qual1 = m.group(2)
+            amount2 = int(m.group(3))
+            qual2 = m.group(4)
+            diff = (
+                amount1 * _table_mults[qual1] +
+                amount2 * _table_mults[qual2])
+
+            return _do_diff(diff)
+
+        m = re.search(r'(\d+) (w|mo|y)', s)
+        if m:
+            diff = int(m.group(1)) * _table_mults[m.group(2)]
+            return _do_diff(diff)
+
+        raise ValueError('No created value found')
+
+    @classmethod
+    def parse_row(cls, row):
+        # Get magnet and name from the magnet link
+        name, magnet = cls.parse_name_and_uri(row)
+        try:
+            size = cls.parse_size(row)
+        except ValueError:
+            size = None
+
+        try:
+            created = cls.parse_created(row)
+        except ValueError:
+            created = None
+
+        return {
+            'name': name,
+            'uri': magnet,
+            'size': size,
+            'created': created,
+            'language': 'eng-us',
+            'type': 'episode'
+        }
 
 
 __arroyo_extensions__ = [
