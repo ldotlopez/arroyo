@@ -129,7 +129,7 @@ class Eztv(plugin.Origin):
     def parse_name_and_uri(cls, node):
         magnet = node.select_one('a[href^=magnet:?]')
         parsed = parse.urlparse(magnet.attrs['href'])
-        name = parse.parse_qs(parsed.query)['dn']
+        name = parse.parse_qs(parsed.query)['dn'][0]
 
         return (name, magnet.attrs['href'])
 
