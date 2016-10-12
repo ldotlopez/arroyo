@@ -236,6 +236,7 @@ class Origin(extension.Extension):
             asyncio.CancelledError,
             asyncio.TimeoutError,
             aiohttp.errors.ClientOSError,
+            aiohttp.errors.ClientResponseError,
             aiohttp.errors.ServerDisconnectedError,
             ValueError  # url=foo (just 'foo')
         ) as e:
