@@ -240,7 +240,8 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
     ]
 
     PARSE_TESTS = [
-        ('elitetorrent-list.html', 48),
+        ('elitetorrent-listing.html', 42),
+        ('elitetorrent-search-result.html', 48),
         ('elitetorrent-detail.html', 1),
     ]
 
