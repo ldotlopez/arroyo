@@ -1,13 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import (
-    importer,
-    plugin
-)
-
+from arroyo import plugin
 
 from datetime import datetime
-import random
 import re
 import time
 

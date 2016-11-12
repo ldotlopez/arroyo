@@ -1,10 +1,8 @@
 # -*- coding: utf-8 -*-
 
+
 import itertools
 import sys
-
-
-from ldotcommons import utils
 
 
 import arroyo.exc

@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import importer, plugin
+
+from arroyo import plugin
 
 
 class ImportCommand(plugin.Command):

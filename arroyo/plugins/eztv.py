@@ -8,7 +8,7 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import fetchers, utils
+from ldotcommons import utils
 
 
 class Eztv(plugin.Origin):

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
+
 from arroyo import plugin
-from arroyo import importer
 
 
 from datetime import datetime
@@ -13,7 +13,6 @@ from urllib import parse
 
 
 import bs4
-import humanfriendly
 
 from ldotcommons import utils
 

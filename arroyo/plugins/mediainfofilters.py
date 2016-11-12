@@ -48,8 +48,9 @@ class CodecFilter(plugin.Filter):
         super().__init__(app, key, value.lower())
 
     def filter(self, item):
-        return \
-            self.value == item.tag_dict.get('mediainfo.video_codec', '').lower()
+        return (
+            self.value ==
+            item.tag_dict.get('mediainfo.video_codec', '').lower())
 
 
 __arroyo_extensions__ = [

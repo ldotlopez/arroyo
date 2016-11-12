@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from ldotcommons import sqlalchemy as ldotsa
-import arroyo.exc
 from arroyo import models
 
 
@@ -80,7 +79,9 @@ class Db:
     def shell(self):
         print("[!!] Database connection in 'sess' {}".format(self._sess))
         print("[!!] If you make any changes remember to call sess.commit()")
-        sess = self._sess  # nopep8
+        sess = self._sess
+        print(repr(sess))
+
         try:
             import ipdb
         except ImportError:
