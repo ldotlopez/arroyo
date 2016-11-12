@@ -491,5 +491,6 @@ class Arroyo:
             print("\nError message: {}".format(e), file=sys.stderr)
 
         except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError) as e:
+                arroyo.exc.NoImplementationError,
+                arroyo.exc.FatalError) as e:
             self.logger.critical(e)
