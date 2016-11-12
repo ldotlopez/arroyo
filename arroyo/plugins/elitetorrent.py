@@ -21,6 +21,7 @@ from ldotcommons import utils
 class EliteTorrent(plugin.Origin):
     PROVIDER = 'elitetorrent'
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
+    SEARCH_URI = 'http://www.elitetorrent.net/resultados/{query}/orden:fecha'
     URI_PATTERNS = [
         r'^http(s)?://([^.]+\.)?elitetorrent.net/'
     ]
@@ -125,7 +126,7 @@ class EliteTorrent(plugin.Origin):
 
         if q:
             q = parse.quote_plus(q.lower().strip())
-            return 'http://www.elitetorrent.net/busqueda/' + q
+            return self.SEARCH_URI.format(query=q)
 
     def parse(self, buff):
         soup = bs4.BeautifulSoup(buff, "html.parser")
