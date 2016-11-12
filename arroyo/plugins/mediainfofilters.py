@@ -4,7 +4,7 @@ from arroyo import plugin
 models = plugin.models
 
 
-class QualityFilter(plugin.Filter):
+class QualityFilter(plugin.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ('quality',)
 
@@ -40,7 +40,7 @@ class QualityFilter(plugin.Filter):
         return is_match
 
 
-class CodecFilter(plugin.Filter):
+class CodecFilter(plugin.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ('codec',)
 
