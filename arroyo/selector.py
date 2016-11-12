@@ -78,7 +78,9 @@ class Selector:
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
 
-        query_defalts = self.app.settings.get('selector.query-defaults', default={})
+        query_defalts = self.app.settings.get(
+            'selector.query-defaults',
+            default={})
         kind_defaults = self.app.settings.get(
             'selector.query-{kind}-defaults'.format(kind=impl_name),
             default={})
@@ -122,7 +124,9 @@ class Selector:
                 conflicts = conflicts.union(impl_conflicts)
 
                 msg = 'Filter «{name}» disabled. Conflicts: {conflicts}'
-                msg = msg.format(name=name, conflicts=','.join(list(conflicts)))
+                msg = msg.format(
+                    name=name,
+                    conflicts=','.join(list(conflicts)))
                 self.app.logger.warning(msg)
 
                 continue
@@ -196,7 +200,7 @@ class Selector:
                 msg = msg.format(
                     filter=f.__module__,
                     key=f.key, value=f.value,
-                  count=qs.count())
+                    count=qs.count())
                 self.app.logger.debug(msg)
 
         items = list(qs)
