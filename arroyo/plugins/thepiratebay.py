@@ -177,7 +177,7 @@ class ThePirateBay(plugin.Origin):
             return any((link.attrs.get('href', '').startswith('magnet')
                         for link in row.select('a')))
 
-        soup = bs4.BeautifulSoup(buff, "html.parser")
+        soup = bs4.BeautifulSoup(buff, "lxml")
         rows = soup.select('tr')
         rows = filter(filter_row, rows)
         return list(map(parse_row, rows))

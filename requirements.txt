@@ -18,6 +18,7 @@ sqlalchemy
 # Almost all origins
 beautifulsoup4
 feedparser
+lxml
 
 # transmission
 transmissionrpc
