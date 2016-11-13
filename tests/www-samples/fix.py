@@ -22,6 +22,9 @@ for x in sys.argv[1:]:
     repl = Sha1Generator()
     with open(x) as fh:
         buff = fh.read()
-        buff = re.sub(r'([a-f0-9]{40})', lambda m: repl.replace(m.group(1)), buff)
+        buff = re.sub(
+            r'([a-f0-9]{40})',
+            lambda m: repl.replace(m.group(1)),
+            buff)
 
         print(buff)
