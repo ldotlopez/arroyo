@@ -76,20 +76,6 @@ class Db:
             self._sess.query(models.Selection).delete()
         self._sess.commit()
 
-    def shell(self):
-        print("[!!] Database connection in 'sess' {}".format(self._sess))
-        print("[!!] If you make any changes remember to call sess.commit()")
-        sess = self._sess
-        print(repr(sess))
-
-        try:
-            import ipdb
-        except ImportError:
-            import pdb
-            ipdb = pdb
-
-        ipdb.set_trace()
-
     def search(self, all_states=False, **kwargs):
         query = ldotsa.query_from_params(self._sess, models.Source, **kwargs)
         if not all_states:
