@@ -1,25 +1,29 @@
 # -*- coding: utf-8 -*-
 
+
 import base64
 import binascii
 import hashlib
 import re
 from urllib import parse
 
+
 import bencodepy
+
+
+import arroyo.exc
 from arroyo import (
     cron,
-    exc,
     extension,
     models
 )
 
 
-class BackendError(exc._BaseException):
+class BackendError(arroyo.exc._BaseException):
     pass
 
 
-class ResolveError(exc._BaseException):
+class ResolveError(arroyo.exc._BaseException):
     pass
 
 
@@ -84,9 +88,9 @@ class Downloads:
         ret = []
         for src in sources:
             try:
-                added = self.add(src)
+                self.add(src)
                 ret.append((src, True, None))
-            except _BaseException as e:
+            except arroyo.exc_BaseException as e:
                 ret.append((src, False, e))
 
         return ret

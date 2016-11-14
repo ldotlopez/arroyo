@@ -4,7 +4,6 @@ from arroyo import models
 
 
 import functools
-from os import path
 
 
 import babelfish
