@@ -215,7 +215,7 @@ class KickassTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
         ('kat-new.html', 30),
-        ('kat-tv.html', 30),
+        ('kat-avs-search.html', 30),
         ('kat-full.html', 120)
     ]
 
@@ -252,7 +252,7 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
         ),
         (
             dict(name='new girl', language='spa-es'),
-            'http://www.elitetorrent.net/busqueda/new+girl',
+            'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
         ),
     ]
 
