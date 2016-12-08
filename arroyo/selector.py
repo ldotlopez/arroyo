@@ -75,9 +75,20 @@ class Selector:
 
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
+
+        query_defalts = self.app.settings.get('selector.query-defaults', default={})
+        kind_defaults = self.app.settings.get(
+            'selector.query-{kind}-defaults'.format(kind=impl_name),
+            default={})
+
+        params_ = {}
+        params_.update(query_defalts)
+        params_.update(kind_defaults)
+        params_.update(params)
+
         return self.app.get_extension(  # FIX: Handle exceptions
             Query, impl_name,
-            params=params,
+            params=params_,
             display_name=display_name
         )
 
