@@ -137,7 +137,7 @@ class KickAss(plugin.Origin):
                 pass
 
             idx = post
-            rows.append(bs4.BeautifulSoup(buff[pre:post], "html.parser"))
+            rows.append(bs4.BeautifulSoup(buff[pre:post], "lxml"))
 
         ret = map(self._process_row, rows)
         ret = filter(lambda x: x, ret)
