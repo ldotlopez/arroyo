@@ -11,7 +11,7 @@ class GenericOrigin(plugin.Origin):
         super().__init__(app, *args, **kwargs)
         self.logger = app.logger
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         buff = buff.decode('utf-8')
 
         matches = re.findall(

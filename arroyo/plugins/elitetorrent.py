@@ -127,8 +127,8 @@ class EliteTorrent(plugin.Origin):
             q = parse.quote_plus(q.lower().strip())
             return self.SEARCH_URI.format(query=q)
 
-    def parse(self, buff):
-        soup = bs4.BeautifulSoup(buff, "lxml")
+    def parse(self, buff, parser):
+        soup = bs4.BeautifulSoup(buff, parser)
         info = soup.select_one('.info-tecnica')
         if info:
             return self.parse_detailed(soup)

@@ -176,7 +176,9 @@ class Origin(extension.Extension):
             self.logger.critical(msg)
             raise
 
-        psrcs = self.parse(buff)
+        psrcs = self.parse(
+            buff,
+            parser=self.app.settings.get('importer.parser'))
         psrcs = self._normalize_source_data(*psrcs)
 
         msg = "Found {n_srcs_data} sources in {url}"

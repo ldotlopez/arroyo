@@ -138,7 +138,7 @@ class ThePirateBay(plugin.Origin):
             yield pre + '/' + str(page) + '/' + post
             page += 1
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         def parse_row(row):
             details = row.select('font.detDesc')[0].text
 
@@ -177,7 +177,7 @@ class ThePirateBay(plugin.Origin):
             return any((link.attrs.get('href', '').startswith('magnet')
                         for link in row.select('a')))
 
-        soup = bs4.BeautifulSoup(buff, "lxml")
+        soup = bs4.BeautifulSoup(buff, parser)
         rows = soup.select('tr')
         rows = filter(filter_row, rows)
         return list(map(parse_row, rows))

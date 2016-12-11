@@ -104,7 +104,7 @@ class KickAss(plugin.Origin):
                     domain=self._BASE_URI,
                     q=parse.quote(q))
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
@@ -137,7 +137,7 @@ class KickAss(plugin.Origin):
                 pass
 
             idx = post
-            rows.append(bs4.BeautifulSoup(buff[pre:post], "lxml"))
+            rows.append(bs4.BeautifulSoup(buff[pre:post], parser))
 
         ret = map(self._process_row, rows)
         ret = filter(lambda x: x, ret)

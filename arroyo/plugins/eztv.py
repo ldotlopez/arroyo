@@ -69,12 +69,12 @@ class Eztv(plugin.Origin):
             base=self._BASE_DOMAIN, q=series.strip().replace(' ', '-')
         )
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
         """
-        soup = bs4.BeautifulSoup(buff, "lxml")
+        soup = bs4.BeautifulSoup(buff, parser)
         rows = soup.select('tr')
         rows = [x for x in rows
                 if self.pseudocount_magnet_links(x) == self.COUNT_ONE]

@@ -5,6 +5,7 @@ import importlib
 import sys
 import warnings
 
+import bs4
 from ldotcommons import (
     fetchers,
     keyvaluestore,
@@ -30,40 +31,45 @@ from arroyo import (
 # Default values for config
 #
 _defaults = {
+    'async-max-concurrency': 5,
+    'async-timeout': 10,
+    'auto-cron': False,
+    'auto-import': False,
     'db-uri': 'sqlite:///' +
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
-    'auto-cron': False,
-    'auto-import': False,
-    'legacy': False,
-    'log-level': 'WARNING',
-    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher.enable-cache': True,
     'fetcher.cache-delta': 60 * 20,
+    'fetcher.cache-delta': 60 * 20,
+    'fetcher.enable-cache': True,
     'fetcher.headers': {
         'User-Agent':
             'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         },
-    'async-max-concurrency': 5,
-    'async-timeout': 10,
+    'importer.parser': 'auto',
+    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+    'log-level': 'WARNING',
+    'selector.query-defaults.age-min': '2H',
     'selector.sorter': 'basic'
 }
 
 _defaults_types = {
-    'db-uri': str,
-    'downloader': str,
-    'auto-cron': bool,
-    'auto-import': bool,
-    'log-level': str,
-    'log-format': str,
-    'user-agent': str,
-    'fetcher': dict,
-    'fetcher.enable-cache': bool,
-    'fetcher.cache-delta': int,
-    'fetcher.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float,
-    'selector.sorter': str
+    'auto-cron': bool,
+    'auto-import': bool,
+    'db-uri': str,
+    'downloader': str,
+    'fetcher': dict,
+    'fetcher.cache-delta': int,
+    'fetcher.enable-cache': bool,
+    'fetcher.headers': dict,
+    'importer': dict,
+    'importer.parser': str,
+    'log-format': str,
+    'log-level': str,
+    'selector': dict,
+    'selector.sorter': str,
+    'selector.query-defaults': str
 }
 
 #
@@ -81,7 +87,8 @@ _plugins = [
     'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
     # Origins
-    'elitetorrent', 'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
+    'elitetorrent', 'eztv', 'genericorigin', 'kickass', 'spanishtracker',
+    'thepiratebay',
 
     # Sorters
     'basicsorter',
@@ -323,6 +330,22 @@ class Arroyo:
 
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
+
+        # Auto settings must be detected here
+        if self.settings.get('importer.parser') == 'auto':
+            for parser in ['lxml', 'html.parser', 'html5lib']:
+                try:
+                    bs4.BeautifulSoup('', parser)
+                    self.settings.set('importer.parser', parser)
+                    msg = "Using '{parser}' as bs4 parser"
+                    msg = msg.format(parser=parser)
+                    self.logger.debug(msg)
+                    break
+                except bs4.FeatureNotFound:
+                    pass
+            else:
+                msg = "Unable to find any parser"
+                raise ValueError(msg)
 
         # Configure fetcher object
         fetcher_opts = self.settings.get('fetcher')
