@@ -39,7 +39,6 @@ _defaults = {
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
     'fetcher.cache-delta': 60 * 20,
-    'fetcher.cache-delta': 60 * 20,
     'fetcher.enable-cache': True,
     'fetcher.headers': {
         'User-Agent':
@@ -331,7 +330,7 @@ class Arroyo:
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
 
-        # Auto settings must be detected here
+        # Auto setting: importer parser
         if self.settings.get('importer.parser') == 'auto':
             for parser in ['lxml', 'html.parser', 'html5lib']:
                 try:

@@ -614,19 +614,17 @@ class Importer:
         Keys will be the urn or permalink of the 'proto-sources'.
         In case of duplicates the oldest is discarted
         """
-        tmp = dict()
+        ret = dict()
 
-        for sd in src_data:
-            k = sd['_discriminator']
-            assert k is not None
+        for psrc in src_data:
+            key = psrc['_discriminator']
+            assert key is not None
 
-            # If we got a duplicated urn keep the most recent
-            if k in tmp and (sd['created'] < tmp[k]['created']):
-                continue
+            # Keep the most recent if case of duplicated
+            if key not in ret or psrc['created'] > ret[key]['created']:
+                ret[key] = psrc
 
-            tmp[k] = sd
-
-        return tmp
+        return ret
 
     def run(self):
         return self.process(*self.get_configured_origins())
