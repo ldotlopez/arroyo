@@ -137,7 +137,7 @@ class KickAss(plugin.Origin):
                 pass
 
             idx = post
-            rows.append(bs4.BeautifulSoup(buff[pre:post], "html.parser"))
+            rows.append(bs4.BeautifulSoup(buff[pre:post], "lxml"))
 
         ret = map(self._process_row, rows)
         ret = filter(lambda x: x, ret)
@@ -151,10 +151,11 @@ class KickAss(plugin.Origin):
         name = names[0].text
 
         # Link
-        magnets = row.select('a[href^=magnet:?]')
+        magnets = set([x.attrs.get('href')
+                       for x in row.select('a[href^=mag]')])
         if len(magnets) != 1:
             return None
-        uri = magnets[0].attrs['href']
+        uri = list(magnets)[0]
 
         # Check for size
         try:

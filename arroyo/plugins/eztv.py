@@ -8,7 +8,7 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import fetchers, utils
+from ldotcommons import utils
 
 
 class Eztv(plugin.Origin):
@@ -74,7 +74,7 @@ class Eztv(plugin.Origin):
         Finds referentes to sources in buffer.
         Returns a list with source infos
         """
-        soup = bs4.BeautifulSoup(buff, "html.parser")
+        soup = bs4.BeautifulSoup(buff, "lxml")
         rows = soup.select('tr')
         rows = [x for x in rows
                 if self.pseudocount_magnet_links(x) == self.COUNT_ONE]

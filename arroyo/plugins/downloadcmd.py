@@ -63,12 +63,6 @@ class DownloadCommand(plugin.Command):
 
         return src.format(fmt, extra_data=d)
 
-    def conditional_logger(level, msg):
-        if not dry_run:
-            self.app.logger(level, msg)
-        else:
-            print(msg)
-
     def run(self, args):
         def conditional_logger(level, msg):
             if not dry_run:

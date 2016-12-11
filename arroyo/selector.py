@@ -5,9 +5,6 @@ import itertools
 import sys
 
 
-from ldotcommons import utils
-
-
 import arroyo.exc
 from arroyo import (
     extension,
@@ -125,10 +122,12 @@ class Selector:
             if impl.APPLIES_TO not in registry:
                 registry[impl.APPLIES_TO] = {}
 
-            impl_conflicts = set(registry[impl.APPLIES_TO]).intersection(set(impl.HANDLES))
+            impl_conflicts = set(registry[impl.APPLIES_TO]).intersection(
+                set(impl.HANDLES))
             if impl_conflicts:
                 conflicts = conflicts.union(impl_conflicts)
-                msg = 'Filter «{name}» disabled. Conflicts in {model}: {conflicts}'
+                msg = ('Filter «{name}» disabled. Conflicts in {model}: '
+                       '{conflicts}')
                 msg = msg.format(
                     name=name,
                     model=repr(impl.APPLIES_TO),
@@ -138,7 +137,8 @@ class Selector:
                 continue
 
             # Update registry with impl
-            registry[impl.APPLIES_TO].update({key: impl for key in impl.HANDLES})
+            registry[impl.APPLIES_TO].update({
+                key: impl for key in impl.HANDLES})
 
         return registry, conflicts
 
@@ -196,7 +196,8 @@ class Selector:
         models = [x.mapper.class_ for x in models]
 
         # Get filters for those params
-        filters, dummy, dummy = self.get_filters_from_params(models, query.params)
+        filters, dummy, dummy = self.get_filters_from_params(
+            models, query.params)
 
         # Split filters
         sql_based, iterable_based = self._classify_filters(filters)
@@ -353,6 +354,7 @@ class IterableFilter(Filter):
 
     def apply(self, iterable):
         return filter(self.filter, iterable)
+
 
 class QuerySetFilter(Filter):
     @abc.abstractmethod

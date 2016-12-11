@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
 
-import hashlib
 import re
-from urllib import parse
 import sys
 
 from ldotcommons import keyvaluestore, utils
@@ -10,7 +8,6 @@ from ldotcommons.sqlalchemy import Base
 from sqlalchemy import (
     and_,
     func,
-    or_,
     schema,
     Column,
     Integer,

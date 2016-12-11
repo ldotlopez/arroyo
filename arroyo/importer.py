@@ -5,12 +5,10 @@ import aiohttp
 import asyncio
 import itertools
 import re
-import traceback
 from urllib import parse
 
 
 from ldotcommons import (
-    fetchers,
     logging,
     utils
 )

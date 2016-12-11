@@ -14,7 +14,6 @@ class GenericOrigin(plugin.Origin):
     def parse(self, buff):
         buff = buff.decode('utf-8')
 
-        magnets = []
         matches = re.findall(
             r'(magnet:\?[-a-zA-Z0-9@:%_\+.~#?&//=;]+)',
             buff,
