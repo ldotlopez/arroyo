@@ -102,57 +102,57 @@ _defaults.update({'plugin.{}.enabled'.format(x): True
 
 
 def build_argument_parser():
-        parser = argparse.ArgumentParser(add_help=False)
-        parser.add_argument(
-            '-h', '--help',
-            action='store_true',
-            dest='help')
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '-h', '--help',
+        action='store_true',
+        dest='help')
 
-        parser.add_argument(
-            '-v', '--verbose',
-            dest='verbose',
-            default=0,
-            action='count')
+    parser.add_argument(
+        '-v', '--verbose',
+        dest='verbose',
+        default=0,
+        action='count')
 
-        parser.add_argument(
-            '-q', '--quiet',
-            dest='quiet',
-            default=0,
-            action='count')
+    parser.add_argument(
+        '-q', '--quiet',
+        dest='quiet',
+        default=0,
+        action='count')
 
-        parser.add_argument(
-            '-c', '--config-file',
-            dest='config-files',
-            action='append',
-            default=[])
+    parser.add_argument(
+        '-c', '--config-file',
+        dest='config-files',
+        action='append',
+        default=[])
 
-        parser.add_argument(
-            '--plugin',
-            dest='plugins',
-            action='append',
-            default=[])
+    parser.add_argument(
+        '--plugin',
+        dest='plugins',
+        action='append',
+        default=[])
 
-        parser.add_argument(
-            '--db-uri',
-            dest='db-uri')
+    parser.add_argument(
+        '--db-uri',
+        dest='db-uri')
 
-        parser.add_argument(
-            '--downloader',
-            dest='downloader')
+    parser.add_argument(
+        '--downloader',
+        dest='downloader')
 
-        parser.add_argument(
-            '--auto-import',
-            default=None,
-            action='store_true',
-            dest='auto-import')
+    parser.add_argument(
+        '--auto-import',
+        default=None,
+        action='store_true',
+        dest='auto-import')
 
-        parser.add_argument(
-            '--auto-cron',
-            default=None,
-            action='store_true',
-            dest='auto-cron')
+    parser.add_argument(
+        '--auto-cron',
+        default=None,
+        action='store_true',
+        dest='auto-cron')
 
-        return parser
+    return parser
 
 
 def build_basic_settings(arguments=[]):
