@@ -1,15 +1,16 @@
 #!/bin/bash
 
 D="$(cd "$(dirname -- "$0")"; pwd -P)"
+COOKIEJAR="$(mktemp)"
 
 function dl {
 	local URL=$1
 	local DEST=$2
 
-	curl -s -b "$D/cookies.txt" "$URL" | python3 "$D/remove-magnets.py" > "$D/$DEST"
+	curl -s -b "$COOKIEJAR" "$URL" | python3 "$D/remove-magnets.py" > "$D/$DEST"
 }
 
-curl -s -c "$D/cookies.txt" "http://www.elitetorrent.net/" >/dev/null
+curl -s -c "$COOKIEJAR" "http://www.elitetorrent.net/" >/dev/null
 
 dl	\
 	"http://www.elitetorrent.net/torrent/34527/mercenario-microhd" \
@@ -50,3 +51,5 @@ dl	\
 dl	\
 	"https://kickass.cd/tv/" \
 	"kat-tv.html"
+
+rm "$COOKIEJAR"
