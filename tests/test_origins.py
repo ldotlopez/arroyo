@@ -68,7 +68,8 @@ class TestOrigin:
                 self.IMPLEMENTATION_NAME)
 
             with open(testapp.www_sample_path(sample), 'rb') as fh:
-                results = list(origin.parse(fh.read()))
+                results = list(origin.parse(
+                    fh.read(), 'html.parser'))
 
             self.assertEqual(
                 n_expected, len(results),
@@ -120,7 +121,7 @@ class EztvTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
         ('eztv-page-0.html', 50),
-        ('eztv-hcf.html', 50),
+        ('eztv-bsg.html', 96),
     ]
 
     QUERY_TESTS = [
@@ -240,7 +241,7 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
     ]
 
     PARSE_TESTS = [
-        ('elitetorrent-listing.html', 42),
+        ('elitetorrent-listing.html', 48),
         ('elitetorrent-search-result.html', 48),
         ('elitetorrent-detail.html', 1),
     ]

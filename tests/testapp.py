@@ -22,6 +22,7 @@ class TestApp(core.Arroyo):
                     'Mozilla/5.0 (X11; Linux x86) Home software '
                     '(KHTML, like Gecko)',
             },
+            'importer.parser': 'auto',
             'log-format': '%(message)s',
             'log-level': 'WARNING',
             'selector.sorter': 'basic',
