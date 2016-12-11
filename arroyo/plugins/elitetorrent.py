@@ -3,17 +3,16 @@
 
 from arroyo import plugin
 
-
-from datetime import datetime
+import asyncio
 import collections
 import functools
 import re
 import time
+from datetime import datetime
 from urllib import parse
 
 
 import bs4
-
 from ldotcommons import utils
 
 
@@ -52,6 +51,12 @@ class EliteTorrent(plugin.Origin):
             return
 
         parsed = parse.urlparse(self.uri)
+
+        # elitetorrent passes thru extenal site to set cookies.
+        # paginating that url leads to incorrect url and 404 errors.
+        if not parsed.netloc.endswith('elitetorrent.net'):
+            yield self.uri
+            return
 
         # Split paths and params from parsed URI
         tmp = [x for x in parsed.path.split('/') if x]
@@ -126,6 +131,27 @@ class EliteTorrent(plugin.Origin):
         if q:
             q = parse.quote_plus(q.lower().strip())
             return self.SEARCH_URI.format(query=q)
+
+    @asyncio.coroutine
+    def fetch(self, url, params={}):
+        buff = yield from super().fetch(url, params)
+        soup = bs4.BeautifulSoup(
+            buff,
+            self.app.settings.get('importer.parser'))
+
+        for meta in soup.select('meta'):
+            attrs = {k.lower(): v.lower() for (k, v) in meta.attrs.items()}
+            if attrs.get('http-equiv') != 'refresh':
+                continue
+
+            dummy, location = attrs.get('content').split(';', 1)
+            loctype, url = location.split('=', 1)
+            if loctype.lower() != 'url':
+                continue
+
+            return (yield from self.fetch(url, params))
+
+        return buff
 
     def parse(self, buff, parser):
         soup = bs4.BeautifulSoup(buff, parser)
