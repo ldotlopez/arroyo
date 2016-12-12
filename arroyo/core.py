@@ -154,7 +154,10 @@ def build_argument_parser():
     return parser
 
 
-def build_basic_settings(arguments=[]):
+def build_basic_settings(arguments=None):
+    if arguments is None:
+        arguments = []
+
     global _defaults, _plugins
 
     # The first task is parse arguments
