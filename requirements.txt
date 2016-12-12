@@ -2,6 +2,7 @@
 # Core
 #
 aiohttp
+arrow
 bencodepy
 blinker
 humanfriendly
