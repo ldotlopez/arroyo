@@ -12,7 +12,7 @@ import humanfriendly
 from ldotcommons import utils
 
 
-class Filter(plugin.Filter):
+class Filter(plugin.QuerySetFilter):
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
              'state-name')
     _strs = [[x, x + '-glob', x + '-regexp', x + '-in'] for x in _strs]
@@ -25,7 +25,7 @@ class Filter(plugin.Filter):
     APPLIES_TO = plugin.models.Source
     HANDLES = _strs + _nums + ['since']
 
-    def alter_query(self, q):
+    def alter(self, q):
         def _convert_value(func):
             try:
                 self.value = func(self.value)

@@ -4,7 +4,7 @@ from arroyo import plugin
 models = plugin.models
 
 
-class QualityFilter(plugin.Filter):
+class QualityFilter(plugin.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ('quality',)
 
@@ -40,7 +40,7 @@ class QualityFilter(plugin.Filter):
         return is_match
 
 
-class CodecFilter(plugin.Filter):
+class CodecFilter(plugin.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ('codec',)
 
@@ -48,8 +48,9 @@ class CodecFilter(plugin.Filter):
         super().__init__(app, key, value.lower())
 
     def filter(self, item):
-        return \
-            self.value == item.tag_dict.get('mediainfo.video_codec', '').lower()
+        return (
+            self.value ==
+            item.tag_dict.get('mediainfo.video_codec', '').lower())
 
 
 __arroyo_extensions__ = [

@@ -5,7 +5,9 @@ from arroyo.extension import Command, Service, argument
 from arroyo.importer import Origin
 from arroyo.selector import (
     Filter,
+    IterableFilter,
     Query,
+    QuerySetFilter,
     Sorter
 )
 
@@ -19,9 +21,10 @@ __all__ = [
     'Command',
     'CronTask',
     'Downloader',
-    'Filter',
+    'IterableFilter',
     'Origin',
     'Query',
+    'QuerySetFilter',
     'Service',
     'Sorter',
 

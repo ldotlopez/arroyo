@@ -74,7 +74,16 @@ class Command(plugin.Command):
             self.app.db.update_all_states(models.Source.State.ARCHIVED)
 
         elif shell:
-            self.app.db.shell()
+            sess = self.app.db.session
+            print("[!!] Database connection in 'sess' {}".format(sess))
+            print("[!!] If you make any changes remember to call "
+                  "sess.commit()")
+            try:
+                import ipdb
+            except ImportError:
+                import pdb
+                ipdb = pdb
+            ipdb.set_trace()
 
         elif reset_source_id or archive_source_id:
             source_id = reset_source_id or archive_source_id

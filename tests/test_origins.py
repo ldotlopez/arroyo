@@ -68,7 +68,8 @@ class TestOrigin:
                 self.IMPLEMENTATION_NAME)
 
             with open(testapp.www_sample_path(sample), 'rb') as fh:
-                results = list(origin.parse(fh.read()))
+                results = list(origin.parse(
+                    fh.read(), 'html.parser'))
 
             self.assertEqual(
                 n_expected, len(results),
@@ -120,7 +121,7 @@ class EztvTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
         ('eztv-page-0.html', 50),
-        ('eztv-hcf.html', 36)
+        ('eztv-bsg.html', 96),
     ]
 
     QUERY_TESTS = [
@@ -215,7 +216,7 @@ class KickassTest(TestOrigin, unittest.TestCase):
 
     PARSE_TESTS = [
         ('kat-new.html', 30),
-        ('kat-tv.html', 30),
+        ('kat-avs-search.html', 30),
         ('kat-full.html', 120)
     ]
 
@@ -240,7 +241,8 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
     ]
 
     PARSE_TESTS = [
-        ('elitetorrent-list.html', 48),
+        ('elitetorrent-listing.html', 48),
+        ('elitetorrent-search-result.html', 48),
         ('elitetorrent-detail.html', 1),
     ]
 
@@ -251,7 +253,7 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
         ),
         (
             dict(name='new girl', language='spa-es'),
-            'http://www.elitetorrent.net/busqueda/new+girl',
+            'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
         ),
     ]
 

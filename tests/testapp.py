@@ -15,16 +15,17 @@ class TestApp(core.Arroyo):
             'auto-import': False,
             'db-uri': 'sqlite:///:memory:',
             'downloader.backend': 'mock',
-            'log-format': '%(message)s',
-            'log-level': 'WARNING',
-            'selector.sorter': 'basic',
-            'fetcher.enable-cache': False,
             'fetcher.cache-delta': 0,
+            'fetcher.enable-cache': False,
             'fetcher.headers': {
                 'User-Agent':
                     'Mozilla/5.0 (X11; Linux x86) Home software '
                     '(KHTML, like Gecko)',
             },
+            'importer.parser': 'auto',
+            'log-format': '%(message)s',
+            'log-level': 'WARNING',
+            'selector.sorter': 'basic',
         }
         settings.update(d)
         settings = core.ArroyoStore(settings)

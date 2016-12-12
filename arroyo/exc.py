@@ -24,6 +24,9 @@ class PluginArgumentError(Exception):
     pass
 
 
+class FatalError(_BaseException):
+    pass
+
 #
 # The following exceptions aren't reviewed
 #

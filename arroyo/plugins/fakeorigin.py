@@ -10,7 +10,7 @@ class FakeOrigin(plugin.Origin):
     def paginate(self, url):
         yield from self.paginate_by_query_param(url, 'page', default=1)
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos

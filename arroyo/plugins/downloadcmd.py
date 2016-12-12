@@ -63,12 +63,6 @@ class DownloadCommand(plugin.Command):
 
         return src.format(fmt, extra_data=d)
 
-    def conditional_logger(level, msg):
-        if not dry_run:
-            self.app.logger(level, msg)
-        else:
-            print(msg)
-
     def run(self, args):
         def conditional_logger(level, msg):
             if not dry_run:
@@ -101,7 +95,7 @@ class DownloadCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if show:
-            for src in self.app.downloads.list():
+            for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
                 print(self.format_source(src, self.LIST_FMT))
 
             return

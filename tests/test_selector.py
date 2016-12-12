@@ -22,7 +22,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'foo',
             })
 
-        queries = {q.name: q for q in app.selector.get_queries()}
+        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
 
         self.assertTrue('test1' in queries)
         self.assertTrue('test2' in queries)
@@ -43,8 +43,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'bar'
         })
 
-        queries = {q.name: q for q in app.selector.get_queries()}
-
+        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
         self.assertEqual(
             queries['test1'].params.get('language', None),
             'eng-us')
@@ -56,7 +55,7 @@ class SelectorInterfaceTest(unittest.TestCase):
         self.assertTrue(
             'since' in queries['test2'].params)
 
-    def test_get_query_from_user_spec(self):
+    def test_include_defaults_in_query(self):
         app = testapp.TestApp({
             'plugin.sourcequery.enabled': True,
 
@@ -64,10 +63,11 @@ class SelectorInterfaceTest(unittest.TestCase):
             'selector.query-defaults.since': 1234567890,
         })
 
-        user_spec = selector.QuerySpec('test', name_glob='*foo*')
-        query = app.selector.get_query_for_spec(user_spec)
+        query = app.selector.get_query_from_params(
+            display_name='test',
+            params=dict(name_glob='*foo*'))
 
-        self.assertTrue('since' in query.spec)
+        self.assertTrue('since' in query.params)
 
     def test_download_only_once(self):
         s = testapp.mock_source
@@ -102,7 +102,7 @@ class SelectorInterfaceTest(unittest.TestCase):
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
-        spec = selector.QuerySpec('test', **params)
+        spec = self.app.selector.get_query_from_params(display_name='test', params=dict(**params))
         res = self.app.selector.matches(spec, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
@@ -309,7 +309,9 @@ class EpisodeSelectorTest(SelectorTestCase):
         # Revert src states and link episodes with sources
         for src in srcs:
             src.state = models.Source.State.NONE
-        spec = selector.QuerySpec('test', kind='episode', series='game of thrones', quality='hdtv')
+        spec = self.app.selector.get_query_from_params(
+            display_name='test',
+            params=dict(kind='episode', series='game of thrones', quality='hdtv'))
         matches = self.app.selector.matches(spec)
         srcs = self.app.selector.select(matches)
         for src in self.app.selector.select(srcs):
@@ -345,7 +347,6 @@ class EpisodeSelectorTest(SelectorTestCase):
             s('True Detective S02E04 HDTV x264-ASAP', type='episode', language='eng-us'),
             s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
         ]
-        spec = selector.QuerySpec('test', kind='episode', series='true detective', quality='720p', language='eng-us')
         app = testapp.TestApp({
             'plugin.episodequery.enabled': True,
             'plugin.sourcefilters.enabled': True,
@@ -354,7 +355,11 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
-        matches = list(app.selector.matches(spec))
+        query = app.selector.get_query_from_params(
+            display_name='test',
+            params=dict(kind='episode', series='true detective', quality='720p', language='eng-us'))
+
+        matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 4)
 
         sort = app.selector.sort(matches)
@@ -388,10 +393,11 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
+        query = app.selector.get_query_from_params(
+            display_name='test',
+            params=dict(kind='episode', series='the last man on earth'))
 
-        spec = selector.QuerySpec('test', kind='episode', series='the last man on earth')
-
-        matches = list(app.selector.matches(spec))
+        matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 9)
 
         candidates = list(app.selector.select(matches))

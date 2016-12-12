@@ -7,7 +7,7 @@ from arroyo.plugin.tools import filter
 import functools
 
 
-class Filter(plugin.Filter):
+class Filter(plugin.QuerySetFilter):
     _strs = ['title', 'title-glob']
     _nums = ['year']
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
@@ -16,7 +16,7 @@ class Filter(plugin.Filter):
     APPLIES_TO = plugin.models.Movie
     HANDLES = _strs + _nums
 
-    def alter_query(self, q):
+    def alter(self, q):
         if self.key == 'title':
             self.key = 'title-glob'
 

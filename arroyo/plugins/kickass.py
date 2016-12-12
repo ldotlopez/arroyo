@@ -104,7 +104,7 @@ class KickAss(plugin.Origin):
                     domain=self._BASE_URI,
                     q=parse.quote(q))
 
-    def parse(self, buff):
+    def parse(self, buff, parser):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
@@ -137,7 +137,7 @@ class KickAss(plugin.Origin):
                 pass
 
             idx = post
-            rows.append(bs4.BeautifulSoup(buff[pre:post], "html.parser"))
+            rows.append(bs4.BeautifulSoup(buff[pre:post], parser))
 
         ret = map(self._process_row, rows)
         ret = filter(lambda x: x, ret)
@@ -151,10 +151,11 @@ class KickAss(plugin.Origin):
         name = names[0].text
 
         # Link
-        magnets = row.select('a[href^=magnet:?]')
+        magnets = set([x.attrs.get('href')
+                       for x in row.select('a[href^=mag]')])
         if len(magnets) != 1:
             return None
-        uri = magnets[0].attrs['href']
+        uri = list(magnets)[0]
 
         # Check for size
         try:

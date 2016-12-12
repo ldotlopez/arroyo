@@ -1,11 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import argparse
-import asyncio
 import importlib
 import sys
 import warnings
 
+import bs4
 from ldotcommons import (
     fetchers,
     keyvaluestore,
@@ -31,40 +31,44 @@ from arroyo import (
 # Default values for config
 #
 _defaults = {
+    'async-max-concurrency': 5,
+    'async-timeout': 10,
+    'auto-cron': False,
+    'auto-import': False,
     'db-uri': 'sqlite:///' +
               utils.user_path('data', 'arroyo.db', create=True),
     'downloader': 'mock',
-    'auto-cron': False,
-    'auto-import': False,
-    'legacy': False,
-    'log-level': 'WARNING',
-    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher.enable-cache': True,
     'fetcher.cache-delta': 60 * 20,
+    'fetcher.enable-cache': True,
     'fetcher.headers': {
         'User-Agent':
             'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         },
-    'async-max-concurrency': 5,
-    'async-timeout': 10,
+    'importer.parser': 'auto',
+    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+    'log-level': 'WARNING',
+    'selector.query-defaults.age-min': '2H',
     'selector.sorter': 'basic'
 }
 
 _defaults_types = {
-    'db-uri': str,
-    'downloader': str,
-    'auto-cron': bool,
-    'auto-import': bool,
-    'log-level': str,
-    'log-format': str,
-    'user-agent': str,
-    'fetcher': dict,
-    'fetcher.enable-cache': bool,
-    'fetcher.cache-delta': int,
-    'fetcher.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float,
-    'selector.sorter': str
+    'auto-cron': bool,
+    'auto-import': bool,
+    'db-uri': str,
+    'downloader': str,
+    'fetcher': dict,
+    'fetcher.cache-delta': int,
+    'fetcher.enable-cache': bool,
+    'fetcher.headers': dict,
+    'importer': dict,
+    'importer.parser': str,
+    'log-format': str,
+    'log-level': str,
+    'selector': dict,
+    'selector.sorter': str,
+    'selector.query-defaults': str
 }
 
 #
@@ -82,7 +86,8 @@ _plugins = [
     'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
     # Origins
-    'elitetorrent', 'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
+    'elitetorrent', 'eztv', 'genericorigin', 'kickass', 'spanishtracker',
+    'thepiratebay',
 
     # Sorters
     'basicsorter',
@@ -96,60 +101,63 @@ _defaults.update({'plugin.{}.enabled'.format(x): True
 
 
 def build_argument_parser():
-        parser = argparse.ArgumentParser(add_help=False)
-        parser.add_argument(
-            '-h', '--help',
-            action='store_true',
-            dest='help')
+    parser = argparse.ArgumentParser(add_help=False)
+    parser.add_argument(
+        '-h', '--help',
+        action='store_true',
+        dest='help')
 
-        parser.add_argument(
-            '-v', '--verbose',
-            dest='verbose',
-            default=0,
-            action='count')
+    parser.add_argument(
+        '-v', '--verbose',
+        dest='verbose',
+        default=0,
+        action='count')
 
-        parser.add_argument(
-            '-q', '--quiet',
-            dest='quiet',
-            default=0,
-            action='count')
+    parser.add_argument(
+        '-q', '--quiet',
+        dest='quiet',
+        default=0,
+        action='count')
 
-        parser.add_argument(
-            '-c', '--config-file',
-            dest='config-files',
-            action='append',
-            default=[])
+    parser.add_argument(
+        '-c', '--config-file',
+        dest='config-files',
+        action='append',
+        default=[])
 
-        parser.add_argument(
-            '--plugin',
-            dest='plugins',
-            action='append',
-            default=[])
+    parser.add_argument(
+        '--plugin',
+        dest='plugins',
+        action='append',
+        default=[])
 
-        parser.add_argument(
-            '--db-uri',
-            dest='db-uri')
+    parser.add_argument(
+        '--db-uri',
+        dest='db-uri')
 
-        parser.add_argument(
-            '--downloader',
-            dest='downloader')
+    parser.add_argument(
+        '--downloader',
+        dest='downloader')
 
-        parser.add_argument(
-            '--auto-import',
-            default=None,
-            action='store_true',
-            dest='auto-import')
+    parser.add_argument(
+        '--auto-import',
+        default=None,
+        action='store_true',
+        dest='auto-import')
 
-        parser.add_argument(
-            '--auto-cron',
-            default=None,
-            action='store_true',
-            dest='auto-cron')
+    parser.add_argument(
+        '--auto-cron',
+        default=None,
+        action='store_true',
+        dest='auto-cron')
 
-        return parser
+    return parser
 
 
-def build_basic_settings(arguments=[]):
+def build_basic_settings(arguments=None):
+    if arguments is None:
+        arguments = []
+
     global _defaults, _plugins
 
     # The first task is parse arguments
@@ -325,6 +333,22 @@ class Arroyo:
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
 
+        # Auto setting: importer parser
+        if self.settings.get('importer.parser') == 'auto':
+            for parser in ['lxml', 'html.parser', 'html5lib']:
+                try:
+                    bs4.BeautifulSoup('', parser)
+                    self.settings.set('importer.parser', parser)
+                    msg = "Using '{parser}' as bs4 parser"
+                    msg = msg.format(parser=parser)
+                    self.logger.debug(msg)
+                    break
+                except bs4.FeatureNotFound:
+                    pass
+            else:
+                msg = "Unable to find any parser"
+                raise ValueError(msg)
+
         # Configure fetcher object
         fetcher_opts = self.settings.get('fetcher')
         fetcher_opts = {
@@ -491,5 +515,6 @@ class Arroyo:
             print("\nError message: {}".format(e), file=sys.stderr)
 
         except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError) as e:
+                arroyo.exc.NoImplementationError,
+                arroyo.exc.FatalError) as e:
             self.logger.critical(e)

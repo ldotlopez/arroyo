@@ -1,25 +1,29 @@
 # -*- coding: utf-8 -*-
 
+
 import base64
 import binascii
 import hashlib
 import re
 from urllib import parse
 
+
 import bencodepy
+
+
+import arroyo.exc
 from arroyo import (
     cron,
-    exc,
     extension,
     models
 )
 
 
-class BackendError(exc._BaseException):
+class BackendError(arroyo.exc._BaseException):
     pass
 
 
-class ResolveError(exc._BaseException):
+class ResolveError(arroyo.exc._BaseException):
     pass
 
 
@@ -60,8 +64,8 @@ class Downloads:
         try:
             self.backend.add(source)
         except Exception as e:
-            msg = "Downloader '{name}' error"
-            msg.format(name=self.backend_name)
+            msg = "Downloader '{name}' error: {e}"
+            msg = msg.format(name=self.backend_name, e=e)
             raise BackendError(msg, original_exception=e) from e
 
         source.state = models.Source.State.INITIALIZING
@@ -84,9 +88,9 @@ class Downloads:
         ret = []
         for src in sources:
             try:
-                added = self.add(src)
+                self.add(src)
                 ret.append((src, True, None))
-            except _BaseException as e:
+            except arroyo.exc_BaseException as e:
                 ret.append((src, False, e))
 
         return ret
@@ -209,7 +213,7 @@ class DownloadQueriesCronTask(cron.CronTask):
 
     def run(self):
         queries = self.app.selector.get_configured_queries()
-        for q in queries :
+        for q in queries:
             matches = self.app.selector.matches(q)
             srcs = self.app.selector.select(matches)
 
