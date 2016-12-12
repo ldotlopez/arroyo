@@ -258,5 +258,20 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
     ]
 
 
+class TorrentAPITest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['torrentapi']
+    IMPLEMENTATION_NAME = 'torrentapi'
+
+    PAGINATION_TESTS = [
+    ]
+
+    PARSE_TESTS = [
+        ('torrentapi-listing.json', 25)
+    ]
+
+    QUERY_TESTS = [
+    ]
+
+
 if __name__ == '__main__':
     unittest.main()
