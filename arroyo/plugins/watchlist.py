@@ -15,41 +15,48 @@ plugin.watchlist:
     imdb: http://www.imdb.com/user/ur12345678/watchlist?view=compact
 
     alternative_form_imdb:
-        url: http://www.imdb.com/user/ur36400746/watchlist?view=compact
+        uri: http://www.imdb.com/user/ur12345678/watchlist?view=compact
         query:
             language: eng-us
-
-
 """
+
 
 from arroyo import (
     models,
     plugin
 )
 
+
 import asyncio
 import json
 import re
 
+
 import bs4
-from ldotcommons import utils
-import sqlalchemy as sa
-from sqlalchemy import schema
+from ldotcommons import (
+    store,
+    utils
+)
+import sqlalchemy
 
 
 class Watchitem(models.Base):
     __tablename__ = 'watchitem'
     __table_args__ = (
-        schema.PrimaryKeyConstraint('source_uri', 'source_id', name='pk'),
+        sqlalchemy.schema.PrimaryKeyConstraint(
+            'source_uri', 'source_id',
+            name='pk'),
     )
 
-    enabled = sa.Column(sa.Boolean, nullable=False, default=True)
-    source_uri = sa.Column(sa.String, nullable=False)
-    source_id = sa.Column(sa.String, nullable=False)
+    enabled = sqlalchemy.Column(sqlalchemy.Boolean, nullable=False,
+                                default=True)
+    source_uri = sqlalchemy.Column(sqlalchemy.String, nullable=False)
+    source_id = sqlalchemy.Column(sqlalchemy.String, nullable=False)
 
-    query = sa.Column(sa.String, nullable=True)
-    last_search = sa.Column(sa.Integer, nullable=False, default=0)
-    data = sa.Column(sa.String, nullable=True)
+    query = sqlalchemy.Column(sqlalchemy.String, nullable=True)
+    last_search = sqlalchemy.Column(sqlalchemy.Integer, nullable=False,
+                                    default=0)
+    data = sqlalchemy.Column(sqlalchemy.String, nullable=True)
 
 
 class Watchlist:
@@ -63,13 +70,33 @@ class Watchlist:
         }
 
         self.app.db.install_model(Watchitem)
-        self.app.settings.add_validator(
-            self.validator,
-            revalidate='plugin.watchlist'
+        processed = self.validate_settings(
+            self.app.settings.get('plugin.watchlist', default={
+                'enabled': True,
+                'lists': {}
+            })
         )
+        self.settings.set('plugin.watchlist', process)
 
-    def validator(self, key, value):
-        print(key, value)
+    def validate_settings(self, data):
+        # Handle shortform of lists
+        for name in data['lists']:
+            value = data['lists'][name]
+            if isinstance(value, str):
+                data['lists'][name] = dict(url=value)
+
+        root_schema = schema.Schema({
+            # 'enable': schema.Schema(bool),
+            'lists': schema.And(str, len)
+        })
+        root_schema.validate(data)
+
+        list_schema = schema.Schema({
+            'url': schema.And(str, len),
+            'query': schema.Schema(dict)
+        })
+        for l in data['lists'].values():
+            list_schema.validate(l)
 
     def _identify_buffer(self, buff):
         if 'imdb' in buff.lower():
@@ -225,7 +252,7 @@ class Watchlist:
         items = self.sess.query(Watchitem).filter(
             Watchitem.enabled == True  # nopep8
         ).order_by(
-            sa.asc(Watchitem.last_search)
+            sqlalchemy.asc(Watchitem.last_search)
         )
         if limit:
             items = items.limit(limit)
