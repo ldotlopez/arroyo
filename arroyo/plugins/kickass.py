@@ -19,6 +19,10 @@ class KickAss(plugin.Origin):
 
     _BASE_URI = 'https://kickass.cd'
     DEFAULT_URI = _BASE_URI + '/new/'
+    URI_PATTERNS = [
+        r'^http(s)?://([^.]\.)?kickass.[^.]{2,3}/',
+        r'^http(s)?://([^.]\.)?kat.[^.]{2,3}/',
+    ]
 
     _TYPES = {
         'audio': 'other',
@@ -236,6 +240,19 @@ class KickAss(plugin.Origin):
 
             today = datetime.date.today()
             x = humanfriendly.parse_date(created_str)
+            x = datetime.datetime(*x).timetuple()
+            x = time.mktime(x)
+            created = int(x)
+            return created
+
+        # y-day 04:41
+        m = re.search(r'y-day\s+(\d{2}):(\d{2})', created)
+        if m:
+            today = datetime.date.today()
+            yday = today - datetime.timedelta(days=1)
+            x = humanfriendly.parse_date('{}-{}-{} {}:{}:00'.format(
+                yday.year, yday.month, yday.day,
+                m.group(1), m.group(2)))
             x = datetime.datetime(*x).timetuple()
             x = time.mktime(x)
             created = int(x)

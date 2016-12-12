@@ -4,6 +4,7 @@ import abc
 import aiohttp
 import asyncio
 import itertools
+import re
 import traceback
 from urllib import parse
 
@@ -27,6 +28,7 @@ from arroyo import (
 class Origin(extension.Extension):
     PROVIDER = None
     DEFAULT_URI = None
+    URI_PATTERNS = None
 
     def __init__(self, *args, logger=None, display_name=None, uri=None,
                  iterations=1, overrides={}, **kwargs):
@@ -77,6 +79,28 @@ class Origin(extension.Extension):
 
         super().__init__(*args, **kwargs)
         self.logger = logger or self.app.logger
+
+    @classmethod
+    def compatible_uri(cls, uri):
+        attr_name = 'URI_PATTERNS'
+        attr = getattr(cls, attr_name, None)
+
+        if not (isinstance(attr, (list, tuple)) and len(attr)):
+            msg = "Class {cls} must override {attr} attribute"
+            msg = msg.format(cls=cls.__name__, attr=attr_name)
+            raise NotImplementedError(msg)
+
+        RegexType = type(re.compile(r''))
+
+        for pattern in attr:
+            if isinstance(pattern, RegexType):
+                if pattern.search(uri):
+                    return True
+            else:
+                if re.search(pattern, uri):
+                    return True
+
+        return False
 
     @property
     def default_uri(self):
@@ -221,8 +245,8 @@ class Origin(extension.Extension):
             self.logger.error(msg)
 
     @abc.abstractmethod
-    def parse(self, buffer):
-        pass
+    def parse(self, buff):
+        return []
 
     @abc.abstractmethod
     def get_query_uri(self, query):
@@ -347,17 +371,59 @@ class Importer:
         """Validates settings"""
         return value
 
-    def get_origin_from_params(self, **params):
+    def origin_class_from_uri(self, uri):
+        impls = self.app.get_implementations(Origin)
+
+        for (name, impl) in impls.items():
+            try:
+                if impl.compatible_uri(uri):
+                    return impl
+            except NotImplementedError as e:
+                self.app.logger.warning(str(e))
+
+    @staticmethod
+    def normalize_uri(uri):  # FIXME: Move to appkit.utils
+        if uri is None:
+            return None
+
+        if '://' not in uri:
+            uri = 'http://' + uri
+
+        parsed = parse.urlparse(uri)
+        if not parsed.path:
+            parsed = parsed._replace(path='/')
+
+        return parse.urlunparse(parsed)
+
+    def origin_from_params(self, **params):
         p = params.copy()
 
-        impl_name = p.pop('backend')
-        return self.app.get_extension(
-            Origin, impl_name,
-            logger=logging.get_logger(impl_name),
-            uri=p.pop('uri', None),
+        uri = self.normalize_uri(p.pop('uri', None))
+
+        impl_name = p.pop('backend', None)
+        if impl_name:
+            impl_cls = self.app.get_implementation(Origin, impl_name)
+        else:
+            if not uri:
+                msg = "Neither backend or uri was provided"
+                raise TypeError(msg)
+
+            impl_cls = self.origin_class_from_uri(uri)
+
+            if impl_cls is None:
+                msg = "No Origin plugin is compatible with '{uri}'"
+                msg = msg.format(uri=uri)
+                raise ValueError(msg)
+
+            impl_name = impl_cls.__name__
+
+        return impl_cls(
+            self.app,
+            uri=uri,
             iterations=p.pop('iterations', 1),
             display_name=p.pop('display_name', None),
-            overrides=p
+            overrides=p,
+            logger=logging.get_logger(impl_name)
         )
 
     def get_configured_origins(self):
@@ -374,7 +440,7 @@ class Importer:
             return []
 
         ret = [
-            self.get_origin_from_params(
+            self.origin_from_params(
                 display_name=name,
                 **params)
             for (name, params) in specs.items()

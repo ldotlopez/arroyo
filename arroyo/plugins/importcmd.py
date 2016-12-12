@@ -48,12 +48,7 @@ class ImportCommand(plugin.Command):
                    "specified. They are mutually exclusive.")
             raise plugin.exc.PluginArgumentError(msg)
 
-        if not arguments.from_config and not arguments.backend:
-            msg = ("One of --from-config or --backend options must "
-                   "be specified")
-            raise plugin.exc.PluginArgumentError(msg)
-
-        if arguments.backend:
+        if arguments.backend or arguments.uri:
             # Build origin data
             keys = [
                 ('backend', str),
@@ -78,7 +73,7 @@ class ImportCommand(plugin.Command):
 
                     origin_data[k] = v
 
-            origin = self.app.importer.get_origin_from_params(**origin_data)
+            origin = self.app.importer.origin_from_params(**origin_data)
             self.app.importer.process(origin)
 
         elif arguments.from_config:
