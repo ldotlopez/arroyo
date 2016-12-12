@@ -342,3 +342,17 @@ def rewrite_uri(uri):
     query = '&'.join(['{}={}'.format(k, v) for (k, v) in parsed_map])
 
     return 'magnet:?' + query
+
+
+def set_query_params(uri, overwrite=False, **params):
+    parsed = parse.urlparse(uri)
+    qs = parse.parse_qs(parsed.query)
+
+    for (key, val) in params.items():
+        if overwrite or (key not in qs):
+            qs[key] = [val]
+
+    qs = {k: v[-1] for (k, v) in qs.items()}
+    qs = parse.urlencode(qs)
+    parsed = parsed._replace(query=qs)
+    return parse.urlunparse(parsed)
