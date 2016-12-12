@@ -10,6 +10,14 @@ class MovieQuery(query.HighLevelQuery):
     ENTITY_ATTR = 'movie'
     SELECTION_MODEL = plugin.models.MovieSelection
 
+    @property
+    def base_string(self):
+        ret = self._get_base_string('title')
+
+        if 'year' in self.params:
+            ret += ' {}'.format(self.params['year'])
+
+        return ret
 
 __arroyo_extensions__ = [
     ('movie', MovieQuery)
