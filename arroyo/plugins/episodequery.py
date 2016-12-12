@@ -15,14 +15,21 @@ class EpisodeQuery(query.HighLevelQuery):
     def base_string(self):
         ret = self._get_base_string('series')
 
-        if 'year' in self.params:
-            ret += ' {}'.format(self.params['year'])
+        params = {}
+        for key in ['year', 'season', 'episode']:
+            try:
+                params[key] = int(self.params[key])
+            except (KeyError, ValueError):
+                pass
 
-        if 'season' in self.params:
-            ret += ' S{:02d}'.format(self.params['season'])
+        if 'year' in params:
+            ret += ' {}'.format(params['year'])
 
-        if 'episode' in self.params:
-            ret += ' E{:02d}'.format(self.params['season'])
+        if 'season' in params:
+            ret += ' S{:02d}'.format(params['season'])
+
+        if 'episode' in params:
+            ret += ' E{:02d}'.format(params['episode'])
 
         return ret
 

@@ -15,7 +15,10 @@ class MovieQuery(query.HighLevelQuery):
         ret = self._get_base_string('title')
 
         if 'year' in self.params:
-            ret += ' {}'.format(self.params['year'])
+            try:
+                ret += ' {}'.format(int(self.params['year']))
+            except ValueError:
+                pass
 
         return ret
 
