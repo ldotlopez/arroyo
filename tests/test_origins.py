@@ -49,14 +49,14 @@ class TestOrigin:
                 self.IMPLEMENTATION_NAME,
                 uri=start)
 
-            g = origin.paginate()
+            g = origin.paginate(start or origin.DEFAULT_URI)
             collected = []
 
             while len(collected) < len(expected):
                 try:
                     collected.append(next(g))
                 except StopIteration:
-                    collected.append(None)
+                    break
 
             self.assertEqual(collected, expected,
                              msg='Fail pagination for {}'.format(start))

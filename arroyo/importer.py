@@ -188,7 +188,7 @@ class Origin(extension.Extension):
         return psrcs
 
     def get_uris(self):
-        g = self.paginate()
+        g = self.paginate(self._uri)
         iters = max(1, self._iterations)
 
         yield from (next(g) for x in range(iters))

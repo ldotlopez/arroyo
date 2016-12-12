@@ -119,9 +119,7 @@ class ThePirateBay(plugin.Origin):
         }
     }
 
-    def paginate(self):
-        uri = self.uri
-
+    def paginate(self, uri):
         if not uri.endswith('/'):
             uri += '/'
 
@@ -290,8 +288,8 @@ class ThePirateBayRSS(plugin.Origin):
         r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
     ]
 
-    def paginate(self):
-        yield self.uri
+    def paginate(self, uri):
+        yield uri
 
     def parse(self, buff):
         def _build_source(entry):

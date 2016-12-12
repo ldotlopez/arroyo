@@ -45,17 +45,17 @@ class EliteTorrent(plugin.Origin):
     def re_cache(re_str):
         return re.compile(re_str)
 
-    def paginate(self):
-        if self.re_cache(r'/torrent/\d+/').search(self.uri):
-            yield self.uri
+    def paginate(self, uri):
+        if self.re_cache(r'/torrent/\d+/').search(uri):
+            yield uri
             return
 
-        parsed = parse.urlparse(self.uri)
+        parsed = parse.urlparse(uri)
 
         # elitetorrent passes thru extenal site to set cookies.
         # paginating that url leads to incorrect url and 404 errors.
         if not parsed.netloc.endswith('elitetorrent.net'):
-            yield self.uri
+            yield uri
             return
 
         # Split paths and params from parsed URI

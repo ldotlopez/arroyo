@@ -24,8 +24,8 @@ class Eztv(plugin.Origin):
     COUNT_ONE = 1
     COUNT_MULTIPLE = 2
 
-    def paginate(self):
-        parsed = parse.urlparse(self.uri)
+    def paginate(self, uri):
+        parsed = parse.urlparse(uri)
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
@@ -36,13 +36,13 @@ class Eztv(plugin.Origin):
 
         # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
-            yield self.uri
+            yield uri
             return
 
         # Anything non standard
         m = re.findall(r'^page_(\d+)$', pathcomponents[0])
         if not m:
-            yield self.uri
+            yield uri
             return
 
         # https://eztv.ag/page_0

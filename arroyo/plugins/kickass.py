@@ -43,8 +43,8 @@ class KickAss(plugin.Origin):
         super(KickAss, self).__init__(*args, **kwargs)
         self._logger = self.app.logger.getChild('kickass-importer')
 
-    def paginate(self):
-        parsed = parse.urlparse(self.uri)
+    def paginate(self, uri):
+        parsed = parse.urlparse(uri)
         paths = [x for x in parsed.path.split('/') if x]
 
         try:
