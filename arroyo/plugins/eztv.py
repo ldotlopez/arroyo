@@ -65,9 +65,10 @@ class Eztv(plugin.Origin):
         if not series:
             return
 
-        return '{base}/search/{q}'.format(
-            base=self._BASE_DOMAIN, q=series.strip().replace(' ', '-')
-        )
+        q = series.strip().replace(' ', '-')
+        q = parse.quote_plus(q)
+
+        return '{base}/search/{q}'.format(base=self._BASE_DOMAIN, q=q)
 
     def parse(self, buff, parser):
         """
