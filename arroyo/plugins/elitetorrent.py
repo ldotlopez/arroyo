@@ -133,25 +133,33 @@ class EliteTorrent(plugin.Origin):
             return self.SEARCH_URI.format(query=q)
 
     @asyncio.coroutine
-    def fetch(self, url, params={}):
-        buff = yield from super().fetch(url, params)
-        soup = bs4.BeautifulSoup(
-            buff,
-            self.app.settings.get('importer.parser'))
+    def fetch(self, url):
+        def _is_redirect(content):
+            soup = bs4.BeautifulSoup(
+                content,
+                self.app.settings.get('importer.parser'))
 
-        for meta in soup.select('meta'):
-            attrs = {k.lower(): v.lower() for (k, v) in meta.attrs.items()}
-            if attrs.get('http-equiv') != 'refresh':
-                continue
+            for meta in soup.select('meta'):
+                attrs = {k.lower(): v.lower() for (k, v) in meta.attrs.items()}
+                if attrs.get('http-equiv') == 'refresh':
+                    dummy, location = attrs.get('content').split(';', 1)
+                    loctype, url = location.split('=', 1)
+                    if loctype.lower() == 'url':
+                        return True
 
-            dummy, location = attrs.get('content').split(';', 1)
-            loctype, url = location.split('=', 1)
-            if loctype.lower() != 'url':
-                continue
+            return False
 
-            return (yield from self.fetch(url, params))
+        resp, content = yield from self.app.fetcher.fetch_full(url)
 
-        return buff
+        if _is_redirect(content):
+            # Get Cookies
+            resp, content = yield from self.app.fetcher.fetch_full(
+                url, skip_cache=True)
+            # Get URL with cookies
+            resp, content = yield from self.app.fetcher.fetch_full(
+                url, skip_cache=True)
+
+        return content
 
     def parse(self, buff, parser):
         soup = bs4.BeautifulSoup(buff, parser)
