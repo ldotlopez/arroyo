@@ -1,12 +1,14 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import asyncio
 import importlib
 import sys
 import warnings
 
 import bs4
 from ldotcommons import (
+    cache,
     fetchers,
     keyvaluestore,
     logging,
@@ -233,6 +235,38 @@ def build_basic_settings(arguments=None):
 #         except Exception:
 #             self.handleError(record)
 
+class ArroyoAsyncFetcher(fetchers.AsyncFetcher):
+    def __init__(self, *args, enable_cache=False, cache_delta=-1, timeout=-1,
+                 **kwargs):
+
+        logger = kwargs.get('logger', None)
+
+        self._timeout = timeout
+
+        if enable_cache:
+            fetcher_cache = cache.DiskCache(
+                basedir=utils.user_path('cache', 'network',
+                                        create=True, is_folder=True),
+                delta=cache_delta,
+                logger=logger)
+
+            if logger:
+                msg = "{clsname} using cachepath '{path}'"
+                msg = msg.format(clsname=self.__class__.__name__,
+                                 path=fetcher_cache.basedir)
+                logger.debug(msg)
+        else:
+            fetcher_cache = None
+
+        kwargs['cache'] = fetcher_cache
+        super().__init__(*args, **kwargs)
+
+    @asyncio.coroutine
+    def fetch_full(self, *args, **kwargs):
+        kwargs['timeout'] = self._timeout
+        resp, content = yield from super().fetch_full(*args, **kwargs)
+        return resp, content
+
 
 class ArroyoStore(store.Store):
     def __init__(self, items={}):
@@ -356,15 +390,15 @@ class Arroyo:
             for (k, v) in fetcher_opts.items()
         }
 
+        logger = self.logger.getChild('fetcher')
         enable_cache = fetcher_opts.pop('enable_cache')
         cache_delta = fetcher_opts.pop('cache_delta')
-        logger = self.logger.getChild('fetcher')
 
-        self.fetcher = fetchers.AIOHttpFetcherWithAcessControl(
+        self.fetcher = ArroyoAsyncFetcher(
             logger=logger,
             enable_cache=enable_cache,
             cache_delta=cache_delta,
-            max_reqs=self.settings.get('async-max-concurrency'),
+            max_requests=self.settings.get('async-max-concurrency'),
             timeout=self.settings.get('async-timeout'),
             **fetcher_opts
         )
