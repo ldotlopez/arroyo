@@ -228,9 +228,9 @@ class Origin(extension.Extension):
                                     parsed.fragment))
 
     @asyncio.coroutine
-    def fetch(self, url, params={}):
+    def fetch(self, url):
         try:
-            return (yield from self.app.fetcher.fetch(url, **params))
+            return (yield from self.app.fetcher.fetch(url))
 
         except (
             asyncio.CancelledError,
