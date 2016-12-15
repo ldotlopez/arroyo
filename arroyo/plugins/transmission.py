@@ -13,6 +13,8 @@ models = plugin.models
 
 
 class TransmissionDownloader(plugin.Downloader):
+    __extension_name__ = 'transmission'
+
     _SETTINGS_NS = 'plugin.transmission'
 
     _STATE_MAP = {
@@ -176,5 +178,5 @@ class TransmissionDownloader(plugin.Downloader):
             raise store.ValidationError(key, value, 'Unknow property')
 
 __arroyo_extensions__ = [
-    ('transmission', TransmissionDownloader)
+    TransmissionDownloader
 ]

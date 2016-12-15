@@ -5,6 +5,8 @@ from urllib import parse
 
 
 class GenericOrigin(plugin.Origin):
+    __extension_name__ = 'generic'
+
     PROVIDER = 'generic'
 
     def __init__(self, app, *args, **kwargs):
@@ -38,5 +40,5 @@ class GenericOrigin(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('generic', GenericOrigin)
+    GenericOrigin
 ]

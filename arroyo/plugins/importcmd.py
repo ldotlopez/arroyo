@@ -5,37 +5,39 @@ from arroyo import plugin
 
 
 class ImportCommand(plugin.Command):
+    __extension_name__ = 'import'
+
     help = 'Import an origin.'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '--backend',
             dest='backend',
             type=str,
             help='backend to use'),
-        plugin.argument(
+        plugin.cliargument(
             '-u', '--uri',
             dest='uri',
             type=str,
             default=None,
             help='Seed URI'),
-        plugin.argument(
+        plugin.cliargument(
             '-i', '--iterations',
             dest='iterations',
             type=int,
             help='iterations to run',
             default=1),
-        plugin.argument(
+        plugin.cliargument(
             '-t', '--type',
             dest='type',
             type=str,
             help='force type of found sources'),
-        plugin.argument(
+        plugin.cliargument(
             '-l', '--language',
             dest='language',
             type=str,
             help='force language of found sources'),
-        plugin.argument(
+        plugin.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
@@ -88,5 +90,5 @@ class ImportCommand(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('import', ImportCommand)
+    ImportCommand
 ]

@@ -5,6 +5,8 @@ models = plugin.models
 
 
 class SourceQuery(plugin.Query):
+    __extension_name__ = 'source'
+
     KIND = 'source'
 
     def get_query_set(self, session, everything):
@@ -16,5 +18,5 @@ class SourceQuery(plugin.Query):
         return qs
 
 __arroyo_extensions__ = [
-    ('source', SourceQuery)
+    SourceQuery
 ]

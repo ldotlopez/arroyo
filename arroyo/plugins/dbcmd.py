@@ -5,40 +5,42 @@ models = plugin.models
 
 
 class Command(plugin.Command):
+    __extension_name__ = 'db'
+
     help = 'manage database'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '--shell',
             dest='shell',
             action='store_true',
             help=('start a interactive python interpreter in the db '
                   'environment')),
 
-        plugin.argument(
+        plugin.cliargument(
             '--reset-db',
             dest='reset',
             action='store_true',
             help='empty db'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
             help='sets state to NONE on all sources'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
             help='sets state to ARCHIVED on all sources'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--reset',
             dest='reset_source_id',
             help='reset state of a source'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--archive',
             dest='archive_source_id',
             help='archive a source')
@@ -109,5 +111,5 @@ class Command(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('db', Command)
+    Command
 ]

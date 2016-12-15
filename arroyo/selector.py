@@ -4,7 +4,6 @@ import abc
 import itertools
 import sys
 
-
 import arroyo.exc
 from arroyo import (
     extension,
@@ -72,6 +71,9 @@ class Query(extension.Extension):
 class Selector:
     def __init__(self, app):
         self.app = app
+        self.app.register_extension_point(Filter)
+        self.app.register_extension_point(Query)
+        self.app.register_extension_point(Sorter)
 
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
@@ -117,7 +119,8 @@ class Selector:
 
         # Build filter register
         # This register a is two-level dict. First by model, second by key
-        for (name, impl) in self.app.get_implementations(Filter).items():
+        for impl in self.app.get_implementations(Filter):
+            name = impl.__extension_name__
 
             if impl.APPLIES_TO not in registry:
                 registry[impl.APPLIES_TO] = {}

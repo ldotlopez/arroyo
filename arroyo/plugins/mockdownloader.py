@@ -5,6 +5,8 @@ models = plugin.models
 
 
 class MockDownloader(plugin.Downloader):
+    __extension_name__ = 'mock'
+
     _VARIABLES_NS = 'downloader.mock.states'
 
     def __init__(self, app):
@@ -45,5 +47,5 @@ class MockDownloader(plugin.Downloader):
 
 
 __arroyo_extensions__ = [
-    ('mock', MockDownloader)
+    MockDownloader
 ]

@@ -3,12 +3,13 @@
 from ldotcommons import utils
 
 
-from arroyo import extension
+from appkit import app
 
 
 class CronManager:
     def __init__(self, app):
         self._app = app
+        self._app.register_extension_point(CronTask)
 
     def run_all(self, force=False):
         for impl in self._app.get_implementations(CronTask):
@@ -21,7 +22,7 @@ class CronManager:
             task.run()
 
 
-class CronTask(extension.Extension):
+class CronTask(app.Extension):
     def __init__(self, app):
         if not hasattr(self, 'INTERVAL'):
             msg = "{class_name} doesn't have a valid INTERVAL attribute"

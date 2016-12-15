@@ -39,31 +39,31 @@ class TwitterNotifierCommand(plugin.Command):
     help = 'Authorize twitter notifier'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '--test',
             dest='test',
             action='store_true',
             help='Say "hi!" on twitter'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--message',
             dest='message',
             default='Hi there!',
             help='Text to send to twitter'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--auth',
             dest='auth',
             action='store_true',
             help='Authorize app'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--consumer-key',
             dest='consumer_key',
             default=None,
             help='Application consumer key'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--consumer-secret',
             dest='consumer_secret',
             default=None,
@@ -170,6 +170,6 @@ class TwitterNotifierService(plugin.Service):
 
 
 __arroyo_extensions__ = [
-    ('twitter', TwitterNotifierService),
-    ('twitter', TwitterNotifierCommand)
+    TwitterNotifierService,
+    TwitterNotifierComman
 ]

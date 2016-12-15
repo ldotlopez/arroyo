@@ -15,6 +15,8 @@ from ldotcommons import utils
 
 
 class KickAss(plugin.Origin):
+    __extension_name__ = 'kickass'
+
     PROVIDER = 'kickass'
 
     _BASE_URI = 'https://kickass.cd'
@@ -289,5 +291,5 @@ class KickAss(plugin.Origin):
         return None
 
 __arroyo_extensions__ = [
-    ('kickass', KickAss)
+    KickAss
 ]

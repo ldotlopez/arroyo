@@ -5,6 +5,8 @@ from arroyo.plugin.tools import query
 
 
 class MovieQuery(query.HighLevelQuery):
+    __extension_name__ = 'movie'
+
     KIND = 'movie'
     ENTITY_MODEL = plugin.models.Movie
     ENTITY_ATTR = 'movie'
@@ -12,5 +14,5 @@ class MovieQuery(query.HighLevelQuery):
 
 
 __arroyo_extensions__ = [
-    ('movie', MovieQuery)
+    MovieQuery
 ]

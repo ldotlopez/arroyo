@@ -26,5 +26,5 @@ class FakeOrigin(plugin.Origin):
         return data
 
 __arroyo_extensions__ = [
-    ('fake', FakeOrigin)
+    FakeOrigin
 ]

@@ -8,6 +8,8 @@ import functools
 
 
 class Filter(plugin.QuerySetFilter):
+    __extension_name__ = 'movie-fields'
+
     _strs = ['title', 'title-glob']
     _nums = ['year']
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
@@ -31,5 +33,5 @@ class Filter(plugin.QuerySetFilter):
 
 
 __arroyo_extensions__ = [
-    ('movie', Filter)
+    Filter
 ]

@@ -7,30 +7,32 @@ from ldotcommons import utils
 
 
 class CronCommand(plugin.Command):
+    __extension_name__ = 'cron'
+
     help = 'Run cron tasks'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '-a', '--all',
             dest='all',
             action='store_true',
             default=[],
             help=('Run all tasks')
         ),
-        plugin.argument(
+        plugin.cliargument(
             '-t', '--task',
             dest='tasks',
             action='append',
             default=[],
             help=('Run specifics task')
         ),
-        plugin.argument(
+        plugin.cliargument(
             '-f', '--force',
             dest='force',
             action='store_true',
             help=('Force tasks to run omiting intervals')
         ),
-        plugin.argument(
+        plugin.cliargument(
             '-l', '--list',
             dest='list',
             action='store_true',
@@ -82,5 +84,5 @@ class CronCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
 __arroyo_extensions__ = [
-    ('cron', CronCommand),
+    CronCommand
 ]

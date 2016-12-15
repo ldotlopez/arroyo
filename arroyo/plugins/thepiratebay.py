@@ -18,6 +18,8 @@ class _CategoryUnknowError(Exception):
 
 
 class ThePirateBay(plugin.Origin):
+    __extension_name__ = 'thepiratebay'
+
     PROVIDER = 'thepiratebay'
 
     # URL structure:
@@ -281,6 +283,8 @@ class ThePirateBay(plugin.Origin):
 
 
 class ThePirateBayRSS(plugin.Origin):
+    __extension_name__ = 'thepiratebayrss'
+
     _TLD = 'cr'
     _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
 
@@ -307,6 +311,6 @@ class ThePirateBayRSS(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('thepiratebay', ThePirateBay),
-    ('thepiratebayrss', ThePirateBayRSS),
+    ThePirateBay,
+    ThePirateBayRSS
 ]

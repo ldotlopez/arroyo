@@ -5,6 +5,8 @@ from arroyo.plugin.tools import query
 
 
 class EpisodeQuery(query.HighLevelQuery):
+    __extension_name__ = 'episode'
+
     KIND = 'episode'
 
     ENTITY_MODEL = plugin.models.Episode
@@ -13,5 +15,5 @@ class EpisodeQuery(query.HighLevelQuery):
 
 
 __arroyo_extensions__ = [
-    ('episode', EpisodeQuery)
+    EpisodeQuery
 ]

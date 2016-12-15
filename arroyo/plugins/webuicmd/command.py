@@ -8,19 +8,19 @@ from . import webapp
 
 class Command(plugin.Command):
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '-i', '--interface',
             dest='host',
             default='127.0.0.1',
             help=('App host')
         ),
-        plugin.argument(
+        plugin.cliargument(
             '-p', '--port',
             dest='port',
             default=5000,
             help=('App port')
         ),
-        plugin.argument(
+        plugin.cliargument(
             '--debug',
             dest='debug',
             action='store_true',

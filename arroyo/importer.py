@@ -8,7 +8,7 @@ import re
 from urllib import parse
 
 
-from ldotcommons import (
+from appkit import (
     logging,
     utils
 )
@@ -366,17 +366,16 @@ class Importer:
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')
         app.signals.register('sources-updated-batch')
-
-        app.register_extension('import', ImporterCronTask)
+        app.register_extension_point(Origin)
+        app.register_extension_class(ImporterCronTask)
 
     def _settings_validator(self, key, value):
         """Validates settings"""
         return value
 
     def origin_class_from_uri(self, uri):
-        impls = self.app.get_implementations(Origin)
 
-        for (name, impl) in impls.items():
+        for impl in self.app.get_implementations(Origin):
             try:
                 if impl.compatible_uri(uri):
                     return impl
@@ -404,7 +403,7 @@ class Importer:
 
         impl_name = p.pop('backend', None)
         if impl_name:
-            impl_cls = self.app.get_implementation(Origin, impl_name)
+            impl_cls = self.app.get_extension_class(Origin, impl_name)
         else:
             if not uri:
                 msg = "Neither backend or uri was provided"
@@ -631,7 +630,7 @@ class Importer:
 
 
 class ImporterCronTask(cron.CronTask):
-    NAME = 'importer'
+    __extension_name__ = 'importer'
     INTERVAL = '3H'
 
     def run(self):

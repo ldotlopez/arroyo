@@ -12,17 +12,19 @@ from ldotcommons import utils
 
 
 class SearchCommand(plugin.Command):
+    __extension_name__ = 'search'
+
     help = 'Search sources'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
             help=('include all results '
                   '(by default only sources with NONE state are displayed)')),
 
-        plugin.argument(
+        plugin.cliargument(
             '-f', '--filter',
             dest='filters',
             required=False,
@@ -31,7 +33,7 @@ class SearchCommand(plugin.Command):
             action=utils.DictAction,
             help='filters to apply in key_mod=value form'),
 
-        plugin.argument(
+        plugin.cliargument(
             'keywords',
             nargs='*',
             help='keywords')
@@ -104,5 +106,5 @@ class SearchCommand(plugin.Command):
 
 
 __arroyo_extensions__ = [
-    ('search', SearchCommand)
+    SearchCommand
 ]

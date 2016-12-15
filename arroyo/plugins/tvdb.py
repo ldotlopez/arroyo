@@ -100,7 +100,7 @@ class TVDB:
 class TVDBCommand(plugin.Command):
     help = 'tvdb'
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '-i', dest='item', required=True, type=int
         ),
     )
@@ -110,5 +110,5 @@ class TVDBCommand(plugin.Command):
         tvdb.process(arguments.item)
 
 __arroyo_extensions__ = [
-    ('tvdb', TVDBCommand)
+    TVDBCommand
 ]

@@ -8,6 +8,8 @@ import functools
 
 
 class Filter(plugin.QuerySetFilter):
+    __extension_name__ = 'episode-fields'
+
     _strs = ['series', 'series-glob']
     _nums = ('year', 'season', 'episode')
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
@@ -31,5 +33,5 @@ class Filter(plugin.QuerySetFilter):
 
 
 __arroyo_extensions__ = [
-    ('episode', Filter)
+    Filter
 ]

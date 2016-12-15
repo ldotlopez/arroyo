@@ -6,12 +6,15 @@ from arroyo import plugin
 import re
 from urllib import parse
 
+
 import bs4
 import humanfriendly
 from ldotcommons import utils
 
 
 class Eztv(plugin.Origin):
+    __extension_name__ = 'eztv'
+
     _BASE_DOMAIN = 'https://eztv.ag'
 
     DEFAULT_URI = _BASE_DOMAIN + '/page_0'
@@ -210,5 +213,5 @@ class Eztv(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('eztv', Eztv)
+    Eztv
 ]

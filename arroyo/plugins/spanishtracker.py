@@ -146,5 +146,5 @@ class Spanishtracker(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('spanishtracker', Spanishtracker)
+    Spanishtracker
 ]

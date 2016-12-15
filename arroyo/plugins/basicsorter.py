@@ -8,6 +8,8 @@ import itertools
 
 
 class Sorter(plugin.Sorter):
+    __extension_name__ = 'basic'
+
     def cmp_source_health(self, a, b):
         # print("==========")
         # print("'{}' <-> '{}'".format(a.name, b.name))
@@ -111,5 +113,5 @@ class Sorter(plugin.Sorter):
 
 
 __arroyo_extensions__ = [
-    ('basic', Sorter),
+    Sorter
 ]

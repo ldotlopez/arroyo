@@ -13,6 +13,8 @@ from ldotcommons import utils
 
 
 class Filter(plugin.QuerySetFilter):
+    __extension_name__ = 'source-fields'
+
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
              'state-name')
     _strs = [[x, x + '-glob', x + '-regexp', x + '-in'] for x in _strs]
@@ -60,5 +62,5 @@ class Filter(plugin.QuerySetFilter):
 
 
 __arroyo_extensions__ = [
-    ('source', Filter)
+    Filter
 ]

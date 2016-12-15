@@ -11,39 +11,41 @@ models = plugin.models
 
 
 class DownloadCommand(plugin.Command):
+    __extension_name__ = 'download'
+
     help = 'manage downloads'
 
     arguments = (
-        plugin.argument(
+        plugin.cliargument(
             '-l', '--list',
             dest='show',
             action='store_true',
             help='show current downloads'),
 
-        plugin.argument(
+        plugin.cliargument(
             '-a', '--add',
             dest='add',
             help='download a source ID'),
 
-        plugin.argument(
+        plugin.cliargument(
             '-r', '--remove',
             dest='remove',
             help='cancel (and/or remove) a source ID'),
 
-        plugin.argument(
+        plugin.cliargument(
             '-f', '--filter',
             dest='query',
             type=str,
             action=utils.DictAction,
             help='filters to apply in key_mod=value form'),
 
-        plugin.argument(
+        plugin.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
             help="Download matching sources from queries defined in config"),
 
-        plugin.argument(
+        plugin.cliargument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
@@ -163,5 +165,5 @@ class DownloadCommand(plugin.Command):
                 conditional_logger(logging.INFO, msg)
 
 __arroyo_extensions__ = [
-    ('download', DownloadCommand)
+    DownloadCommand
 ]

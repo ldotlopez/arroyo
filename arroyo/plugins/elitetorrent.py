@@ -17,6 +17,8 @@ from ldotcommons import utils
 
 
 class EliteTorrent(plugin.Origin):
+    __extension_name__ = 'elitetorrent'
+
     PROVIDER = 'elitetorrent'
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
     SEARCH_URI = 'http://www.elitetorrent.net/resultados/{query}/orden:fecha'
@@ -313,5 +315,5 @@ class EliteTorrent(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('elitetorrent', EliteTorrent)
+    EliteTorrent
 ]

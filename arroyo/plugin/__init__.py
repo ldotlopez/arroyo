@@ -1,7 +1,10 @@
-from arroyo import exc, models
+from arroyo import (
+    exc,
+    models
+)
+from arroyo.extension import Command
 from arroyo.cron import CronTask
 from arroyo.downloads import Downloader
-from arroyo.extension import Command, Service, argument
 from arroyo.importer import Origin
 from arroyo.selector import (
     Filter,
@@ -10,11 +13,15 @@ from arroyo.selector import (
     QuerySetFilter,
     Sorter
 )
-
+from appkit.app import (
+    Service,
+    cliargument
+)
 
 __all__ = [
     # Other modules
     'exc',
+    'extension',
     'models',
 
     # Extensible classes
@@ -29,5 +36,5 @@ __all__ = [
     'Sorter',
 
     # Tools
-    'argument'
+    'cliargument'
 ]

@@ -5,6 +5,8 @@ import yaml
 
 
 class ConfigCommand(plugin.Command):
+    __extension_name__ = 'config'
+
     help = 'Configuration management'
 
     @classmethod
@@ -59,5 +61,5 @@ class ConfigCommand(plugin.Command):
             print(yaml.dump(self.app.settings.get(args.key[0])))
 
 __arroyo_extensions__ = [
-    ('config', ConfigCommand)
+    ConfigCommand
 ]
