@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 
-# json_extended format
-
+# json_extended format:
+#
 # {'category': 'TV Episodes',
-#  'download': 'magnet:?xt=urn:btih:28387f321095ba20edfcf928168585fcf28b4aab&dn=Westworld.S01E10.iNTERNAL.HDTV.x264-TURBO%5Brartv%5D&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2710&tr=udp%3A%2F%2F9.rarbg.to%3A2710&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
+#  'download': 'magnet:?xt=urn:btih:000000000000000000000000000000000000000000000000&dn=Westworld.S01E10.iNTERNAL.HDTV.x264-TURBO%5Brartv%5D&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2710&tr=udp%3A%2F%2F9.rarbg.to%3A2710&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
 #  'episode_info': {'airdate': '2016-12-04',
 #                   'epnum': '10',
 #                   'imdb': 'tt0475784',
@@ -12,7 +12,7 @@
 #                   'title': 'The Bicameral Mind',
 #                   'tvdb': '296762',
 #                   'tvrage': '37537'},
-#  'info_page': 'https://torrentapi.org/redirect_to_info.php?token=dq0uw4hkb5&p=1_1_8_6_6_9_2__28387f3210',
+#  'info_page': 'https://torrentapi.org/redirect_to_info.php?token=xxxxxxxxxx&p=x_x_x_x_x_x_x__xxxxxxxxxx',
 #  'leechers': 6,
 #  'pubdate': '2016-12-06 10:13:24 +0000',
 #  'ranked': 1,
