@@ -37,8 +37,6 @@ import arrow
 class TorrentAPI(plugin.Origin):
     __extension_name__ = 'torrentapi'
 
-    PROVIDER = 'torrentapi'
-
     # URL structure:
     # https://torrentapi.org/apidocs_v2.txt
     # https://torrentapi.org/pubapi_v2.php?get_token=get_token

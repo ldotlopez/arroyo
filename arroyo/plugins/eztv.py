@@ -18,7 +18,6 @@ class Eztv(plugin.Origin):
     _BASE_DOMAIN = 'https://eztv.ag'
 
     DEFAULT_URI = _BASE_DOMAIN + '/page_0'
-    PROVIDER = 'eztv'
     URI_PATTERNS = [
         r'^http(s)?://([^.]\.)?eztv\.[^.]{2,3}/'
     ]

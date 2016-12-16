@@ -5,7 +5,6 @@ from arroyo import plugin
 
 class FakeOrigin(plugin.Origin):
     BASE_URL = 'http://example.com/?page=1'
-    PROVIDER_NAME = 'fake'
 
     def paginate(self, url):
         yield from self.paginate_by_query_param(url, 'page', default=1)

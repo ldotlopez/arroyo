@@ -7,8 +7,6 @@ from urllib import parse
 class GenericOrigin(plugin.Origin):
     __extension_name__ = 'generic'
 
-    PROVIDER = 'generic'
-
     def __init__(self, app, *args, **kwargs):
         super().__init__(app, *args, **kwargs)
         self.logger = app.logger

@@ -21,8 +21,6 @@ class _CategoryUnknowError(Exception):
 class ThePirateBay(plugin.Origin):
     __extension_name__ = 'thepiratebay'
 
-    PROVIDER = 'thepiratebay'
-
     # URL structure:
     # https://thepiratebay.cr/search.php?q={q}&page={page}&orderby=99
     # order_by=3 uploaded
@@ -266,7 +264,6 @@ class ThePirateBayRSS(plugin.Origin):
     _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
 
     DEFAULT_URI = _BASE_URL + "/top100/0"
-    PROVIDER = 'thepiratebayrss'
     URI_PATTERNS = [
         r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
     ]

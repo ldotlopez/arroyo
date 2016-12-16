@@ -14,17 +14,16 @@ from appkit import (
 )
 
 
+import arroyo.exc
 from arroyo import (
     cron,
     downloads,
-    exc,
     extension,
     models
 )
 
 
 class Origin(extension.Extension):
-    PROVIDER = None
     DEFAULT_URI = None
     URI_PATTERNS = None
 
@@ -111,12 +110,7 @@ class Origin(extension.Extension):
 
     @property
     def provider(self):
-        if self.PROVIDER is None:
-            msg = "Class {clsname} must override PROVIDER attribute"
-            msg = msg.format(clsname=self.__class__.__name__)
-            raise NotImplementedError(msg)
-
-        return self.PROVIDER
+        return self.__extension_name__
 
     @property
     def display_name(self):
@@ -600,7 +594,7 @@ class Importer:
             _update_source(psrc)
 
         if not source.urn:
-            raise exc.SourceResolveError(source)
+            raise arroyo.exc.SourceResolveError(source)
 
         del(psrcs[source.urn])
         if psrcs:

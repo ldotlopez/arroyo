@@ -17,8 +17,6 @@ from appkit import utils
 class KickAss(plugin.Origin):
     __extension_name__ = 'kickass'
 
-    PROVIDER = 'kickass'
-
     _BASE_URI = 'https://kickass.cd'
     DEFAULT_URI = _BASE_URI + '/new/'
     URI_PATTERNS = [
