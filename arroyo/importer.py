@@ -161,12 +161,12 @@ class Origin(extension.Extension):
         return ret
 
     @asyncio.coroutine
-    def process(self, url):
+    def process(self, uri):
         """
-        Coroutine that fetches and parses an URL
+        Coroutine that fetches and parses an URI
         """
         try:
-            buff = yield from self.fetch(url)
+            buff = yield from self.fetch(uri)
             if not buff:
                 return None
 
@@ -181,8 +181,8 @@ class Origin(extension.Extension):
             parser=self.app.settings.get('importer.parser'))
         psrcs = self._normalize_source_data(*psrcs)
 
-        msg = "Found {n_srcs_data} sources in {url}"
-        msg = msg.format(n_srcs_data=len(psrcs), url=url)
+        msg = "Found {n_srcs_data} sources in {uri}"
+        msg = msg.format(n_srcs_data=len(psrcs), uri=uri)
         self.logger.info(msg)
 
         return psrcs

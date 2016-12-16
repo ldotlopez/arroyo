@@ -40,6 +40,24 @@ class Query(extension.Extension):
         self.params = params
         self.display_name = display_name
 
+    @property
+    def base_string(self):
+        return self._get_base_string()
+
+    def _get_base_string(self, base_key='name'):
+        if base_key in self.params:
+            ret = self.params[base_key]
+
+        elif base_key+'-glob' in self.params:
+            ret = self.params[base_key+'-glob'].replace('*', ' ')
+            ret = ret.replace('.', ' ')
+
+        elif base_key+'-like' in self.params:
+            ret = self.params[base_key+'-like'].replace('%', ' ')
+            ret = ret.replace('_', ' ')
+
+        return ret.strip()
+
     def get_query_set(self, session, include_all=False):
         raise NotImplementedError()
 

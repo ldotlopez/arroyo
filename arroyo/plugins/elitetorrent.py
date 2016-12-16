@@ -99,38 +99,17 @@ class EliteTorrent(plugin.Origin):
         if params.get('language', None) not in self._langs:
             return
 
+        q = query.base_string
+
         if kind == 'episode':
-            q = params.get('series')
-            year = params.get('year', None)
-            season = params.get('season', None)
-            episode = params.get('episode', None)
+            q = re.sub(r' S0*(\d+)$',
+                       lambda m: ' Temporada ' + m.group(1), q)
+            q = re.sub(r' S0*(\d+)E(\d+)$',
+                       lambda m: ' ' + m.group(1) + 'x' + m.group(2), q)
 
-            if year:
-                q += ' ({year})'.format(year=year)
+        q = parse.quote_plus(q)
 
-            if season and episode:
-                q += ' {season}x{episode:02d}'.format(
-                    season=season, episode=episode)
-
-        elif kind == 'movie':
-            q = params.get('title')
-            year = params.get('year')
-            if year:
-                q += ' ({year})'.format(year)
-
-        elif kind == 'source':
-            q = params.get('name', None) or \
-                params.get('name-like', None) or \
-                params.get('name-glob', None)
-            if q:
-                q = q.replace('*', ' ')
-
-        else:
-            return
-
-        if q:
-            q = parse.quote_plus(q.lower().strip())
-            return self.SEARCH_URI.format(query=q)
+        return self.SEARCH_URI.format(query=q)
 
     @asyncio.coroutine
     def fetch(self, url):
