@@ -356,11 +356,9 @@ class CommandlineArroyoAppMixin(app.CommandlineAppMixin):
     COMMAND_EXTENSION_POINT = extension.Command
 
 
-class Arroyo(app.BaseApp, app.ServiceAppMixin, CommandlineArroyoAppMixin):
+class Arroyo(app.ServiceAppMixin, CommandlineArroyoAppMixin, app.BaseApp):
     def __init__(self, settings=None):
-        app.BaseApp.__init__(self, 'arroyo')
-        app.ServiceAppMixin.__init__(self)
-        CommandlineArroyoAppMixin.__init__(self)
+        super().__init__('arroyo')
 
         self.settings = settings or build_basic_settings([])
 
@@ -443,55 +441,43 @@ class Arroyo(app.BaseApp, app.ServiceAppMixin, CommandlineArroyoAppMixin):
         if self.settings.get('auto-cron'):
             self.cron.run_all()
 
-    def monkey_patch_appkit(self):
-        def build_init(cls):
-            orig_init = getattr(cls, '__init__')
-
-            def fn(o, a):
-                orig_init(o)
-                setattr(o, 'app', a)
-
-            return fn
-
-        app.Extension.__init__ = build_init(app.Extension)
-
     def get_extension(self, extension_point, name, *args, **kwargs):
         return super().get_extension(extension_point, name, self,
                                      *args, **kwargs)
 
-    def run_from_args(self, command_line_arguments=sys.argv[1:]):
-        # Build full argument parser
-        argparser = build_argument_parser()
-        subparser = argparser.add_subparsers(
-            title='subcommands',
-            dest='subcommand',
-            description='valid subcommands',
-            help='additional help')
+    # def run_from_args(self, command_line_arguments=sys.argv[1:]):
+    #     # Build full argument parser
+    #     argparser = build_argument_parser()
+    #     subparser = argparser.add_subparsers(
+    #         title='subcommands',
+    #         dest='subcommand',
+    #         description='valid subcommands',
+    #         help='additional help')
 
-        impls = self.get_implementations(app.Command)
-        subargparsers = {}
-        for cmdcls in impls:
-            name = cmdcls.__extension_name__
-            subargparsers[name] = subparser.add_parser(
-                name, help=cmdcls.help)
-            cmdcls.setup_argparser(subargparsers[name])
+    #     impls = self.get_implementations(extension.Command)
+    #     subargparsers = {}
+    #     for cmdcls in impls:
+    #         name = cmdcls.__extension_name__
+    #         subargparsers[name] = subparser.add_parser(
+    #             name, help=cmdcls.help)
+    #         cmdcls.setup_argparser(subargparsers[name])
 
-        # Parse arguments
-        args = argparser.parse_args(command_line_arguments)
-        if not args.subcommand:
-            argparser.print_help()
-            return
+    #     # Parse arguments
+    #     args = argparser.parse_args(command_line_arguments)
+    #     if not args.subcommand:
+    #         argparser.print_help()
+    #         return
 
-        # Get extension instances and extract its argument names
-        ext = self.get_extension(app.Command, args.subcommand)
-        try:
-            ext.run(args)
+    #     # Get extension instances and extract its argument names
+    #     ext = self.get_extension(extension.Command, args.subcommand)
+    #     try:
+    #         ext.run(args)
 
-        except arroyo.exc.PluginArgumentError as e:
-            subargparsers[args.subcommand].print_help()
-            print("\nError message: {}".format(e), file=sys.stderr)
+    #     except arroyo.exc.PluginArgumentError as e:
+    #         subargparsers[args.subcommand].print_help()
+    #         print("\nError message: {}".format(e), file=sys.stderr)
 
-        except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError,
-                arroyo.exc.FatalError) as e:
-            self.logger.critical(e)
+    #     except (arroyo.exc.BackendError,
+    #             arroyo.exc.NoImplementationError,
+    #             arroyo.exc.FatalError) as e:
+    #         self.logger.critical(e)
