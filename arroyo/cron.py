@@ -10,22 +10,20 @@ class CronManager:
         self._app.register_extension_point(CronTask)
 
     def run_all(self, force=False):
-        for name in [x.__extension_name__ for x in
-                     self._app.get_implementations(CronTask)]:
-            task = self._app.get_extension(CronTask, name)
-            self.run(task, force)
+        for name in self._app.get_implementations(CronTask):
+            self.run_by_name(name, force)
 
     def run(self, task, force=False):
         if force or task.should_run():
             task.run()
 
     def run_by_name(self, name, force=False):
-        task = self.get_extension(CronTask, name)
+        task = self._app.get_extension(CronTask, name)
         self.run(task, force)
 
 
 class CronTask(extension.Extension):
-    def __init__(self, app):
+    def __init__(self, app, *args, **kwargs):
         if not hasattr(self, 'INTERVAL'):
             msg = "{class_name} doesn't have a valid INTERVAL attribute"
             msg = msg.format(class_name=self.__class__.__name__)
@@ -38,7 +36,7 @@ class CronTask(extension.Extension):
             msg = msg.format(interval=self.INTERVAL)
             raise TypeError(msg) from e
 
-        super().__init__(app)
+        super().__init__(app, *args, **kwargs)
 
         self.name = self.__class__.__extension_name__.lower()
         self.app = app

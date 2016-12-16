@@ -59,9 +59,9 @@ class CronCommand(plugin.Command):
             raise plugin.exc.PluginArgumentError(msg)
 
         if list_:
-            impls = self.app.get_implementations(plugin.CronTask)
-
-            for (name, impl) in sorted(impls.items(), key=lambda x: x[0]):
+            impls = self.app.get_implementations(plugin.CronTask).items()
+            for x in sorted(impls):
+                (name, impl) = x
                 msg = "{name} – interval: {interval} ({secs} seconds)"
                 msg = msg.format(
                     name=name,
@@ -75,7 +75,7 @@ class CronCommand(plugin.Command):
 
         elif tasks:
             for name in tasks:
-                self.app.cron.run(name, force)
+                self.app.cron.run_by_name(name, force)
 
         else:
             # This code should never be reached but keeping it here we will

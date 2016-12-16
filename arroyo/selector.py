@@ -138,9 +138,7 @@ class Selector:
 
         # Build filter register
         # This register a is two-level dict. First by model, second by key
-        for impl in self.app.get_implementations(Filter):
-            name = impl.__extension_name__
-
+        for (name, impl) in self.app.get_implementations(Filter).items():
             if impl.APPLIES_TO not in registry:
                 registry[impl.APPLIES_TO] = {}
 
@@ -335,7 +333,7 @@ class Selector:
         msg = msg.format(query=query)
         self.app.logger.info(msg)
 
-        impls = self.app.get_implementations(importer.Origin)
+        impls = self.app.get_implementations(importer.Origin).items()
         if not impls:
             msg = ("There are no origin implementations available or none of "
                    "them is enabled, check your configuration")
@@ -343,8 +341,7 @@ class Selector:
             return []
 
         impls_and_uris = []
-        for (name, impl) in [(x.__extension_name__, x)
-                             for x in impls]:
+        for (name, impl) in impls:
             uri = impl(self.app).get_query_uri(query)
             if uri:
                 msg = " Found compatible origin '{name}'"
