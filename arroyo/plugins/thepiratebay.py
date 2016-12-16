@@ -2,9 +2,10 @@
 
 from arroyo import plugin
 
-from datetime import datetime
 import re
 import time
+from datetime import datetime
+from urllib import parse
 
 
 import bs4
@@ -253,32 +254,8 @@ class ThePirateBay(plugin.Origin):
         return now
 
     def get_query_uri(self, query):
-        kind = query.kind
-        params = query.params
-
-        types_prop_map = {
-            'source': 'name',
-            'episode': 'series',
-            'movie': 'title'
-        }
-
-        prop = types_prop_map.get(kind, 'other')
-
-        if not prop:
-            return None
-
-        q = 'other'
-        for suffix in ['', '-glob', '-like', '-regexp']:
-            q = params.get(prop + suffix, 'other')
-            if q is not 'other':
-                q = q.replace('%', ' ').replace('*', ' ')
-                q = q.strip()
-                q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
-                break
-
-        if not q:
-            return None
-
+        q = re.sub(r'[^a-zA-Z0-9]', ' ', query.base_string)
+        q = parse.quote_plus(q)
         return self.SEARCH_URL_PATTERN.format(q=q)
 
 

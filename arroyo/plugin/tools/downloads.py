@@ -6,6 +6,7 @@ from arroyo.downloads import (
     magnet_from_torrent_file,
     parse_magnet,
     rewrite_uri,
+    set_query_params,
 )
 
 __all__ = [
@@ -15,5 +16,6 @@ __all__ = [
     'magnet_from_torrent_data',
     'magnet_from_torrent_file',
     'parse_magnet',
-    'rewrite_uri'
+    'rewrite_uri',
+    'set_query_params'
 ]

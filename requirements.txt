@@ -2,6 +2,7 @@
 # Core
 #
 aiohttp
+arrow
 bencodepy
 blinker
 humanfriendly
@@ -22,9 +23,3 @@ lxml
 # transmission
 transmissionrpc
 
-# twitter
-twitter
-
-# webui
-flask
-git+https://github.com/tomchristie/flask-api#egg=Flask-API

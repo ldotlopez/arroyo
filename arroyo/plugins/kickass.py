@@ -65,46 +65,23 @@ class KickAss(plugin.Origin):
             page += 1
 
     def get_query_uri(self, query):
+        _category_table = {
+            'episode': 'tv',
+            'movie': 'movies'
+        }
+
         kind = query.kind
         params = query.params
 
-        if kind == 'episode':
-            series = params.get('series')
-            if not series:
-                return
+        q = query.base_string
+        if kind in _category_table:
+            q += ' category:' + _category_table[kind]
 
-            q = '{} category:tv'.format(series)
-
-            season = params.get('season')
-            if season:
-                q += ' season:{}'.format(season)
-
-            episode = params.get('episode')
-            if episode:
-                q += ' episode:{}'.format(episode)
-
-        elif kind == 'movie':
-            title = params.get('title', '')
-            if not title:
-                return
-
-            q = '{} category:movies'.format(title)
-
-        else:
-            q = params.get('name') or \
-                params.get('name-glob') or \
-                params.get('name-like') or \
-                params.get('name-regexp') or ''
-            q = q.replace('%', ' ').replace('*', ' ')
-            q = q.strip()
-
-        if not q:
-            return
-
+        q = parse.quote_plus(q)
         return ('{domain}/usearch/{q}/?'
                 'field=time_add&sorder=desc').format(
                     domain=self._BASE_URI,
-                    q=parse.quote(q))
+                    q=q)
 
     def parse(self, buff, parser):
         """

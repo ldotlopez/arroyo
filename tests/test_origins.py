@@ -190,9 +190,9 @@ class KickassTest(TestOrigin, unittest.TestCase):
             'https://kickass.cd/new/17/'
         ]),
 
-        ('https://kickass.cd/usearch/the%20walking%20dead/', [
-            'https://kickass.cd/usearch/the%20walking%20dead/',
-            'https://kickass.cd/usearch/the%20walking%20dead/2/'
+        ('https://kickass.cd/usearch/the+walking+dead/', [
+            'https://kickass.cd/usearch/the+walking+dead/',
+            'https://kickass.cd/usearch/the+walking+dead/2/'
         ]),
 
         ('https://kickass.cd/tv/?field=size&sorder=desc', [
@@ -223,11 +223,11 @@ class KickassTest(TestOrigin, unittest.TestCase):
     QUERY_TESTS = [
         (
             'the big bang theory',
-            'https://kickass.cd/usearch/the%20big%20bang%20theory/?field=time_add&sorder=desc'  # nopep8
+            'https://kickass.cd/usearch/the+big+bang+theory/?field=time_add&sorder=desc'  # nopep8
         ),
         (
             dict(kind='episode', series='the big bang theory'),
-            'https://kickass.cd/usearch/the%20big%20bang%20theory%20category%3Atv/?field=time_add&sorder=desc'  # nopep8
+            'https://kickass.cd/usearch/the+big+bang+theory+category%3Atv/?field=time_add&sorder=desc'  # nopep8
         )
     ]
 
@@ -255,6 +255,21 @@ class ElitetorrentTest(TestOrigin, unittest.TestCase):
             dict(name='new girl', language='spa-es'),
             'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
         ),
+    ]
+
+
+class TorrentAPITest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['torrentapi']
+    IMPLEMENTATION_NAME = 'torrentapi'
+
+    PAGINATION_TESTS = [
+    ]
+
+    PARSE_TESTS = [
+        ('torrentapi-listing.json', 25)
+    ]
+
+    QUERY_TESTS = [
     ]
 
 
