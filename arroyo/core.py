@@ -19,6 +19,7 @@ from appkit import (
     utils
 )
 
+
 import arroyo.exc
 from arroyo import (
     importer,
@@ -239,124 +240,11 @@ def build_basic_settings(arguments=None):
 #         except Exception:
 #             self.handleError(record)
 
-class ArroyoAsyncFetcher(network.AsyncFetcher):
-    def __init__(self, *args, enable_cache=False, cache_delta=-1, timeout=-1,
-                 **kwargs):
-
-        logger = kwargs.get('logger', None)
-
-        self._timeout = timeout
-
-        if enable_cache:
-            fetcher_cache = cache.DiskCache(
-                basedir=utils.user_path('cache', 'network',
-                                        create=True, is_folder=True),
-                delta=cache_delta,
-                logger=logger)
-
-            if logger:
-                msg = "{clsname} using cachepath '{path}'"
-                msg = msg.format(clsname=self.__class__.__name__,
-                                 path=fetcher_cache.basedir)
-                logger.debug(msg)
-        else:
-            fetcher_cache = None
-
-        kwargs['cache'] = fetcher_cache
-        super().__init__(*args, **kwargs)
-
-    @asyncio.coroutine
-    def fetch_full(self, *args, **kwargs):
-        kwargs['timeout'] = self._timeout
-        resp, content = yield from super().fetch_full(*args, **kwargs)
-        return resp, content
-
-
-class ArroyoStore(store.Store):
-    def __init__(self, items={}):
-        # def _get_validator():
-        #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
-        #     _type_validator = store.type_validator(_defaults_types,
-        #                                            relaxed=True)
-
-        #     def _validator(key, value):
-        #         if key == 'log-level' and value not in _log_lvls:
-        #             raise ValueError(value)
-
-        #         if key.startswith('plugin.') and key.endswith('.enabled'):
-        #             return store.cast_value(value, bool)
-
-        #         return _type_validator(key, value)
-
-        #     return _validator
-
-        super().__init__(
-            items=items,
-            validators=[store.TypeValidator(_defaults_types)]
-        )
-        self._logger = logging.get_logger('arroyo.settings')
-
-        # if 'validator' not in kwargs:
-        #     kwargs['validator'] = _get_validator()
-
-        # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # formater = logging.Formatter(
-        #     self.get('log-format', default=r'%(message)s'))
-        # handler.setFormatter(formater)
-
-        # self._logger = logging.getLogger('arroyo.settings')
-        # self._logger.addHandler(handler)
-
-    def get(self, *args, **kwargs):
-        try:
-            return super().get(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
-
-    def set(self, *args, **kwargs):
-        try:
-            return super().set(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
-
-    def delete(self, *args, **kwargs):
-        try:
-            super().delete(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
-
-    def children(self, *args, **kwargs):
-        try:
-            return super().children(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
-
-
-class CommandlineArroyoAppMixin(app.CommandlineAppMixin):
+class ArroyoCommandlineAppMixin(app.CommandlineAppMixin):
     COMMAND_EXTENSION_POINT = extension.Command
 
 
-class Arroyo(app.ServiceAppMixin, CommandlineArroyoAppMixin, app.BaseApp):
+class Arroyo(app.ServiceAppMixin, ArroyoCommandlineAppMixin, app.BaseApp):
     def __init__(self, settings=None):
         super().__init__('arroyo')
 
@@ -449,39 +337,127 @@ class Arroyo(app.ServiceAppMixin, CommandlineArroyoAppMixin, app.BaseApp):
     def build_argument_parser(cls):
         return build_argument_parser()
 
-    # def run_from_args(self, command_line_arguments=sys.argv[1:]):
-    #     # Build full argument parser
-    #     argparser = build_argument_parser()
-    #     subparser = argparser.add_subparsers(
-    #         title='subcommands',
-    #         dest='subcommand',
-    #         description='valid subcommands',
-    #         help='additional help')
+    def run(self, *args):
+        try:
+            return super().run(*args)
+        except arroyo.exc.PluginArgumentError as e:
+            subargparsers[args.subcommand].print_help()
+            print("\nError message: {}".format(e), file=sys.stderr)
 
-    #     impls = self.get_implementations(extension.Command)
-    #     subargparsers = {}
-    #     for cmdcls in impls:
-    #         name = cmdcls.__extension_name__
-    #         subargparsers[name] = subparser.add_parser(
-    #             name, help=cmdcls.help)
-    #         cmdcls.setup_argparser(subargparsers[name])
+        except (arroyo.exc.BackendError,
+                arroyo.exc.NoImplementationError,
+                arroyo.exc.FatalError):
+            self.logger.critical(e)
 
-    #     # Parse arguments
-    #     args = argparser.parse_args(command_line_arguments)
-    #     if not args.subcommand:
-    #         argparser.print_help()
-    #         return
 
-    #     # Get extension instances and extract its argument names
-    #     ext = self.get_extension(extension.Command, args.subcommand)
-    #     try:
-    #         ext.run(args)
+class ArroyoStore(store.Store):
+    def __init__(self, items={}):
+        # def _get_validator():
+        #     _log_lvls = 'CRITICAL ERROR WARNING INFO DEBUG'.split(' ')
+        #     _type_validator = store.type_validator(_defaults_types,
+        #                                            relaxed=True)
 
-    #     except arroyo.exc.PluginArgumentError as e:
-    #         subargparsers[args.subcommand].print_help()
-    #         print("\nError message: {}".format(e), file=sys.stderr)
+        #     def _validator(key, value):
+        #         if key == 'log-level' and value not in _log_lvls:
+        #             raise ValueError(value)
 
-    #     except (arroyo.exc.BackendError,
-    #             arroyo.exc.NoImplementationError,
-    #             arroyo.exc.FatalError) as e:
-    #         self.logger.critical(e)
+        #         if key.startswith('plugin.') and key.endswith('.enabled'):
+        #             return store.cast_value(value, bool)
+
+        #         return _type_validator(key, value)
+
+        #     return _validator
+
+        super().__init__(
+            items=items,
+            validators=[store.TypeValidator(_defaults_types)]
+        )
+        self._logger = logging.get_logger('arroyo.settings')
+
+        # if 'validator' not in kwargs:
+        #     kwargs['validator'] = _get_validator()
+
+        # Build and configure logger
+        # handler = EncodedStreamHandler()
+        # formater = logging.Formatter(
+        #     self.get('log-format', default=r'%(message)s'))
+        # handler.setFormatter(formater)
+
+        # self._logger = logging.getLogger('arroyo.settings')
+        # self._logger.addHandler(handler)
+
+    def get(self, *args, **kwargs):
+        try:
+            return super().get(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
+
+    def set(self, *args, **kwargs):
+        try:
+            return super().set(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
+
+    def delete(self, *args, **kwargs):
+        try:
+            super().delete(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
+
+    def children(self, *args, **kwargs):
+        try:
+            return super().children(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
+
+
+class ArroyoAsyncFetcher(network.AsyncFetcher):
+    def __init__(self, *args, enable_cache=False, cache_delta=-1, timeout=-1,
+                 **kwargs):
+
+        logger = kwargs.get('logger', None)
+
+        self._timeout = timeout
+
+        if enable_cache:
+            fetcher_cache = cache.DiskCache(
+                basedir=utils.user_path('cache', 'network',
+                                        create=True, is_folder=True),
+                delta=cache_delta,
+                logger=logger)
+
+            if logger:
+                msg = "{clsname} using cachepath '{path}'"
+                msg = msg.format(clsname=self.__class__.__name__,
+                                 path=fetcher_cache.basedir)
+                logger.debug(msg)
+        else:
+            fetcher_cache = None
+
+        kwargs['cache'] = fetcher_cache
+        super().__init__(*args, **kwargs)
+
+    @asyncio.coroutine
+    def fetch_full(self, *args, **kwargs):
+        kwargs['timeout'] = self._timeout
+        resp, content = yield from super().fetch_full(*args, **kwargs)
+        return resp, content
