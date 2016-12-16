@@ -142,18 +142,16 @@ class Origin(extension.Extension):
         def get_data_for_uri(uri):
             data = yield from self.process(uri)
 
-            # process got and exception and handled it, move on
-            if data is None:
-                return
+            # self.process handles all exceptions from the fetch+parse process
+            # In self.process we had to choose between:
+            # - re-raise those exceptions
+            # - raise a new exception from those exceptions
+            # - simply return None
+            # We keep this assert as a guard for this decision
+            assert data is None or isinstance(data, list)
 
-            # check returned data
-            if not isinstance(data, list):
-                msg = "Invalid data type for URI «{uri}»: '{type}'"
-                msg = msg.format(uri=uri, type=data.__class__.__name__)
-                self.logger.error(msg)
-                return
-
-            ret.extend(data)
+            if data:
+                ret.extend(data)
 
         tasks = [get_data_for_uri(uri) for uri in self.get_uris()]
         yield from asyncio.gather(*tasks)
@@ -165,10 +163,22 @@ class Origin(extension.Extension):
         """
         Coroutine that fetches and parses an URI
         """
+
+        # Fetch URI
         try:
             buff = yield from self.fetch(uri)
-            if not buff:
-                return None
+
+        except (asyncio.CancelledError,
+                asyncio.TimeoutError,
+                aiohttp.errors.ClientOSError,
+                aiohttp.errors.ClientResponseError,
+                aiohttp.errors.ServerDisconnectedError) as e:
+            msg = "Error fetching «{uri}»: {msg}"
+            msg = msg.format(
+                uri=uri, type=e.__class__.__name__,
+                msg=str(e) or 'no reason')
+            self.logger.error(msg)
+            return
 
         except Exception as e:
             msg = "Unhandled exception {type}: {e}"
@@ -176,9 +186,44 @@ class Origin(extension.Extension):
             self.logger.critical(msg)
             raise
 
-        psrcs = self.parse(
-            buff,
-            parser=self.app.settings.get('importer.parser'))
+        if buff is None:
+            msg = "Empty buffer for «{uri}»"
+            msg = msg.format(uri=uri)
+            self.logger.error(msg)
+            return
+
+        # Parse buffer
+        try:
+            psrcs = self.parse(
+                buff,
+                parser=self.app.settings.get('importer.parser'))
+
+        except arroyo.exc.OriginParseError as e:
+            msg = "Error parsing «{uri}»: {e}"
+            msg = msg.format(uri=uri, e=e)
+            self.logger.error(msg)
+            return
+
+        if psrcs is None:
+            msg = ("Incorrect API usage in {name}, return None is not "
+                   "allowed. Raise an Exception or return [] if no "
+                   "sources are found")
+            msg = msg.format(name=self.name)
+            self.logger.critical(msg)
+            return
+
+        if not isinstance(psrcs, list):
+            msg = "Invalid data type for URI «{uri}»: '{type}'"
+            msg = msg.format(uri=uri, type=data.__class__.__name__)
+            self.logger.critical(msg)
+            return
+
+        if len(psrcs) == 0:
+            msg = "No sources found in «{uri}»"
+            msg = msg.format(uri=uri)
+            self.logger.warning(msg)
+            return
+
         psrcs = self._normalize_source_data(*psrcs)
 
         msg = "Found {n_srcs_data} sources in {uri}"
@@ -229,22 +274,7 @@ class Origin(extension.Extension):
 
     @asyncio.coroutine
     def fetch(self, url):
-        try:
-            return (yield from self.app.fetcher.fetch(url))
-
-        except (
-            asyncio.CancelledError,
-            asyncio.TimeoutError,
-            aiohttp.errors.ClientOSError,
-            aiohttp.errors.ClientResponseError,
-            aiohttp.errors.ServerDisconnectedError,
-            ValueError  # url=foo (just 'foo')
-        ) as e:
-            msg = "{type} fetching «{url}»: {msg}"
-            msg = msg.format(
-                url=url, type=e.__class__.__name__, msg=str(e) or 'no reason'
-            )
-            self.logger.error(msg)
+        return (yield from self.app.fetcher.fetch(url))
 
     @abc.abstractmethod
     def parse(self, buff):
