@@ -28,7 +28,7 @@ class TestOrigin:
         self.app = testapp.TestApp(settings)
 
     def test_implementation(self):
-        impl = self.app.get_implementation(
+        impl = self.app.get_extension(
             plugin.Origin,
             self.IMPLEMENTATION_NAME)
 
