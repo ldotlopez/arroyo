@@ -11,7 +11,7 @@ from urllib import parse
 
 import bs4
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class KickAss(plugin.Origin):

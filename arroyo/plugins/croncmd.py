@@ -3,7 +3,7 @@
 from arroyo import plugin
 
 
-from ldotcommons import utils
+from appkit import utils
 
 
 class CronCommand(plugin.Command):

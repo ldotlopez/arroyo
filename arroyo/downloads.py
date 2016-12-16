@@ -9,12 +9,12 @@ from urllib import parse
 
 
 import bencodepy
-from appkit import app
 
 
 import arroyo.exc
 from arroyo import (
     cron,
+    extension,
     models
 )
 
@@ -82,9 +82,9 @@ class Downloads:
         self.app.signals.send('source-state-change', source=source)
 
     def add_all(self, *sources):
-        assert \
-            len(sources) > 0 and \
-            all([isinstance(x, models.Source) for x in sources])
+        assert isinstance(sources, list)
+        assert len(sources) > 0
+        assert all([isinstance(x, models.Source) for x in sources])
 
         ret = []
         for src in sources:
@@ -182,7 +182,7 @@ class Downloads:
         }
 
 
-class Downloader(app.Extension):
+class Downloader(extension.Extension):
     def add(self, source, **kwargs):
         raise NotImplementedError()
 
@@ -222,7 +222,10 @@ class DownloadQueriesCronTask(cron.CronTask):
                 continue
 
             for src in srcs:
-                self.app.downloads.add(src)
+                try:
+                    self.app.downloads.add(src)
+                except Exception as e:
+                    self.app.logger.error(str(e))
 
         super().run()
 

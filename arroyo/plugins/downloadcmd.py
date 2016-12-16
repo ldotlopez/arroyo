@@ -3,8 +3,11 @@
 from arroyo import plugin
 
 
+from appkit import (
+    logging,
+    utils
+)
 import humanfriendly
-from ldotcommons import logging, utils
 
 
 models = plugin.models

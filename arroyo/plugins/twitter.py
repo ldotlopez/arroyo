@@ -6,8 +6,8 @@ from arroyo import plugin
 import pprint
 
 
-from ldotcommons import messaging
-from ldotcommons.messaging import twitter as ldottwitter
+from appkit import messaging
+from appkit.messaging import twitter as ldottwitter
 import twitter
 
 

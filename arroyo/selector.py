@@ -7,7 +7,8 @@ import sys
 import arroyo.exc
 from arroyo import (
     extension,
-    importer
+    importer,
+    models,
 )
 
 
@@ -267,7 +268,11 @@ class Selector:
 
     def select(self, matches):
         def _entity_grouper(src):
+            assert isinstance(src, models.Source)
+
             if src.type == 'episode':
+                assert isinstance(src.episode, models.Episode)
+
                 return "{}-{}-{}-{}".format(
                     src.episode.series.lower(),
                     src.episode.year or '-',
@@ -276,6 +281,8 @@ class Selector:
                 )
 
             if src.type == 'movie':
+                assert isinstance(src.episode, models.Movie)
+
                 return "{}-{}".format(
                     src.movie.title.lower(),
                     src.movie.year or '-'

@@ -445,6 +445,10 @@ class Arroyo(app.ServiceAppMixin, CommandlineArroyoAppMixin, app.BaseApp):
         return super().get_extension(extension_point, name, self,
                                      *args, **kwargs)
 
+    @classmethod
+    def build_argument_parser(cls):
+        return build_argument_parser()
+
     # def run_from_args(self, command_line_arguments=sys.argv[1:]):
     #     # Build full argument parser
     #     argparser = build_argument_parser()

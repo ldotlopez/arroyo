@@ -9,7 +9,7 @@ import functools
 import time
 
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class Filter(plugin.QuerySetFilter):

@@ -1,7 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from ldotcommons import sqlalchemy as ldotsa
+
 from arroyo import models
+
+
+from appkit.db import sqlalchemyutils as sautils
 
 
 class Db:
@@ -22,12 +25,6 @@ class Db:
         # models.Base.metadata.create_all(engine)
         # self._sess = sessmaker()
 
-        # ldotcommons.sqlalchemy mode
-        # self._sess = ldotsa.create_session(db_uri)
-
-        # FIXME: ldotcommons.sqlalchemy.create_session it's not totally safe,
-        # review this.
-
         # Add check_same_thread=False to db_uri.
         # This is a _hack_ required by the webui plugin.
         if '?' in db_uri:
@@ -35,7 +32,7 @@ class Db:
         else:
             db_uri += '?check_same_thread=False'
 
-        self._sess = ldotsa.create_session(db_uri)
+        self._sess = sautils.create_session(db_uri)
 
     @property
     def session(self):

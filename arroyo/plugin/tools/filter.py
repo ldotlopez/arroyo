@@ -1,5 +1,7 @@
 import re
-from ldotcommons import sqlalchemy as ldotsa
+
+
+from appkit.db import sqlalchemyutils as sautils
 
 
 def alter_query_for_model_attr(q, model, key, value):
@@ -28,7 +30,7 @@ def alter_query_for_model_attr(q, model, key, value):
         q = q.filter(attr == value)
 
     elif mod == 'glob':
-        q = q.filter(attr.like(ldotsa.glob_to_like(value)))
+        q = q.filter(attr.like(sautils.glob_to_like(value)))
 
     elif mod == 'like':
         q = q.filter(attr.like(value))

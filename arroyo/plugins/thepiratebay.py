@@ -10,7 +10,7 @@ import time
 import bs4
 import feedparser
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class _CategoryUnknowError(Exception):

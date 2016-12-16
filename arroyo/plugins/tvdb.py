@@ -1,17 +1,27 @@
 # -*- coding: utf-8 -*-
 
+
 from arroyo import plugin
 from arroyo import models
 
 import json
-from sqlalchemy import and_
+
+
 import tvdb_api
-from ldotcommons import utils
-from ldotcommons.sqlalchemy import Base
-from sqlalchemy import schema, Column, Integer, String, ForeignKey
+from appkit import utils
+from appkit.db import sqlalchemyutils as sautils
+from sqlalchemy import and_
+from sqlalchemy import (
+    Column,
+    ForeignKey
+    Integer,
+    String,
+    and_,
+    schema
+)
 
 
-class TVDBInfo(Base):
+class TVDBInfo(sautils.Base):
     __tablename__ = 'tvdbinfo'
 
     id = Column(

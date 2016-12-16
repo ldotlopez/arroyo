@@ -8,7 +8,7 @@ import sys
 
 
 import humanfriendly
-from ldotcommons import utils
+from appkit import utils
 
 
 class SearchCommand(plugin.Command):

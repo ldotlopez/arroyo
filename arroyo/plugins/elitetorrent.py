@@ -3,6 +3,7 @@
 
 from arroyo import plugin
 
+
 import asyncio
 import collections
 import functools
@@ -13,7 +14,7 @@ from urllib import parse
 
 
 import bs4
-from ldotcommons import utils
+from appkit import utils
 
 
 class EliteTorrent(plugin.Origin):
