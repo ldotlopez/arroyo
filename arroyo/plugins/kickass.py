@@ -116,9 +116,10 @@ class KickAss(plugin.Origin):
             idx = post
             rows.append(bs4.BeautifulSoup(buff[pre:post], parser))
 
-        ret = map(self._process_row, rows)
-        ret = filter(lambda x: x, ret)
-        return list(ret)
+        ret = [self._process_row(x) for x in rows]
+        ret = [x for x in ret if x]
+
+        return ret
 
     def _process_row(self, row):
         # Name
