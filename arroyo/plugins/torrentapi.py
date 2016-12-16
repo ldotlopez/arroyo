@@ -35,6 +35,8 @@ import arrow
 
 
 class TorrentAPI(plugin.Origin):
+    __extension_name__ = 'torrentapi'
+
     PROVIDER = 'torrentapi'
 
     # URL structure:
@@ -156,5 +158,5 @@ class TorrentAPI(plugin.Origin):
 
 
 __arroyo_extensions__ = [
-    ('torrentapi', TorrentAPI)
+    TorrentAPI
 ]
