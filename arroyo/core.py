@@ -89,7 +89,7 @@ _plugins = [
 
     # Origins
     'elitetorrent', 'eztv', 'kickass', 'spanishtracker',
-    'thepiratebay',
+    'thepiratebay', 'torrentapi',
 
     # Sorters
     'basicsorter',
