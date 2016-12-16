@@ -343,7 +343,8 @@ class Selector:
             return []
 
         impls_and_uris = []
-        for (name, impl) in impls.items():
+        for (name, impl) in [(x.__extension_name__, x)
+                             for x in impls]:
             uri = impl(self.app).get_query_uri(query)
             if uri:
                 msg = " Found compatible origin '{name}'"
