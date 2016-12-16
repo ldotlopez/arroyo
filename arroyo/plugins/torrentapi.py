@@ -111,8 +111,12 @@ class TorrentAPI(plugin.Origin):
             }
 
         data = json.loads(buff.decode('utf-8'))
-        psrcs = data['torrent_results']
-        ret = list(map(convert_data, psrcs))
+        try:
+            psrcs = data['torrent_results']
+        except KeyError as e:
+            return []
+
+        ret = [convert_data(x) for x in psrcs]
         return ret
 
     def get_query_uri(self, query):
