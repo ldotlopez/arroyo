@@ -28,8 +28,8 @@ class EpisodeQuery(query.HighLevelQuery):
         if 'season' in params:
             ret += ' S{:02d}'.format(params['season'])
 
-        if 'episode' in params:
-            ret += ' E{:02d}'.format(params['episode'])
+            if 'episode' in params:
+                ret += 'E{:02d}'.format(params['episode'])
 
         return ret
 
