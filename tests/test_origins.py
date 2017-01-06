@@ -130,46 +130,47 @@ class EztvTest(TestOrigin, unittest.TestCase):
         (dict(kind='episode', series='youre the worst'), 'https://eztv.ag/search/youre-the-worst')  # nopep8
     ]
 
-    # def test_series_index_parse(self):
-    #     eztv = self.app.get_extension(
-    #         plugin.Origin,
-    #         self.IMPLEMENTATION_NAME
-    #     )
-    #     with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
-    #         res = eztv.parse_series_index(fh.read())
 
-    #     self.assertEqual(
-    #         res['The Walking Dead'],
-    #         'https://eztv.ag/shows/428/the-walking-dead/'
-    #     )
-    #     self.assertEqual(len(res), 1830)
+class ElitetorrentTest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['elitetorrent']
+    IMPLEMENTATION_NAME = 'elitetorrent'
 
-    # def test_series_table_selector(self):
-    #     eztv = self.app.get_extension(
-    #         plugin.Origin,
-    #         self.IMPLEMENTATION_NAME
-    #     )
+    PAGINATION_TESTS = [
+        # (baseuri, [page_n, page_n+1, ...])
+    ]
 
-    #     with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
-    #         table = eztv.parse_series_index(fh.read())
+    PARSE_TESTS = [
+        ('elitetorrent-listing.html', 48),
+        ('elitetorrent-search-result.html', 48),
+        ('elitetorrent-detail.html', 1),
+    ]
 
-    #     self.assertEqual(
-    #         eztv.get_url_for_series(table, 'Battlestar Galactica'),
-    #         'https://eztv.ag/shows/18/battlestar-galactica/'
-    #     )
+    QUERY_TESTS = [
+        (
+            'new girl',  # language=esp-es required
+            None,
+        ),
+        (
+            dict(name='new girl', language='spa-es'),
+            'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
+        ),
+    ]
 
-    #     self.assertEqual(
-    #         eztv.get_url_for_series(table, 'battlestar galactica'),
-    #         'https://eztv.ag/shows/18/battlestar-galactica/'
-    #     )
 
-    #     self.assertEqual(
-    #         eztv.get_url_for_series(table, 'the leftovers'),
-    #         'https://eztv.ag/shows/1060/the-leftovers/'
-    #     )
+class EpublibreTest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['epublibre']
+    IMPLEMENTATION_NAME = 'epublibre'
 
-    #     with self.assertRaises(KeyError):
-    #         eztv.get_url_for_series(table, 'foo')
+    PAGINATION_TESTS = [
+    ]
+
+    PARSE_TESTS = [
+        ('epublibre-listado.html', 18),
+        ('epublibre-detalle.html', 1)
+    ]
+
+    QUERY_TESTS = [
+    ]
 
 
 class KickassTest(TestOrigin, unittest.TestCase):
@@ -229,32 +230,6 @@ class KickassTest(TestOrigin, unittest.TestCase):
             dict(kind='episode', series='the big bang theory'),
             'https://kickass.cd/usearch/the+big+bang+theory+category%3Atv/?field=time_add&sorder=desc'  # nopep8
         )
-    ]
-
-
-class ElitetorrentTest(TestOrigin, unittest.TestCase):
-    PLUGINS = ['elitetorrent']
-    IMPLEMENTATION_NAME = 'elitetorrent'
-
-    PAGINATION_TESTS = [
-        # (baseuri, [page_n, page_n+1, ...])
-    ]
-
-    PARSE_TESTS = [
-        ('elitetorrent-listing.html', 48),
-        ('elitetorrent-search-result.html', 48),
-        ('elitetorrent-detail.html', 1),
-    ]
-
-    QUERY_TESTS = [
-        (
-            'new girl',  # language=esp-es required
-            None,
-        ),
-        (
-            dict(name='new girl', language='spa-es'),
-            'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
-        ),
     ]
 
 
