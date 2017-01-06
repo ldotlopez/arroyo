@@ -63,17 +63,17 @@ class KickAss(plugin.Origin):
             page += 1
 
     def get_query_uri(self, query):
-        _category_table = {
+        category_table = {
             'episode': 'tv',
             'movie': 'movies'
         }
 
-        kind = query.kind
-        params = query.params
-
         q = query.base_string
-        if kind in _category_table:
-            q += ' category:' + _category_table[kind]
+        if not q:
+            return
+
+        if query.kind in category_table:
+            q += ' category:' + category_table[query.kind]
 
         q = parse.quote_plus(q)
         return ('{domain}/usearch/{q}/?'
