@@ -155,12 +155,17 @@ class Mediainfo:
 
         return info
 
-    def process(self, *sources):
+    def process(self, *sources_and_metas):
         """
         Mediainfo.process takes sources and tries to fill aditional info like
         language, episode or movie relationships
         """
-        for src in sources:
+        for x in sources_and_metas:
+            if isinstance(x, models.Source):
+                src, meta = x, None
+            else:
+                src, meta = x[0], x[1]
+
             # Check for older "APIs"
             if src.type == 'unknown':
                 msg = ("Deprecated API: source from {provider} "
@@ -282,6 +287,9 @@ class Mediainfo:
             raise ValueError('invalid type in info data: ' + info['type'])
 
         ret, created = self._app.db.get_or_create(model, **arguments)
+        if created:
+            self._app.db.session.add(ret)
+
         return ret
 
     def _on_source_batch(self, sender, sources):

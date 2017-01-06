@@ -3,7 +3,10 @@
 import abc
 import aiohttp
 import asyncio
+import collections
+import enum
 import itertools
+import json
 import re
 from urllib import parse
 
@@ -21,6 +24,309 @@ from arroyo import (
     extension,
     models
 )
+
+
+class Importer:
+    def __init__(self, app, logger=None):
+        self.app = app
+        self.logger = logger or logging.get_logger('importer')
+
+        self._sched = None
+
+        app.signals.register('source-added')
+        app.signals.register('source-updated')
+        app.signals.register('sources-added-batch')
+        app.signals.register('sources-updated-batch')
+
+        app.register_extension('import', ImporterCronTask)
+
+    def _settings_validator(self, key, value):
+        """Validates settings"""
+        return value
+
+    def origin_class_from_uri(self, uri):
+        impls = self.app.get_implementations(Origin)
+
+        for (name, impl) in impls.items():
+            try:
+                if impl.compatible_uri(uri):
+                    return impl
+            except NotImplementedError as e:
+                self.app.logger.warning(str(e))
+
+    @staticmethod
+    def normalize_uri(uri):  # FIXME: Move to appkit.utils
+        if uri is None:
+            return None
+
+        if '://' not in uri:
+            uri = 'http://' + uri
+
+        parsed = parse.urlparse(uri)
+        if not parsed.path:
+            parsed = parsed._replace(path='/')
+
+        return parse.urlunparse(parsed)
+
+    def origin_from_params(self, **params):
+        p = params.copy()
+
+        uri = self.normalize_uri(p.pop('uri', None))
+
+        impl_name = p.pop('backend', None)
+        if impl_name:
+            impl_cls = self.app.get_implementation(Origin, impl_name)
+        else:
+            if not uri:
+                msg = "Neither backend or uri was provided"
+                raise TypeError(msg)
+
+            impl_cls = self.origin_class_from_uri(uri)
+
+            if impl_cls is None:
+                msg = "No Origin plugin is compatible with '{uri}'"
+                msg = msg.format(uri=uri)
+                raise ValueError(msg)
+
+            impl_name = impl_cls.__name__
+
+        return impl_cls(
+            self.app,
+            uri=uri,
+            iterations=p.pop('iterations', 1),
+            display_name=p.pop('display_name', None),
+            overrides=p,
+            logger=logging.get_logger(impl_name)
+        )
+
+    def get_configured_origins(self):
+        """Returns a list of configured origins in a specification form.
+
+        This list is composed by importer.OriginSpec objects which are
+        data-only structures. To get some usable object you may want to use
+        importer.Importer.get_origins method"""
+
+        specs = self.app.settings.get('origin', default={})
+        if not specs:
+            msg = "No origins defined"
+            self.app.logger.warning(msg)
+            return []
+
+        ret = [
+            self.origin_from_params(
+                display_name=name,
+                **params)
+            for (name, params) in specs.items()
+        ]
+        ret = [x for x in ret if x is not None]
+        return ret
+
+    def process(self, *origins):
+        data = []
+
+        @asyncio.coroutine
+        def get_contents_for_origin(origin):
+            origin_data = yield from origin.get_data()
+            data.extend(origin_data)
+
+        tasks = [get_contents_for_origin(o) for o in origins]
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+        if not data:
+            return []
+
+        return self.process_source_data(*data)
+
+    def process_source_data(self, *data):
+        psources_data = self._process_remove_duplicates(data)
+        contexts = self._process_create_contexts(psources_data)
+        self._process_insert_existing_sources(contexts)
+        self._process_update_existing_sources(contexts)
+        self._process_insert_new_sources(contexts)
+
+        return self._process_finalize(contexts)
+
+    def resolve_source(self, source):
+        def _update_source(data):
+            keys = 'language leechers seeds size type uri urn'.split()
+            for k in keys:
+                if k in data:
+                    setattr(source, k, data[k])
+
+        origin = self.app.get_extension(
+            Origin,
+            source.provider,
+            uri=source.uri)
+
+        loop = asyncio.get_event_loop()
+        psources_data = loop.run_until_complete(origin.get_data())
+        if not psources_data:
+            return
+
+        psources_data = self._process_remove_duplicates(psources_data)
+        contexts = self._process_create_contexts(psources_data)
+        self._process_insert_existing_sources(contexts)
+
+        # Insert original source into context
+        for ctx in contexts:
+            if ctx.data['name'] == source.name:
+                ctx.source = source
+                continue
+
+        self._process_update_existing_sources(contexts)
+        self._process_insert_new_sources(contexts)
+        ret = self._process_finalize(contexts)
+
+        if not source.urn:
+            raise exc.SourceResolveError(source)
+
+    def run(self):
+        return self.process(*self.get_configured_origins())
+
+    def _process_remove_duplicates(self, psources):
+        ret = dict()
+
+        for psrc in psources:
+            key = psrc['_discriminator']
+            assert key is not None
+
+            # Keep the most recent if case of duplicated
+            if key not in ret or psrc['created'] > ret[key]['created']:
+                ret[key] = psrc
+
+        return list(ret.values())
+
+    def _process_create_contexts(self, psources):
+        ret = []
+        for psrc in psources:
+            discriminator = psrc.pop('_discriminator')
+            assert discriminator is not None
+
+            meta = psrc.pop('meta')
+            ret.append(ProcessingState(
+                data=psrc,
+                discriminator=discriminator,
+                meta=meta,
+                source=None,
+                tags=[]
+            ))
+
+        return ret
+
+    def _process_insert_existing_sources(self, contexts):
+        table = {ctx.discriminator: ctx for ctx in contexts}
+        existing = self.app.db.session.query(models.Source).filter(
+            models.Source._discriminator.in_(table.keys())
+        ).all()
+
+        for src in existing:
+            table[src._discriminator].source = src
+
+    def _process_update_existing_sources(self, contexts):
+        for ctx in contexts:
+            updated = False
+
+            if ctx.source is None:
+                continue
+
+            if ctx.source.name != ctx.data['name']:
+                updated = True
+                ctx.tags.append(ProcessingTag.NAME_UPDATED)
+
+            # Override srcs's properties with src_data properties
+            for key in ctx.data:
+                if key == '_discriminator':
+                    continue
+
+                # …except for 'created'
+                # Some origins report created timestamps from heuristics,
+                # variable or fuzzy data that is degraded over time.
+                # For these reason we keep the first 'created' data as the
+                # most fiable
+                if key == 'created' and \
+                   ctx.source.created is not None and \
+                   ctx.source.created < ctx.data['created']:
+                    continue
+
+                if getattr(ctx.source, key) != ctx.data[key]:
+                    updated = True
+                    setattr(ctx.source, key, ctx.data[key])
+
+            if updated:
+                ctx.tags.append(ProcessingTag.UPDATED)
+
+    def _process_insert_new_sources(self, contexts):
+        for ctx in contexts:
+            if ctx.source is not None:
+                continue
+
+            ctx.source = models.Source.from_data(**ctx.data)
+            ctx.tags.append(ProcessingTag.ADDED)
+
+    # With all data prepared we can process it
+    def _process_finalize(self, contexts):
+        added = []
+        updated = []
+        name_updated = []
+
+        for ctx in contexts:
+            if ProcessingTag.ADDED in ctx.tags:
+                added.append(ctx.source)
+
+            if ProcessingTag.NAME_UPDATED in ctx.tags:
+                name_updated.append(ctx.source)
+
+            if ProcessingTag.UPDATED in ctx.tags:
+                updated.append(ctx.source)
+
+        mediainfo_sources = added + name_updated
+
+        sources_and_metas = [(ctx.source, ctx.meta) for ctx in contexts]
+        self.app.mediainfo.process(*sources_and_metas)
+
+        self.app.db.session.add_all(added)
+        self.app.db.session.commit()
+
+        self.app.signals.send('sources-added-batch', sources=added)
+        self.app.signals.send('sources-updated-batch',
+                              sources=name_updated + updated)
+
+        msg = '{n} sources {action}'
+        self.app.logger.info(msg.format(n=len(added),
+                                        action='added'))
+        self.app.logger.info(msg.format(n=len(updated),
+                                        action='updated'))
+        self.app.logger.info(msg.format(n=len(set(added+name_updated)),
+                                        action='parsed'))
+
+        ret = [ctx.source for ctx in contexts]
+        return ret
+
+
+class ImporterCronTask(cron.CronTask):
+    NAME = 'importer'
+    INTERVAL = '3H'
+
+    def run(self):
+        self.app.importer.run()
+        super().run()
+
+
+class ProcessingState:
+    def __init__(self, data=None, discriminator=None, meta=None, source=None,
+                 tags=None):
+        self.data = data or {}
+        self.discriminator = discriminator
+        self.meta = meta or {}
+        self.source = source
+        self.tags = tags or []
+
+
+class ProcessingTag(enum.Enum):
+    ADDED = 1
+    UPDATED = 2
+    NAME_UPDATED = 3
 
 
 class Origin(extension.Extension):
@@ -294,6 +600,7 @@ class Origin(extension.Extension):
             'created',
             'language',
             'leechers',
+            'meta',
             'seeds',
             'size',
             'type'
@@ -361,6 +668,16 @@ class Origin(extension.Extension):
                         self.logger.error(msg)
                         continue
 
+            psrc['meta'] = psrc.get('meta', {})
+            if psrc['meta']:
+                if not all([isinstance(k, str) and isinstance(v, str)
+                            for (k, v) in psrc['meta'].items()]):
+                        msg = ("Origin «{name}» emits invalid «meta» "
+                               "value. Expected dict(str->str)")
+                        msg = msg.format(name=self.provider)
+                        self.logger.warning(msg)
+                        psrc['meta'] = {}
+
             # Calculate URN from uri. If not found its a lazy source
             # IMPORTANT: URN is **lowercased** and **sha1-encoded**
             try:
@@ -383,287 +700,3 @@ class Origin(extension.Extension):
             ret.append(psrc)
 
         return ret
-
-
-class Importer:
-    def __init__(self, app, logger=None):
-        self.app = app
-        self.logger = logger or logging.get_logger('importer')
-
-        self._sched = None
-
-        app.signals.register('source-added')
-        app.signals.register('source-updated')
-        app.signals.register('sources-added-batch')
-        app.signals.register('sources-updated-batch')
-
-        app.register_extension('import', ImporterCronTask)
-
-    def _settings_validator(self, key, value):
-        """Validates settings"""
-        return value
-
-    def origin_class_from_uri(self, uri):
-        impls = self.app.get_implementations(Origin)
-
-        for (name, impl) in impls.items():
-            try:
-                if impl.compatible_uri(uri):
-                    return impl
-            except NotImplementedError as e:
-                self.app.logger.warning(str(e))
-
-    @staticmethod
-    def normalize_uri(uri):  # FIXME: Move to appkit.utils
-        if uri is None:
-            return None
-
-        if '://' not in uri:
-            uri = 'http://' + uri
-
-        parsed = parse.urlparse(uri)
-        if not parsed.path:
-            parsed = parsed._replace(path='/')
-
-        return parse.urlunparse(parsed)
-
-    def origin_from_params(self, **params):
-        p = params.copy()
-
-        uri = self.normalize_uri(p.pop('uri', None))
-
-        impl_name = p.pop('backend', None)
-        if impl_name:
-            impl_cls = self.app.get_implementation(Origin, impl_name)
-        else:
-            if not uri:
-                msg = "Neither backend or uri was provided"
-                raise TypeError(msg)
-
-            impl_cls = self.origin_class_from_uri(uri)
-
-            if impl_cls is None:
-                msg = "No Origin plugin is compatible with '{uri}'"
-                msg = msg.format(uri=uri)
-                raise ValueError(msg)
-
-            impl_name = impl_cls.__name__
-
-        return impl_cls(
-            self.app,
-            uri=uri,
-            iterations=p.pop('iterations', 1),
-            display_name=p.pop('display_name', None),
-            overrides=p,
-            logger=logging.get_logger(impl_name)
-        )
-
-    def get_configured_origins(self):
-        """Returns a list of configured origins in a specification form.
-
-        This list is composed by importer.OriginSpec objects which are
-        data-only structures. To get some usable object you may want to use
-        importer.Importer.get_origins method"""
-
-        specs = self.app.settings.get('origin', default={})
-        if not specs:
-            msg = "No origins defined"
-            self.app.logger.warning(msg)
-            return []
-
-        ret = [
-            self.origin_from_params(
-                display_name=name,
-                **params)
-            for (name, params) in specs.items()
-        ]
-        ret = [x for x in ret if x is not None]
-        return ret
-
-    def process(self, *origins):
-        data = []
-
-        @asyncio.coroutine
-        def get_contents_for_origin(origin):
-            origin_data = yield from origin.get_data()
-            data.extend(origin_data)
-
-        tasks = [get_contents_for_origin(o) for o in origins]
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*tasks))
-
-        return self.process_source_data(*data)
-
-    def process_source_data(self, *srcs_data):
-        srcs = self.get_sources_for_data(*srcs_data)
-
-        rev_srcs = {
-            'added-sources': [],
-            'updated-sources': [],
-            'mediainfo-process-needed': [],
-        }
-
-        # Reverse source data structure
-        for (src, flags) in srcs:
-            if 'created' in flags:
-                self.app.db.session.add(src)
-                rev_srcs['added-sources'].append(src)
-
-            if 'updated' in flags:
-                rev_srcs['updated-sources'].append(src)
-
-            if 'mediainfo-process-needed' in flags:
-                rev_srcs['mediainfo-process-needed'].append(src)
-
-        if rev_srcs['mediainfo-process-needed']:
-            self.app.mediainfo.process(*rev_srcs['mediainfo-process-needed'])
-
-        self.app.db.session.commit()
-
-        # Launch signals
-        self.app.signals.send('sources-added-batch',
-                              sources=rev_srcs['added-sources'])
-
-        self.app.signals.send('sources-updated-batch',
-                              sources=rev_srcs['updated-sources'])
-
-        # Save data
-        self.app.db.session.commit()
-
-        self.app.logger.info('{n} sources created'.format(
-            n=len(rev_srcs['added-sources'])
-        ))
-        self.app.logger.info('{n} sources updated'.format(
-            n=len(rev_srcs['updated-sources'])
-        ))
-        self.app.logger.info('{n} sources parsed'.format(
-            n=len(rev_srcs['mediainfo-process-needed'])
-        ))
-
-        return srcs
-
-    def get_sources_for_data(self, *psrcs):
-        # First thing to do is organize input data
-        psrcs = self.organize_data_by_most_recent(*psrcs)
-
-        # Check for existings sources
-        # Check psrcs to prevent SQLAlchemy error for using .in_ with an empty
-        # list.
-        existing_srcs = []
-        if psrcs:
-            keys = list(psrcs.keys())
-            existing_srcs = self.app.db.session.query(models.Source).filter(
-                models.Source._discriminator.in_(keys)
-            ).all()
-
-        # Name change is special
-        name_updated_srcs = []
-
-        for src in existing_srcs:
-            src_data = psrcs[src._discriminator]
-
-            if src.name != src_data['name']:
-                name_updated_srcs.append(src)
-
-            # Override srcs's properties with src_data properties
-            for key in src_data:
-                if key == '_discriminator':
-                    continue
-
-                # …except for 'created'
-                # Some origins report created timestamps from heuristics,
-                # variable or fuzzy data that is degraded over time.
-                # For these reason we keep the first 'created' data as the most
-                # fiable
-                if key == 'created' and \
-                   src.created is not None and \
-                   src.created < src_data['created']:
-                    continue
-
-                setattr(src, key, src_data[key])
-
-        # Check for missing sources
-        missing_discriminators = (
-            set(psrcs) -
-            set([x._discriminator for x in existing_srcs])
-        )
-
-        # Create new sources
-        created_srcs = [
-            models.Source.from_data(**psrcs[x])
-            for x in missing_discriminators
-        ]
-
-        # Create return data
-        ret = {x: [] for x in itertools.chain(existing_srcs, created_srcs)}
-
-        for x in created_srcs:
-            ret[x].append('created')
-
-        for x in existing_srcs:
-            ret[x].append('updated')
-
-        for x in created_srcs + name_updated_srcs:
-            ret[x].append('mediainfo-process-needed')
-
-        return list(ret.items())
-
-    def resolve_source(self, source):
-        def _update_source(data):
-            keys = 'language leechers seeds size type uri urn'.split()
-            for k in keys:
-                if k in data:
-                    setattr(source, k, data[k])
-
-        origin = self.app.get_extension(
-            Origin,
-            source.provider,
-            uri=source.uri)
-
-        loop = asyncio.get_event_loop()
-        psrcs = loop.run_until_complete(origin.get_data())
-        psrcs = self.organize_data_by_most_recent(*psrcs)
-
-        for (disc, psrc) in psrcs.items():
-            if source.name != psrc['name']:
-                continue
-
-            _update_source(psrc)
-
-        if not source.urn:
-            raise exc.SourceResolveError(source)
-
-        del(psrcs[source.urn])
-        if psrcs:
-            self.process_source_data(*psrcs.values())
-
-    @staticmethod
-    def organize_data_by_most_recent(*src_data):
-        """
-        Organizes the input list of source data into a dict.
-        Keys will be the urn or permalink of the 'proto-sources'.
-        In case of duplicates the oldest is discarted
-        """
-        ret = dict()
-
-        for psrc in src_data:
-            key = psrc['_discriminator']
-            assert key is not None
-
-            # Keep the most recent if case of duplicated
-            if key not in ret or psrc['created'] > ret[key]['created']:
-                ret[key] = psrc
-
-        return ret
-
-    def run(self):
-        return self.process(*self.get_configured_origins())
-
-
-class ImporterCronTask(cron.CronTask):
-    NAME = 'importer'
-    INTERVAL = '3H'
-
-    def run(self):
-        self.app.importer.run()
-        super().run()
