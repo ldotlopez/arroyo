@@ -45,6 +45,8 @@ class Query(extension.Extension):
         return self._get_base_string()
 
     def _get_base_string(self, base_key='name'):
+        ret = None
+
         if base_key in self.params:
             ret = self.params[base_key]
 
@@ -56,7 +58,7 @@ class Query(extension.Extension):
             ret = self.params[base_key+'-like'].replace('%', ' ')
             ret = ret.replace('_', ' ')
 
-        return ret.strip()
+        return ret.strip() if ret else None
 
     def get_query_set(self, session, include_all=False):
         raise NotImplementedError()
