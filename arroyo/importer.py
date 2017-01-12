@@ -382,7 +382,7 @@ class Origin(extension.Extension):
 class Importer:
     def __init__(self, app, logger=None):
         self.app = app
-        self.logger = logger or logging.get_logger('importer')
+        self.logger = logger or logging.getLogger('importer')
 
         self._sched = None
 

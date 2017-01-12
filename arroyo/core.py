@@ -9,8 +9,9 @@ import warnings
 
 
 import bs4
+import yaml
 from appkit import (
-    app,
+    application,
     cache,
     keyvaluestore,
     network,
@@ -43,7 +44,8 @@ _defaults = {
     'auto-cron': False,
     'auto-import': False,
     'db-uri': 'sqlite:///' +
-              utils.user_path('data', 'arroyo.db', create=True),
+              utils.user_path(utils.UserPathType.DATA, 'arroyo.db',
+                              create=True),
     'downloader': 'mock',
     'fetcher.cache-delta': 60 * 20,
     'fetcher.enable-cache': True,
@@ -174,7 +176,8 @@ def build_basic_settings(arguments=None):
     # Now we have to load default and extra config files.
     # Once they are loaded they are useless in 'args'.
     config_files = getattr(args, 'config-files',
-                           utils.user_path('config', 'arroyo.yml'))
+                           utils.user_path(utils.UserPathType.CONFIG,
+                                           'arroyo.yml'))
 
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
@@ -240,26 +243,21 @@ def build_basic_settings(arguments=None):
 #         except Exception:
 #             self.handleError(record)
 
-class ArroyoCommandlineAppMixin(app.CommandlineAppMixin):
-    COMMAND_EXTENSION_POINT = extension.Command
 
-
-class Arroyo(app.ServiceAppMixin, ArroyoCommandlineAppMixin, app.BaseApp):
+class Arroyo(application.ServiceApplicationMixin,
+             application.CommandlineApplicationMixin,
+             application.BaseApplication):
     def __init__(self, settings=None):
         super().__init__('arroyo')
 
         self.settings = settings or build_basic_settings([])
 
         # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # handler.setFormatter(logging.Formatter(
-        #     self.settings.get('log-format')))
-        # self.logger = logging.getLogger('arroyo')
-        # self.logger.addHandler(handler)
-        self.logger = logging.get_logger('arroyo')
+        self.logger = logging.getLogger('arroyo')
 
         lvlname = self.settings.get('log-level')
-        self.logger.setLevel(getattr(logging, lvlname))
+        lvl = getattr(logging.Level, lvlname)
+        self.logger.setLevel(lvl.value)  # Modify level on on the handler
 
         # Auto setting: importer parser
         if self.settings.get('importer.parser') == 'auto':
@@ -337,9 +335,9 @@ class Arroyo(app.ServiceAppMixin, ArroyoCommandlineAppMixin, app.BaseApp):
     def build_argument_parser(cls):
         return build_argument_parser()
 
-    def run(self, *args):
+    def execute(self, *args):
         try:
-            return super().run(*args)
+            return super().execute(*args)
         except arroyo.exc.PluginArgumentError as e:
             subargparsers[args.subcommand].print_help()
             print("\nError message: {}".format(e), file=sys.stderr)
@@ -372,7 +370,7 @@ class ArroyoStore(store.Store):
             items=items,
             validators=[store.TypeValidator(_defaults_types)]
         )
-        self._logger = logging.get_logger('arroyo.settings')
+        self._logger = logging.getLogger('arroyo.settings')
 
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
@@ -429,6 +427,16 @@ class ArroyoStore(store.Store):
             self._logger.error(str(e))
             raise
 
+    def dump(self, stream):
+        buff = yaml.dump(self.get(None), )
+        stream.write(buff)
+
+    def load(self, stream):
+        data = store.flatten_dict(yaml.load(stream.read()))
+
+        for (k, v) in data.items():
+            self.set(k, v)
+
 
 class ArroyoAsyncFetcher(network.AsyncFetcher):
     def __init__(self, *args, enable_cache=False, cache_delta=-1, timeout=-1,
@@ -440,7 +448,7 @@ class ArroyoAsyncFetcher(network.AsyncFetcher):
 
         if enable_cache:
             fetcher_cache = cache.DiskCache(
-                basedir=utils.user_path('cache', 'network',
+                basedir=utils.user_path(utils.UserPathType.CACHE, 'network',
                                         create=True, is_folder=True),
                 delta=cache_delta,
                 logger=logger)

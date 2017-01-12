@@ -9,4 +9,4 @@ if __name__ == '__main__':
     settings = arroyo.core.build_basic_settings(sys.argv[1:])
 
     app = arroyo.Arroyo(settings=settings)
-    app.run(*sys.argv[1:])
+    app.execute(*sys.argv[1:])

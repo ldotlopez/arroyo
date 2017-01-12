@@ -9,10 +9,7 @@ class ConfigCommand(plugin.Command):
 
     help = 'Configuration management'
 
-    @classmethod
     def setup_argparser(cls, cmdargparser):
-        super()
-
         cls.opparser = cmdargparser.add_subparsers(dest='operation')
 
         cls.setparser = cls.opparser.add_parser('set')
@@ -28,7 +25,7 @@ class ConfigCommand(plugin.Command):
 
         cls.dumpparser = cls.opparser.add_parser('dump')
 
-    def run(self, args):
+    def execute(self, args):
         types_map = {
             None: yaml.load,
             'int': int,
@@ -40,7 +37,7 @@ class ConfigCommand(plugin.Command):
         }
 
         if args.operation == 'dump':
-            print(yaml.dump(self.app.settings.get(None)))
+            self.app.settings.dump(sys.stdout)
 
         elif args.operation == 'set':
             if args.type not in types_map:
