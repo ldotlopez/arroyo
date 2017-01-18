@@ -7,27 +7,35 @@ Arroyo is an automatic multimedia-multilingual download manager.
 Install
 =======
 
-1. Download arroyo
+* Download arroyo
 
-```$ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"```
+    ```$ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"```
 
-2. Create virtualenv and install python deps
+* Create virtualenv and install python deps
 
-```$ virtualenv -p python3 env && ./env/bin/pip -r requirements.txt```
+    ```$ virtualenv -p python3 env && ./env/bin/pip -r requirements.txt```
 
-3. Configure `arroyo.yml`
+* Edit `arroyo.yml`
 
-4. Run arroyo.sh
+* Run `arroyo.sh`
 
-``` $ ./arroyo.sh```
+    ``` $ ./arroyo.sh```
+
+
+
+
+
+
 
 Basic usage
 ===========
 
 Search:
+
 ```$ ./arroyo.sh --auto-import search game of thrones s01e01```
 
 Download:
+
 ```$ ./arroyo.sh --auto-import download game of thrones s01e01```
 
 
@@ -57,5 +65,3 @@ Subsequently, based on a set of criteria defined by the user, selects the corres
 Arroyo recalls what material has been downloaded already (or it's in process) and is aware of the fact that several links may correspond to a single episode or movie. Thus avoiding downloading the same content twice. It also allows you to select the quality or language that you want.
 
 In a way it is a cross between Couchpotato and SickBeard, adding multilingual support and multimedia (in the way it handles episodes, movies, music, books or anything).
-
-
