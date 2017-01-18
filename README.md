@@ -8,14 +8,17 @@ Install
 =======
 
 1. Download arroyo
+
 ```$ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"```
 
 2. Create virtualenv and install python deps
+
 ```$ virtualenv -p python3 env && ./env/bin/pip -r requirements.txt```
 
-3. Configure arroyo.yml
+3. Configure `arroyo.yml`
 
 4. Run arroyo.sh
+
 ``` $ ./arroyo.sh```
 
 Basic usage
