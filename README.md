@@ -4,6 +4,7 @@ Arroyo
 Arroyo is an automatic multimedia-multilingual download manager.
 
 
+
 Install
 =======
 
@@ -22,11 +23,6 @@ Install
     ``` $ ./arroyo.sh```
 
 
-
-
-
-
-
 Basic usage
 ===========
 
@@ -38,21 +34,6 @@ Download:
 
 ```$ ./arroyo.sh --auto-import download game of thrones s01e01```
 
-
-Installation and basic usage
-============================
-
-1. Download or clone arroyo
-
-> $ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"
-
-2. Create virtualenv and install python deps
-
-> $ virtualenv -p python3 env && ./env/bin/pip -r requirements.txt
-
-3. Run arroyo.sh
-
-> $ ./arroyo.sh
 
 
 How does it work
