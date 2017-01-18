@@ -14,7 +14,7 @@ Install
 
 * Create virtualenv and install python deps
 
-    ```$ virtualenv -p python3 env && ./env/bin/pip -r requirements.txt```
+    ```$ virtualenv -p python3 env && ./env/bin/pip install -r requirements.txt```
 
 * Edit `arroyo.yml`
 
