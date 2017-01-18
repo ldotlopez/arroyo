@@ -8,11 +8,13 @@ Arroyo is an automatic multimedia-multilingual download manager.
 Install
 =======
 
+**You need python 3.4+**
+
 * Download arroyo
 
     ```$ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"```
 
-* Create virtualenv and install python deps
+* Create a python3 virtualenv (substitute virtualenv with whatever suits your system) and install python deps
 
     ```$ virtualenv -p python3 env && ./env/bin/pip install -r requirements.txt```
 
