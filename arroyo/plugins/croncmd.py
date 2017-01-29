@@ -40,7 +40,7 @@ class CronCommand(plugin.Command):
         ),
     )
 
-    def run(self, arguments):
+    def execute(self, arguments):
         list_ = arguments.list
         all_ = arguments.all
         tasks = arguments.tasks
@@ -51,37 +51,37 @@ class CronCommand(plugin.Command):
         if test == 0:
             msg = ("One of '--list', '--all' or '--task' options must be "
                    "specified")
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         if test > 1:
             msg = ("Only one of '--list', '--all' and '--task' options can be "
                    "specified. They are mutually exclusive.")
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         if list_:
-            impls = self.app.get_implementations(plugin.CronTask).items()
-            for x in sorted(impls):
-                (name, impl) = x
+            g = sorted(self.app.get_extensions_for(plugin.Task))
+            for (name, ext) in g:
                 msg = "{name} – interval: {interval} ({secs} seconds)"
                 msg = msg.format(
                     name=name,
-                    interval=impl.INTERVAL,
-                    secs=utils.parse_interval(impl.INTERVAL))
+                    interval=ext.human_interval,
+                    secs=ext.interval)
 
                 print(msg)
 
         elif all_:
-            self.app.cron.run_all(force=force)
+            self.app.cron.execute_all(force=force)
 
         elif tasks:
             for name in tasks:
-                self.app.cron.run_by_name(name, force)
+                self.app.cron.execute(self.app.cron.get_task(name),
+                                      force=force)
 
         else:
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
 __arroyo_extensions__ = [
     CronCommand

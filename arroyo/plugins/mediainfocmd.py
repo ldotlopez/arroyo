@@ -23,26 +23,26 @@ class MediainfoCommand(plugin.Command):
         ),
     )
 
-    def run(self, args):
+    def execute(self, args):
         item = args.item
         all_ = args.all
 
         test = sum([1 for x in [item, all_] if x])
         if test == 0:
             msg = "One of --item or --all options must be used"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         elif test > 1:
             msg = ("Only one of '--item' or '--all' options can be "
                    "specified. They are mutually exclusive.")
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         if item:
             src = self.app.db.get(models.Source, id=item)
             if not src:
                 msg = "No matching source with ID={id}"
                 msg = msg.format(id=item)
-                raise plugin.exc.PluginArgumentError(msg)
+                raise plugin.exc.ArgumentsError(msg)
 
             srcs = [src]
 

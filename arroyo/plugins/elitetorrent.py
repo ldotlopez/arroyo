@@ -17,7 +17,7 @@ import bs4
 from appkit import utils
 
 
-class EliteTorrent(plugin.Origin):
+class EliteTorrent(plugin.Provider):
     __extension_name__ = 'elitetorrent'
 
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
@@ -47,17 +47,17 @@ class EliteTorrent(plugin.Origin):
     def re_cache(re_str):
         return re.compile(re_str)
 
-    def paginate(self):
-        if self.re_cache(r'/torrent/\d+/').search(self.uri):
-            yield self.uri
+    def paginate(self, uri):
+        if self.re_cache(r'/torrent/\d+/').search(uri):
+            yield uri
             return
 
-        parsed = parse.urlparse(self.uri)
+        parsed = parse.urlparse(uri)
 
         # elitetorrent passes thru extenal site to set cookies.
         # paginating that url leads to incorrect url and 404 errors.
         if not parsed.netloc.endswith('elitetorrent.net'):
-            yield self.uri
+            yield uri
             return
 
         # Split paths and params from parsed URI
@@ -114,7 +114,7 @@ class EliteTorrent(plugin.Origin):
         return self.SEARCH_URI.format(query=q)
 
     @asyncio.coroutine
-    def fetch(self, url):
+    def fetch(self, fetcher, uri):
         def _is_redirect(content):
             soup = bs4.BeautifulSoup(
                 content,
@@ -130,14 +130,14 @@ class EliteTorrent(plugin.Origin):
 
             return False
 
-        resp, content = yield from self.app.fetcher.fetch_full(url)
+        resp, content = yield from fetcher.fetch_full(uri)
 
         if _is_redirect(content):
             # Get Cookies
-            resp, content = yield from self.app.fetcher.fetch_full(
+            resp, content = yield from fetcher.fetch_full(
                 url, skip_cache=True)
             # Get URL with cookies
-            resp, content = yield from self.app.fetcher.fetch_full(
+            resp, content = yield from fetcher.fetch_full(
                 url, skip_cache=True)
 
         return content

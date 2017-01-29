@@ -11,10 +11,10 @@ class ImportCommand(plugin.Command):
 
     arguments = (
         plugin.cliargument(
-            '--backend',
-            dest='backend',
+            '--provider',
+            dest='provider',
             type=str,
-            help='backend to use'),
+            help='provider to use'),
         plugin.cliargument(
             '-u', '--uri',
             dest='uri',
@@ -45,16 +45,16 @@ class ImportCommand(plugin.Command):
             help='Use origin definitions from configuration')
     )
 
-    def run(self, arguments):
-        if arguments.from_config and arguments.backend:
-            msg = ("Only one of --from-config or --backend options can be "
+    def execute(self, arguments):
+        if arguments.from_config and arguments.provider:
+            msg = ("Only one of --from-config or --provider options can be "
                    "specified. They are mutually exclusive.")
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
-        if arguments.backend or arguments.uri:
+        if arguments.provider or arguments.uri:
             # Build origin data
             keys = [
-                ('backend', str),
+                ('provider', str),
                 ('uri', str),
                 ('iterations', int),
                 ('type', str),
@@ -86,7 +86,7 @@ class ImportCommand(plugin.Command):
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
 
 __arroyo_extensions__ = [

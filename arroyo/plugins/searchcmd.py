@@ -52,7 +52,7 @@ class SearchCommand(plugin.Command):
             cls.SOURCE_FMT,
             extra_data=d)
 
-    def run(self, args):
+    def execute(self, args):
         all_states = args.all_states
         filters = args.filters
         keywords = args.keywords
@@ -67,7 +67,7 @@ class SearchCommand(plugin.Command):
 
         if not params:
             msg = "Al least one filter or keyword must be specified"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         query = self.app.selector.get_query_from_params(
             params=params, display_name='command-line'

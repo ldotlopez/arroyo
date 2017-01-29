@@ -5,32 +5,81 @@ import aiohttp
 import asyncio
 import itertools
 import re
+import sys
+import traceback
 from urllib import parse
-
 
 from appkit import (
     logging,
+    uritools,
     utils
 )
 
-
 import arroyo.exc
 from arroyo import (
-    cron,
     downloads,
-    extension,
+    kit,
     models
 )
 
 
-class Origin(extension.Extension):
-    DEFAULT_URI = None
-    URI_PATTERNS = None
+class Provider(kit.Extension):
+    def __unicode__(self):
+        return "Provider({name})".format(
+            name=self.__extension_name__)
 
-    def __init__(self, *args, logger=None, display_name=None, uri=None,
-                 iterations=1, overrides={}, **kwargs):
+    __str__ = __unicode__
 
-        uri = uri or self.DEFAULT_URI
+    @abc.abstractmethod
+    def compatible_uri(self, uri):
+        attr_name = 'URI_PATTERNS'
+        attr = getattr(self, attr_name, None)
+
+        if not (isinstance(attr, (list, tuple)) and len(attr)):
+            msg = "Class {cls} must override {attr} attribute"
+            msg = msg.format(self=self.__class__.__name__, attr=attr_name)
+            raise NotImplementedError(msg)
+
+        RegexType = type(re.compile(r''))
+        for pattern in attr:
+            if isinstance(pattern, RegexType):
+                if pattern.search(uri):
+                    return True
+            else:
+                if re.search(pattern, uri):
+                    return True
+
+        return False
+
+    @abc.abstractmethod
+    def paginate(self, uri):
+        yield uri
+
+    @abc.abstractmethod
+    def get_query_uri(self, query):
+        return None
+
+    @abc.abstractmethod
+    def fetch(self, fetcher, uri):
+        return (yield from fetcher.fetch(uri))
+
+    @abc.abstractmethod
+    def parse(self, buffer, parser):
+        msg = "Provider {name} doesn't implement parse method"
+        msg = msg.format(name=self.__extension_name__)
+        raise NotImplementedError(msg)
+
+
+class Origin:
+    def __init__(self, provider, display_name=None, uri=None, iterations=1,
+                 overrides={}, logger=None):
+
+        if not isinstance(provider, Provider):
+            msg = "Invalid provider"
+            msg = msg.format(name=nme, value=var)
+            raise TypeError(msg)
+
+        uri = uri or provider.DEFAULT_URI
 
         # Check strs
         strs = [
@@ -68,65 +117,25 @@ class Origin(extension.Extension):
                     msg = msg.format(key=k)
                     raise TypeError(msg)
 
-        # Check overrides
-        self._display_name = display_name
-        self._uri = uri or self.default_uri
-        self._iterations = iterations
-        self._overrides = overrides.copy()
+        self.provider = provider
+        self.display_name = display_name
+        self.uri = uritools.normalize(uri)
+        self.iterations = iterations
+        self.overrides = overrides.copy()
+        self.logger = logger or logging.getLogger('{}-origin'.format(
+            provider.__extension_name__))
 
-        super().__init__(*args, **kwargs)
-        self.logger = logger or self.app.logger
+    def __unicode__(self):
+        return 'Origin({provider})'.format(
+            name=self.provider.__extension_name__)
 
-    @classmethod
-    def compatible_uri(cls, uri):
-        attr_name = 'URI_PATTERNS'
-        attr = getattr(cls, attr_name, None)
+    def __str__(self):
+        return self.__unicode__()
 
-        if not (isinstance(attr, (list, tuple)) and len(attr)):
-            msg = "Class {cls} must override {attr} attribute"
-            msg = msg.format(cls=cls.__name__, attr=attr_name)
-            raise NotImplementedError(msg)
-
-        RegexType = type(re.compile(r''))
-
-        for pattern in attr:
-            if isinstance(pattern, RegexType):
-                if pattern.search(uri):
-                    return True
-            else:
-                if re.search(pattern, uri):
-                    return True
-
-        return False
-
-    @property
-    def default_uri(self):
-        if self.DEFAULT_URI is None:
-            msg = "Class {clsname} must override DEFAULT_URI attribute"
-            msg = msg.format(clsname=self.__class__.__name__)
-            raise NotImplementedError(msg)
-
-        return self.DEFAULT_URI
-
-    @property
-    def provider(self):
-        return self.__extension_name__
-
-    @property
-    def display_name(self):
-        return self._display_name
-
-    @property
-    def uri(self):
-        return self._uri
-
-    @property
-    def iterations(self):
-        return self._iterations
-
-    @property
-    def overrides(self):
-        return self._overrides
+    def __repr__(self):
+        return '<arroyo.importer.Origin ({name}) object at {hexid}>'.format(
+            name=self.provider.__extension_name__,
+            hexid=hex(id(self)))
 
     @asyncio.coroutine
     def get_data(self):
@@ -226,59 +235,181 @@ class Origin(extension.Extension):
 
         return psrcs
 
-    def get_uris(self):
-        g = self.paginate()
-        iters = max(1, self._iterations)
 
-        yield from (next(g) for x in range(iters))
+class Importer:
+    def __init__(self, app, logger=None):
+        self.app = app
+        self.logger = logger or logging.getLogger('importer')
 
-    @abc.abstractmethod
-    def paginate(self):
-        yield self._uri
+        self._sched = None
 
-    @staticmethod
-    def paginate_by_query_param(url, key, default=1):
-        """
-        Utility generator for easy pagination
-        """
-        def alter_param(k, v):
-            if k == key:
-                try:
-                    v = int(v) + 1
-                except ValueError:
-                    v = default
+        app.signals.register('source-added')
+        app.signals.register('source-updated')
+        app.signals.register('sources-added-batch')
+        app.signals.register('sources-updated-batch')
+        app.register_extension_point(Provider)
+        app.register_extension_class(ImporterCronTask)
 
-                v = str(v)
+    def _settings_validator(self, key, value):
+        """Validates settings"""
+        return value
 
-            return k, v
+    def origin_from_params(self, **params):
+        p = params.copy()
+        provider = p.pop('provider', None)
+        uri = p.pop('uri', None)
+        extension = None
 
-        yield url
+        if not provider and not uri:
+            msg = "Neither provider or uri was provided"
+            raise TypeError(msg)
 
-        parsed = parse.urlparse(url)
-        qsl = parse.parse_qsl(parsed.query)
-        if key not in [x[0] for x in qsl]:
-            qsl = qsl + [(key, default)]
+        if provider:
+            # Get extension from provider
+            extension = self.app.get_extension(Provider, provider)
+            uri = uritools.normalize(uri or extension.DEFAULT_URI)
 
-        while True:
-            qsl = [alter_param(*x) for x in qsl]
-            yield parse.urlunparse((parsed.scheme, parsed.netloc, parsed.path,
-                                    parsed.params,
-                                    parse.urlencode(qsl, doseq=True),
-                                    parsed.fragment))
+        else:
+            # Get extension from uri
+            uri = uritools.normalize(uri)
+            for (name, ext) in self.app.get_extensions_for(Provider):
+                if ext.compatible_uri(uri):
+                    extension = ext
+                    msg = "Found compatible provider for {uri}: {provider}"
+                    msg = msg.format(uri=uri, provider=extension.__extension_name__)
+                    self.app.logger.debug(msg)
+                    break
+
+        if not extension:
+            msg = "No provider plugin is compatible with '{uri}'"
+            msg = msg.format(uri=uri)
+            raise ValueError(msg)
+
+        return Origin(provider=extension, uri=uri, **p)
+
+    def get_configured_origins(self):
+        """Returns a list of configured origins in a specification form.
+
+        This list is composed by importer.OriginSpec objects which are
+        data-only structures. To get some usable object you may want to use
+        importer.Importer.get_origins method"""
+        specs = self.app.settings.get('origin', default={})
+        if not specs:
+            msg = "No origins defined"
+            self.app.logger.warning(msg)
+            return []
+
+        ret = [
+            self.origin_from_params(
+                display_name=name,
+                **params)
+            for (name, params) in specs.items()
+        ]
+        ret = [x for x in ret if x is not None]
+        return ret
 
     @asyncio.coroutine
-    def fetch(self, url):
-        return (yield from self.app.fetcher.fetch(url))
+    def get_buffer_from_uri(self, origin, uri):
+        try:
+            res = yield from origin.provider.fetch(self.app.fetcher, uri)
 
-    @abc.abstractmethod
-    def parse(self, buff):
-        return []
+        except (asyncio.CancelledError,
+                asyncio.TimeoutError,
+                aiohttp.errors.ClientOSError,
+                aiohttp.errors.ClientResponseError,
+                aiohttp.errors.ServerDisconnectedError) as e:
+            msg = "Error fetching «{uri}»: {msg}"
+            msg = msg.format(
+                uri=uri, type=e.__class__.__name__,
+                msg=str(e) or 'no reason')
+            self.logger.error(msg)
+            res = e
 
-    @abc.abstractmethod
-    def get_query_uri(self, query):
-        return None
+        except Exception as e:
+            print(traceback.format_exc(), file=sys.stderr)
+            msg = "Unhandled exception {type}: {e}"
+            msg = msg.format(type=type(e), e=e)
+            self.logger.critical(msg)
+            res = e
 
-    def _normalize_source_data(self, *psrcs):
+        if not isinstance(res, Exception) and (res is None or res == ''):
+            msg = "Empty or None buffer for «{uri}»"
+            msg = msg.format(uri=uri)
+            self.logger.error(msg)
+
+        return (origin, uri, res)
+
+    @asyncio.coroutine
+    def get_buffers_from_origin(self, origin):
+        g = origin.provider.paginate(origin.uri)
+        iterations = max(1, origin.iterations)
+
+        tasks = [self.get_buffer_from_uri(origin, next(g))
+                 for dummy in range(iterations)]
+
+        ret = yield from asyncio.gather(*tasks)
+        return ret
+
+    def process(self, *origins):
+        results = []
+
+        @asyncio.coroutine
+        def collect(origin):
+            res = yield from self.get_buffers_from_origin(origin)
+            results.extend(res)
+
+        tasks = [collect(o) for o in origins]
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(asyncio.gather(*tasks))
+
+        parser = self.app.settings.get('importer.parser')
+        data = []
+        for (origin, uri, res) in results:
+            if isinstance(res, Exception) or res is None or res == '':
+                continue
+
+            try:
+                res = origin.provider.parse(res, parser=parser)
+
+            except arroyo.exc.OriginParseError as e:
+                msg = "Error parsing «{uri}»: {e}"
+                msg = msg.format(uri=uri, e=e)
+                self.logger.error(msg)
+                continue
+
+            except Exception as e:
+                print(traceback.format_exc(), file=sys.stderr)
+                msg = "Unhandled exception {type}: {e}"
+                msg = msg.format(type=type(e), e=e)
+                self.logger.critical(msg)
+                continue
+
+            if res is None:
+                msg = ("Incorrect API usage in {origin}, return None is not "
+                       "allowed. Raise an Exception or return [] if no "
+                       "sources are found")
+                msg = msg.format(origin=origin)
+                self.logger.critical(msg)
+                continue
+
+            if not isinstance(res, list):
+                msg = "Invalid data type for URI «{uri}»: '{type}'"
+                msg = msg.format(uri=uri, type=res.__class__.__name__)
+                self.logger.critical(msg)
+                continue
+
+            if len(res) == 0:
+                msg = "No sources found in «{uri}»"
+                msg = msg.format(uri=uri)
+                self.logger.warning(msg)
+                continue
+
+            res = self.normalize_source_data(origin, *res)
+            data.extend(res)
+
+        return self.process_source_data(*data)
+
+    def normalize_source_data(self, origin, *psrcs):
         required_keys = set([
             'name',
             'provider',
@@ -299,23 +430,23 @@ class Origin(extension.Extension):
         for psrc in psrcs:
             if not isinstance(psrc, dict):
                 msg = "Origin «{name}» emits invalid data type: {datatype}"
-                msg = msg.format(name=self.provider,
+                msg = msg.format(name=origin.provider.__extension_name__,
                                  datatype=str(type(psrc)))
                 self.logger.error(msg)
                 continue
 
             # Insert provider name
-            psrc['provider'] = self.provider
+            psrc['provider'] = origin.provider.__extension_name__
 
             # Apply overrides
-            psrc.update(self._overrides)
+            psrc.update(origin.overrides)
 
             # Check required keys
             missing_keys = required_keys - set(psrc.keys())
             if missing_keys:
                 msg = ("Origin «{name}» doesn't provide the required "
                        "following keys: {missing_keys}")
-                msg = msg.format(name=self.provider,
+                msg = msg.format(name=origin.provider.__extension_name__,
                                  missing_keys=missing_keys)
                 self.logger.error(msg)
                 continue
@@ -350,8 +481,10 @@ class Origin(extension.Extension):
                                "Expected {expectedtype} (or compatible), got "
                                "{currtype}")
                         msg = msg.format(
-                            name=self.provider, key=k,
-                            expectedtype=kt, currtype=str(type(psrc[k])))
+                            name=origin.provider.__extension_name__,
+                            key=k,
+                            expectedtype=kt,
+                            currtype=str(type(psrc[k])))
                         self.logger.error(msg)
                         continue
 
@@ -377,115 +510,6 @@ class Origin(extension.Extension):
             ret.append(psrc)
 
         return ret
-
-
-class Importer:
-    def __init__(self, app, logger=None):
-        self.app = app
-        self.logger = logger or logging.getLogger('importer')
-
-        self._sched = None
-
-        app.signals.register('source-added')
-        app.signals.register('source-updated')
-        app.signals.register('sources-added-batch')
-        app.signals.register('sources-updated-batch')
-        app.register_extension_point(Origin)
-        app.register_extension_class(ImporterCronTask)
-
-    def _settings_validator(self, key, value):
-        """Validates settings"""
-        return value
-
-    def origin_class_from_uri(self, uri):
-
-        for impl in self.app.get_implementations(Origin):
-            try:
-                if impl.compatible_uri(uri):
-                    return impl
-            except NotImplementedError as e:
-                self.app.logger.warning(str(e))
-
-    @staticmethod
-    def normalize_uri(uri):  # FIXME: Move to appkit.utils
-        if uri is None:
-            return None
-
-        if '://' not in uri:
-            uri = 'http://' + uri
-
-        parsed = parse.urlparse(uri)
-        if not parsed.path:
-            parsed = parsed._replace(path='/')
-
-        return parse.urlunparse(parsed)
-
-    def origin_from_params(self, **params):
-        p = params.copy()
-
-        uri = self.normalize_uri(p.pop('uri', None))
-
-        impl_name = p.pop('backend', None)
-        if impl_name:
-            impl_cls = self.app.get_extension_class(Origin, impl_name)
-        else:
-            if not uri:
-                msg = "Neither backend or uri was provided"
-                raise TypeError(msg)
-
-            impl_cls = self.origin_class_from_uri(uri)
-
-            if impl_cls is None:
-                msg = "No Origin plugin is compatible with '{uri}'"
-                msg = msg.format(uri=uri)
-                raise ValueError(msg)
-
-            impl_name = impl_cls.__name__
-
-        return impl_cls(
-            self.app,
-            uri=uri,
-            iterations=p.pop('iterations', 1),
-            display_name=p.pop('display_name', None),
-            overrides=p,
-            logger=logging.get_logger(impl_name)
-        )
-
-    def get_configured_origins(self):
-        """Returns a list of configured origins in a specification form.
-
-        This list is composed by importer.OriginSpec objects which are
-        data-only structures. To get some usable object you may want to use
-        importer.Importer.get_origins method"""
-
-        specs = self.app.settings.get('origin', default={})
-        if not specs:
-            msg = "No origins defined"
-            self.app.logger.warning(msg)
-            return []
-
-        ret = [
-            self.origin_from_params(
-                display_name=name,
-                **params)
-            for (name, params) in specs.items()
-        ]
-        ret = [x for x in ret if x is not None]
-        return ret
-
-    def process(self, *origins):
-        data = []
-
-        @asyncio.coroutine
-        def get_contents_for_origin(origin):
-            origin_data = yield from origin.get_data()
-            data.extend(origin_data)
-
-        tasks = [get_contents_for_origin(o) for o in origins]
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(asyncio.gather(*tasks))
-
-        return self.process_source_data(*data)
 
     def process_source_data(self, *srcs_data):
         srcs = self.get_sources_for_data(*srcs_data)
@@ -653,10 +677,9 @@ class Importer:
         return self.process(*self.get_configured_origins())
 
 
-class ImporterCronTask(cron.CronTask):
+class ImporterCronTask(kit.Task):
     __extension_name__ = 'importer'
-    INTERVAL = '3H'
+    interval = '3H'
 
-    def run(self):
+    def execute(self):
         self.app.importer.run()
-        super().run()

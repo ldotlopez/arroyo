@@ -68,10 +68,10 @@ class DownloadCommand(plugin.Command):
 
         return src.format(fmt, extra_data=d)
 
-    def run(self, args):
+    def execute(self, args):
         def conditional_logger(level, msg):
             if not dry_run:
-                self.app.logger.log(level, msg)
+                self.app.logger.log(level.value, msg)
             else:
                 print(msg)
 
@@ -93,11 +93,11 @@ class DownloadCommand(plugin.Command):
 
         if test == 0:
             msg = "No action specified"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         elif test > 1:
             msg = "Only one action at time is supported"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         if show:
             for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
@@ -113,7 +113,7 @@ class DownloadCommand(plugin.Command):
 
                 if not dry_run:
                     self.app.downloads.add(src)
-                conditional_logger(logging.INFO, msg)
+                conditional_logger(logging.Level.INFO, msg)
 
             else:
                 msg = "Source with id {id} not found"
@@ -129,7 +129,7 @@ class DownloadCommand(plugin.Command):
                     src, self.SOURCE_FMT)
                 if not dry_run:
                     self.app.downloads.remove(src)
-                conditional_logger(logging.INFO, msg)
+                conditional_logger(logging.Level.INFO, msg)
 
             else:
                 msg = "Source with id {id} not found"
@@ -148,7 +148,7 @@ class DownloadCommand(plugin.Command):
 
         if not queries:
             msg = "No queries specified"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         for query in queries:
             matches = self.app.selector.matches(query)

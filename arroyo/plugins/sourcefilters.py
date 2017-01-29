@@ -27,38 +27,39 @@ class Filter(plugin.QuerySetFilter):
     APPLIES_TO = plugin.models.Source
     HANDLES = _strs + _nums + ['since']
 
-    def alter(self, q):
+    def alter(self, key, value, qs):
         def _convert_value(func):
+            nonlocal value
             try:
-                self.value = func(self.value)
+                value = func(value)
             except ValueError as e:
-                raise plugin.exc.SettingError(self.key, self.value, e)
+                raise plugin.exc.SettingError(key, value, e)
 
         def _warn():
             msg = "Ignoring invalid setting '{key}': '{value}'"
-            msg = msg.format(key=self.key, value=self.value)
+            msg = msg.format(key=key, value=value)
             self.app.logger.warning(msg)
 
-        if self.key == 'size' or self.key.startswith('size-'):
+        if key == 'size' or key.startswith('size-'):
             _convert_value(utils.parse_size)
 
-        elif self.key == 'age' or self.key.startswith('age-'):
+        elif key == 'age' or key.startswith('age-'):
             _convert_value(utils.parse_interval)
 
-        elif self.key == 'since':
-            x = humanfriendly.parse_date(self.value)
+        elif key == 'since':
+            x = humanfriendly.parse_date(value)
             x = datetime.datetime(*x).timetuple()
             x = time.mktime(x)
             x = int(x)
 
-            self.key = 'created-min'
-            self.value = x
+            key = 'created-min'
+            value = x
 
-        elif self.key in self._nums:
+        elif key in self._nums:
             _convert_value(float)
 
         return filter.alter_query_for_model_attr(
-            q, plugin.models.Source, self.key, self.value)
+            qs, plugin.models.Source, key, value)
 
 
 __arroyo_extensions__ = [

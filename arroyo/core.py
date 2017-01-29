@@ -11,7 +11,6 @@ import warnings
 import bs4
 import yaml
 from appkit import (
-    application,
     cache,
     keyvaluestore,
     network,
@@ -19,15 +18,18 @@ from appkit import (
     store,
     utils
 )
-
+from appkit.application import (
+    commands,
+    cron,
+    services
+)
 
 import arroyo.exc
 from arroyo import (
-    importer,
-    cron,
     db,
     downloads,
-    extension,
+    importer,
+    kit,
     mediainfo,
     models,
     selector,
@@ -95,8 +97,7 @@ _plugins = [
     'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
     # Origins
-    'elitetorrent', 'eztv', 'kickass', 'spanishtracker',
-    'thepiratebay', 'torrentapi',
+    'elitetorrent', 'eztv', 'kickass', 'thepiratebay', 'torrentapi',
 
     # Sorters
     'basicsorter',
@@ -109,60 +110,6 @@ _defaults.update({'plugin.{}.enabled'.format(x): True
                   for x in _plugins})
 
 
-def build_argument_parser():
-    parser = argparse.ArgumentParser(add_help=False)
-    parser.add_argument(
-        '-h', '--help',
-        action='store_true',
-        dest='help')
-
-    parser.add_argument(
-        '-v', '--verbose',
-        dest='verbose',
-        default=0,
-        action='count')
-
-    parser.add_argument(
-        '-q', '--quiet',
-        dest='quiet',
-        default=0,
-        action='count')
-
-    parser.add_argument(
-        '-c', '--config-file',
-        dest='config-files',
-        action='append',
-        default=[])
-
-    parser.add_argument(
-        '--plugin',
-        dest='plugins',
-        action='append',
-        default=[])
-
-    parser.add_argument(
-        '--db-uri',
-        dest='db-uri')
-
-    parser.add_argument(
-        '--downloader',
-        dest='downloader')
-
-    parser.add_argument(
-        '--auto-import',
-        default=None,
-        action='store_true',
-        dest='auto-import')
-
-    parser.add_argument(
-        '--auto-cron',
-        default=None,
-        action='store_true',
-        dest='auto-cron')
-
-    return parser
-
-
 def build_basic_settings(arguments=None):
     if arguments is None:
         arguments = []
@@ -170,7 +117,7 @@ def build_basic_settings(arguments=None):
     global _defaults, _plugins
 
     # The first task is parse arguments
-    argparser = build_argument_parser()
+    argparser = kit.CommandManager.build_base_argument_parser()
     args, remaining = argparser.parse_known_args()
 
     # Now we have to load default and extra config files.
@@ -227,26 +174,7 @@ def build_basic_settings(arguments=None):
     return store
 
 
-# class EncodedStreamHandler(logging.StreamHandler):
-#     def __init__(self, encoding='utf-8', *args, **kwargs):
-#         super(EncodedStreamHandler, self).__init__(*args, **kwargs)
-#         self.encoding = encoding
-#         self.terminator = self.terminator.encode(self.encoding)
-
-#     def emit(self, record):
-#         try:
-#             msg = self.format(record).encode(self.encoding)
-#             stream = self.stream
-#             stream.buffer.write(msg)
-#             stream.buffer.write(self.terminator)
-#             self.flush()
-#         except Exception:
-#             self.handleError(record)
-
-
-class Arroyo(application.ServiceApplicationMixin,
-             application.CommandlineApplicationMixin,
-             application.BaseApplication):
+class Arroyo(services.ApplicationMixin, kit.Application):
     def __init__(self, settings=None):
         super().__init__('arroyo')
 
@@ -300,7 +228,8 @@ class Arroyo(application.ServiceApplicationMixin,
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
                                                        session=self.db.session)
         self.signals = signaler.Signaler()
-        self.cron = cron.CronManager(self)
+        self.commands = kit.CommandManager(self)
+        self.cron = kit.CronManager(self)
 
         self.importer = importer.Importer(self)
         self.selector = selector.Selector(self)
@@ -320,31 +249,24 @@ class Arroyo(application.ServiceApplicationMixin,
         plugins = map(lambda x: x[1], plugins)
 
         for p in set(plugins):
-            if self.settings.get('plugin.' + p + '.enabled', default=True):
+            if self.settings.get('plugin.' + p + '.enabled', default=False):
                 self.load_plugin(p)
 
         # Run cron tasks
         if self.settings.get('auto-cron'):
-            self.cron.run_all()
+            self.cron.execute_all()
 
-    def get_extension(self, extension_point, name, *args, **kwargs):
-        return super().get_extension(extension_point, name, self,
-                                     *args, **kwargs)
-
-    @classmethod
-    def build_argument_parser(cls):
-        return build_argument_parser()
+    # @classmethod
+    # def build_argument_parser(cls):
+    #     return build_argument_parser()
 
     def execute(self, *args):
         try:
-            return super().execute(*args)
-        except arroyo.exc.PluginArgumentError as e:
-            subargparsers[args.subcommand].print_help()
-            print("\nError message: {}".format(e), file=sys.stderr)
+            return self.commands.execute(*args)
 
         except (arroyo.exc.BackendError,
                 arroyo.exc.NoImplementationError,
-                arroyo.exc.FatalError):
+                arroyo.exc.FatalError) as e:
             self.logger.critical(e)
 
 

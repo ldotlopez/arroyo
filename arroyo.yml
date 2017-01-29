@@ -21,7 +21,7 @@ downloader: mock
 # Execute crontask at startup
 auto-cron: false
 # Enable auto import feature
-auto-import: true
+auto-import: false
 
 # Fetcher options
 fetcher:
@@ -92,7 +92,7 @@ origin: {}
 
     # name:
     #     # Check plugins folder for available analizers
-    #     backend: foo
+    #     provider: foo
     #     # URL to analize
     #     url: http://example.com/latest
     #     # Iterations: some analizers can iterate over the given url parameter
@@ -106,25 +106,25 @@ origin: {}
     #     language:
 
     # eztv:
-    #     backend: eztv
+    #     provider: eztv
     #     iterations: 3
     #     type: episode
     #     language: eng-us
 
     # ka-eztv:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 3
     #     type: episode
     #     url: https://kat.am/user/EZTV/uploads/?field=time_add&sorder=desc
 
     # ka-episodes:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 1
     #     type: movie
     #     url: https://kat.am/tv/
 
     # ka-episodes:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 1
     #     type: episode
     #     url: https://kat.am/movies/

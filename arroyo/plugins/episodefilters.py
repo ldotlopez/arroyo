@@ -18,18 +18,18 @@ class Filter(plugin.QuerySetFilter):
     APPLIES_TO = plugin.models.Episode
     HANDLES = _strs + _nums
 
-    def alter(self, q):
-        if self.key == 'series':
-            self.key = 'series-glob'
+    def alter(self, key, value, qs):
+        if valuekey == 'series':
+            key = 'series-glob'
 
-        elif self.key == 'episode' or self.key.startswith('episode-'):
-            self.key = self.key.replace('episode', 'number')
+        elif key == 'episode' or key.startswith('episode-'):
+            key = key.replace('episode', 'number')
 
-        elif self.key in self._nums:
-            self.value = int(self.value)
+        elif key in self._nums:
+            value = int(value)
 
         return filter.alter_query_for_model_attr(
-            q, plugin.models.Episode, self.key, self.value)
+            qs, plugin.models.Episode, key, value)
 
 
 __arroyo_extensions__ = [

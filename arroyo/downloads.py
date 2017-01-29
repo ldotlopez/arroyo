@@ -10,11 +10,9 @@ from urllib import parse
 
 import bencodepy
 
-
 import arroyo.exc
 from arroyo import (
-    cron,
-    extension,
+    kit,
     models
 )
 
@@ -182,7 +180,7 @@ class Downloads:
         }
 
 
-class Downloader(extension.Extension):
+class Downloader(kit.Extension):
     def add(self, source, **kwargs):
         raise NotImplementedError()
 
@@ -199,20 +197,19 @@ class Downloader(extension.Extension):
         raise NotImplementedError()
 
 
-class DownloadSyncCronTask(cron.CronTask):
+class DownloadSyncCronTask(kit.Task):
     __extension_name__ = 'download-sync'
-    INTERVAL = '5M'
+    interval = '5M'
 
-    def run(self):
+    def execute(self):
         self.app.downloads.sync()
-        super().run()
 
 
-class DownloadQueriesCronTask(cron.CronTask):
+class DownloadQueriesCronTask(kit.Task):
     __extension_name__ = 'download-queries'
-    INTERVAL = '3H'
+    interval = '3H'
 
-    def run(self):
+    def execute(self):
         queries = self.app.selector.get_configured_queries()
         for q in queries:
             matches = self.app.selector.matches(q)
@@ -226,8 +223,6 @@ class DownloadQueriesCronTask(cron.CronTask):
                     self.app.downloads.add(src)
                 except Exception as e:
                     self.app.logger.error(str(e))
-
-        super().run()
 
 
 def calculate_urns(urn):

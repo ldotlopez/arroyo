@@ -34,7 +34,7 @@ import aiohttp
 import arrow
 
 
-class TorrentAPI(plugin.Origin):
+class TorrentAPI(plugin.Provider):
     __extension_name__ = 'torrentapi'
 
     # URL structure:
@@ -53,17 +53,12 @@ class TorrentAPI(plugin.Origin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
-        conn = aiohttp.TCPConnector(verify_ssl=False)
-        self.client = aiohttp.ClientSession(connector=conn)
         self.token = None
         self.token_ts = 0
         self.token_last_use = 0
 
-    def __del__(self):
-        self.client.close()
-
     @asyncio.coroutine
-    def fetch(self, uri):
+    def fetch(self, fetcher, uri):
         yield from self.refresh_token()
 
         uri = downloads.set_query_params(
@@ -73,15 +68,18 @@ class TorrentAPI(plugin.Origin):
             sort='last',
             token=self.token)
 
-        return (yield from super().fetch(uri))
+        return (yield from super().fetch(fetcher, uri))
 
     @asyncio.coroutine
     def refresh_token(self):
         # Refresh token if it's older than 15M
         if time.time() - self.token_ts >= 15*60:
-            resp = yield from self.client.get(self.TOKEN_URL)
+            conn = aiohttp.TCPConnector(verify_ssl=False)
+            client = aiohttp.ClientSession(connector=conn)
+            resp = yield from client.get(self.TOKEN_URL)
             buff = yield from resp.content.read()
             yield from resp.release()
+            yield from client.close()
 
             self.token = json.loads(buff.decode('utf-8'))['token']
             self.token_ts = time.time()

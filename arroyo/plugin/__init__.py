@@ -1,12 +1,16 @@
 import abc
 
-
+from appkit.application import cliargument
 from arroyo import (
     exc,
     models
 )
+from arroyo.kit import (
+    Command,
+    Task
+)
 from arroyo.downloads import Downloader
-from arroyo.importer import Origin
+from arroyo.importer import Provider
 from arroyo.selector import (
     Filter,
     IterableFilter,
@@ -14,27 +18,6 @@ from arroyo.selector import (
     QuerySetFilter,
     Sorter
 )
-from appkit import application
-from appkit.application import cliargument
-from appkit.cron import Task
-
-
-class Extension(application.Extension):
-    def __init__(self, app, *args, **kwargs):
-        super().__init__()
-        self.app = app
-
-
-class Command(application.Command, Extension):
-    @abc.abstractmethod
-    def execute(self, arguments):
-        raise NotImplementedError
-
-
-class Service(application.Service, Extension):
-    def __init__(self, app):
-        super().__init__()
-        self.app = app
 
 
 __all__ = [
@@ -45,10 +28,10 @@ __all__ = [
 
     # Extensible classes
     'Command',
-    'CronTask',
+    'Task',
     'Downloader',
     'IterableFilter',
-    'Origin',
+    'Provider',
     'Query',
     'QuerySetFilter',
     'Service',

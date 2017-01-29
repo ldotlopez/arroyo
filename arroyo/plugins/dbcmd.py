@@ -46,7 +46,7 @@ class Command(plugin.Command):
             help='archive a source')
         )
 
-    def run(self, args):
+    def execute(self, args):
         shell = args.shell
         reset = args.reset
         reset_states = args.reset_states
@@ -60,11 +60,11 @@ class Command(plugin.Command):
 
         if sum(test) == 0:
             msg = "No action specified"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         elif sum(test) > 1:
             msg = "Just one option can be specified at one time"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
         if reset:
             self.app.db.reset()
@@ -98,7 +98,7 @@ class Command(plugin.Command):
             source = self.app.db.get(models.Source, id=source_id)
             if not source:
                 msg = "No source with ID={id}".format(id=source_id)
-                raise plugin.exc.PluginArgumentError(msg)
+                raise plugin.exc.ArgumentsError(msg)
 
             source.state = state
             self.app.db.session.commit()
@@ -107,7 +107,7 @@ class Command(plugin.Command):
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.PluginArgumentError(msg)
+            raise plugin.exc.ArgumentsError(msg)
 
 
 __arroyo_extensions__ = [

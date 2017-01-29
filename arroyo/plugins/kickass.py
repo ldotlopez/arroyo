@@ -14,7 +14,7 @@ import humanfriendly
 from appkit import utils
 
 
-class KickAss(plugin.Origin):
+class KickAss(plugin.Provider):
     __extension_name__ = 'kickass'
 
     _BASE_URI = 'https://kickass.cd'
@@ -39,12 +39,8 @@ class KickAss(plugin.Origin):
         'xxx': 'xxx'
     }
 
-    def __init__(self, *args, **kwargs):
-        super(KickAss, self).__init__(*args, **kwargs)
-        self._logger = self.app.logger.getChild('kickass-importer')
-
-    def paginate(self):
-        parsed = parse.urlparse(self.uri)
+    def paginate(self, uri):
+        parsed = parse.urlparse(uri)
         paths = [x for x in parsed.path.split('/') if x]
 
         try:

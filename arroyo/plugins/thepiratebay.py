@@ -18,7 +18,7 @@ class _CategoryUnknowError(Exception):
     pass
 
 
-class ThePirateBay(plugin.Origin):
+class ThePirateBay(plugin.Provider):
     __extension_name__ = 'thepiratebay'
 
     # URL structure:
@@ -120,9 +120,7 @@ class ThePirateBay(plugin.Origin):
         }
     }
 
-    def paginate(self):
-        uri = self.uri
-
+    def paginate(self, uri):
         if not uri.endswith('/'):
             uri += '/'
 
@@ -188,7 +186,7 @@ class ThePirateBay(plugin.Origin):
         cat = text.lower()
         cat = cat.replace('(', '').replace(')', '')
         cat = cat.replace('\n', '\0').replace('\t', '\0').split('\0')
-        cat = [x for x in cat if x]
+        cat = [x.strip() for x in cat if x]
 
         try:
             typ = cls._TYPE_TABLE[cat[0]][cat[1]]
@@ -205,7 +203,7 @@ class ThePirateBay(plugin.Origin):
 
             p = '{Y:04d} {m:02d} {d:02d} {H:02d} {M:02d} {S:02d}'
             p = p.format(**keys)
-            p = datetime.strptime(p, '%Y %m %d %H %M %S')
+            p = datetime.strptime(p, '%Y %d %m %H %M %S')
 
             return int(time.mktime(p.timetuple()))
 
@@ -257,34 +255,34 @@ class ThePirateBay(plugin.Origin):
         return self.SEARCH_URL_PATTERN.format(q=q)
 
 
-class ThePirateBayRSS(plugin.Origin):
-    __extension_name__ = 'thepiratebayrss'
+# class ThePirateBayRSS(plugin.Provider):
+#     __extension_name__ = 'thepiratebayrss'
+#
+#     _TLD = 'cr'
+#     _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
 
-    _TLD = 'cr'
-    _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
-
-    DEFAULT_URI = _BASE_URL + "/top100/0"
-    URI_PATTERNS = [
-        r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
-    ]
-
-    def paginate(self):
-        yield self.uri
-
-    def parse(self, buff):
-        def _build_source(entry):
-            return {
-                'uri': entry['link'],
-                'name': entry['title'],
-                'created': int(time.mktime(entry['published_parsed'])),
-                'size': int(entry['contentlength'])
-            }
-
-        ret = [_build_source(x) for x in feedparser.parse(buff)['entries']]
-        return ret
+#     DEFAULT_URI = _BASE_URL + "/top100/0"
+#     URI_PATTERNS = [
+#         r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
+#     ]
+#
+#     def paginate(self, uri):
+#         yield uri
+#
+#     def parse(self, buff, parser):
+#         def _build_source(entry):
+#             return {
+#                 'uri': entry['link'],
+#                 'name': entry['title'],
+#                 'created': int(time.mktime(entry['published_parsed'])),
+#                 'size': int(entry['contentlength'])
+#             }
+#
+#         ret = [_build_source(x) for x in feedparser.parse(buff)['entries']]
+#         return ret
 
 
 __arroyo_extensions__ = [
     ThePirateBay,
-    ThePirateBayRSS
+    # ThePirateBayRSS
 ]
