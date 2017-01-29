@@ -241,8 +241,6 @@ class Importer:
         self.app = app
         self.logger = logger or logging.getLogger('importer')
 
-        self._sched = None
-
         app.signals.register('source-added')
         app.signals.register('source-updated')
         app.signals.register('sources-added-batch')
@@ -276,7 +274,9 @@ class Importer:
                 if ext.compatible_uri(uri):
                     extension = ext
                     msg = "Found compatible provider for {uri}: {provider}"
-                    msg = msg.format(uri=uri, provider=extension.__extension_name__)
+                    msg = msg.format(
+                        uri=uri,
+                        provider=extension.__extension_name__)
                     self.app.logger.debug(msg)
                     break
 
