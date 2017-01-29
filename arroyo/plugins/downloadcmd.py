@@ -165,7 +165,7 @@ class DownloadCommand(plugin.Command):
 
                 if not dry_run:
                     self.app.downloads.add(src)
-                conditional_logger(logging.INFO, msg)
+                conditional_logger(logging.Level.INFO, msg)
 
 __arroyo_extensions__ = [
     DownloadCommand

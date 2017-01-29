@@ -2,19 +2,30 @@
 
 import abc
 import argparse
+import warnings
+
 
 from appkit import application
 from appkit.application import (
     commands,
     cron
 )
+
+
 from arroyo import models
 
 
 class Extension(application.Extension):
     def __init__(self, app, *args, **kwargs):
         super().__init__()
-        self.app = app
+        self._app = app
+
+    @property
+    def app(self):
+        msg = "Extension {} is using app property"
+        msg = msg.format(self)
+        warnings.warn(msg)
+        return self._app
 
 
 class Command(commands.Command, Extension):
@@ -119,6 +130,5 @@ class CronManager(cron.CronManager):
 
 class Application(application.BaseApplication):
     def get_extension(self, extension_point, name, *args, **kwargs):
-        print(extension_point, name)
         return super().get_extension(extension_point, name, self,
                                      *args, **kwargs)

@@ -121,6 +121,7 @@ class ThePirateBay(plugin.Provider):
     }
 
     def paginate(self, uri):
+        # Add leading '/'
         if not uri.endswith('/'):
             uri += '/'
 

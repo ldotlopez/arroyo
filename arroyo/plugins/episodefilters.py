@@ -19,7 +19,7 @@ class Filter(plugin.QuerySetFilter):
     HANDLES = _strs + _nums
 
     def alter(self, key, value, qs):
-        if valuekey == 'series':
+        if key == 'series':
             key = 'series-glob'
 
         elif key == 'episode' or key.startswith('episode-'):
