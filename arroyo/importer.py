@@ -252,10 +252,8 @@ class Importer:
         """Validates settings"""
         return value
 
-    def origin_from_params(self, **params):
-        p = params.copy()
-        provider = p.pop('provider', None)
-        uri = p.pop('uri', None)
+    def origin_from_params(self, display_name=None, provider=None, uri=None,
+                           iterations=1, language=None, type=None):
         extension = None
 
         if not provider and not uri:
@@ -285,28 +283,28 @@ class Importer:
             msg = msg.format(uri=uri)
             raise ValueError(msg)
 
-        return Origin(provider=extension, uri=uri, **p)
+        overrides = {}
+        if language:
+            overrides['language'] = language
+        if type:
+            overrides['type'] = type
+
+        return Origin(display_name=display_name, provider=extension, uri=uri,
+                      iterations=iterations, overrides=overrides)
 
     def get_configured_origins(self):
-        """Returns a list of configured origins in a specification form.
-
-        This list is composed by importer.OriginSpec objects which are
-        data-only structures. To get some usable object you may want to use
-        importer.Importer.get_origins method"""
         specs = self.app.settings.get('origin', default={})
         if not specs:
             msg = "No origins defined"
             self.app.logger.warning(msg)
             return []
 
-        ret = [
+        return [
             self.origin_from_params(
                 display_name=name,
                 **params)
             for (name, params) in specs.items()
         ]
-        ret = [x for x in ret if x is not None]
-        return ret
 
     @asyncio.coroutine
     def get_buffer_from_uri(self, origin, uri):
