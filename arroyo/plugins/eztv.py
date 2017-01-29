@@ -31,10 +31,9 @@ class Eztv(plugin.Provider):
         pathcomponents = parsed.path.split('/')
         pathcomponents = list(filter(lambda x: x, pathcomponents))
 
-        # https://eztv.ag/ -> 0 if not pathcomponents:
+        # https://eztv.ag/ -> page_0 if not pathcomponents:
         if not pathcomponents:
-            yield self.DEFAULT_URI
-            return
+            pathcomponents = ['page_0']
 
         # https://eztv.ag/shows/546/black-mirror/
         if len(pathcomponents) != 1:
@@ -57,13 +56,10 @@ class Eztv(plugin.Provider):
             page += 1
 
     def get_query_uri(self, query):
-        kind = query.kind
-        params = query.params
-
-        if kind != 'episode':
+        if query.kind != 'episode':
             return
 
-        series = params.get('series')
+        series = query.params.get('series')
         if not series:
             return
 

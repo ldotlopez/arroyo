@@ -95,19 +95,28 @@ class EliteTorrent(plugin.Provider):
             yield parse.urlunparse(parsed)
 
     def get_query_uri(self, query):
-        kind = query.kind
-        params = query.params
-
-        if params.get('language', None) not in self._langs:
+        if query.params.get('language', None) not in self._langs:
             return
 
         q = query.base_string
 
-        if kind == 'episode':
+        if not q:
+            return None
+
+        if query.kind == 'episode':
             q = re.sub(r' S0*(\d+)$',
-                       lambda m: ' Temporada ' + m.group(1), q)
+                       lambda m: ' Temporada ' + m.group(1),
+                       query.base_string)
             q = re.sub(r' S0*(\d+)E(\d+)$',
-                       lambda m: ' ' + m.group(1) + 'x' + m.group(2), q)
+                       lambda m: ' ' + m.group(1) + 'x' + m.group(2),
+                       query.base_string)
+
+        # elitetorrent only allows searches with 6 words
+        words = [x for x in q.split(' ') if x]
+        if len(words) > 6:
+            diff = (len(words) - 6) // 2
+            words = words[diff:diff+6]
+        q = ' '.join(words)
 
         q = parse.quote_plus(q)
 

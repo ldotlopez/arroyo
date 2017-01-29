@@ -9,13 +9,13 @@ from appkit import (
 )
 from appkit.db import sqlalchemyutils as sautils
 from sqlalchemy import (
-    and_,
-    func,
-    schema,
     Column,
     Integer,
     String,
-    ForeignKey
+    ForeignKey,
+    and_,
+    func,
+    schema
 )
 
 from sqlalchemy.ext.hybrid import hybrid_property

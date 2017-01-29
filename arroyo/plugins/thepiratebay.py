@@ -251,7 +251,11 @@ class ThePirateBay(plugin.Provider):
         return now
 
     def get_query_uri(self, query):
-        q = re.sub(r'[^a-zA-Z0-9]', ' ', query.base_string)
+        q = query.base_string
+        if not q:
+            return
+
+        q = re.sub(r'[^a-zA-Z0-9]', ' ', q)
         q = parse.quote_plus(q)
         return self.SEARCH_URL_PATTERN.format(q=q)
 

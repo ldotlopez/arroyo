@@ -96,8 +96,9 @@ _plugins = [
     # Filters
     'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
 
-    # Origins
-    'elitetorrent', 'eztv', 'kickass', 'thepiratebay', 'torrentapi',
+    # Providers
+    'elitetorrent', 'epublibre', 'eztv', 'kickass', 'thepiratebay',
+    'torrentapi',
 
     # Sorters
     'basicsorter',
