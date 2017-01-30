@@ -109,7 +109,7 @@ _plugins = [
     'providers.elitetorrent',
     'providers.epublibre',
     'providers.eztv',
-    'providers.genericprovider',
+    'providers.generic',
     'providers.kickass',
     'providers.thepiratebay',
     'providers.torrentapi',
