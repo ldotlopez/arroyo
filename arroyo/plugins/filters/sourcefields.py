@@ -61,7 +61,7 @@ class Filter(pluginlib.QuerySetFilter):
             _convert_value(float)
 
         return filter.alter_query_for_model_attr(
-            qs, plugin.models.Source, key, value)
+            qs, models.Source, key, value)
 
 
 __arroyo_extensions__ = [

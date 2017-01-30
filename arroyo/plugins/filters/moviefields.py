@@ -30,7 +30,7 @@ class Filter(pluginlib.QuerySetFilter):
             value = int(value)
 
         return filter.alter_query_for_model_attr(
-            qs, plugin.models.Movie, key, value)
+            qs, models.Movie, key, value)
 
 
 __arroyo_extensions__ = [
