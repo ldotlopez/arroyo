@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import models, plugin
+from arroyo import pluginlib
+models = pluginlib.models
 
 
 import itertools
@@ -11,19 +12,19 @@ import humanfriendly
 from appkit import utils
 
 
-class SearchCommand(plugin.Command):
+class SearchCommand(pluginlib.Command):
     __extension_name__ = 'search'
 
     HELP = 'Search sources'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
             help=('include all results '
                   '(by default only sources with NONE state are displayed)')),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-f', '--filter',
             dest='filters',
             required=False,
@@ -32,7 +33,7 @@ class SearchCommand(plugin.Command):
             action=utils.DictAction,
             help='filters to apply in key_mod=value form'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             'keywords',
             nargs='*',
             help='keywords')

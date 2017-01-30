@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import bs4
 from urllib import parse
 
 
-class Epublibre(plugin.Provider):
+class Epublibre(pluginlib.Provider):
     __extension_name__ = 'epublibre'
 
     DEFAULT_URI = 'https://epublibre.org/catalogo/index/0/nuevo/novedades/sin/todos'  # nopep8

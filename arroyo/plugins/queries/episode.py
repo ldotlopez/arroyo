@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-from arroyo.plugin.tools import query
+from arroyo import pluginlib
+from arroyo.pluginlib import query
+models = pluginlib.models
 
 
 class EpisodeQuery(query.HighLevelQuery):
@@ -9,9 +10,9 @@ class EpisodeQuery(query.HighLevelQuery):
 
     KIND = 'episode'
 
-    ENTITY_MODEL = plugin.models.Episode
+    ENTITY_MODEL = models.Episode
     ENTITY_ATTR = 'episode'
-    SELECTION_MODEL = plugin.models.EpisodeSelection
+    SELECTION_MODEL = models.EpisodeSelection
 
     @property
     def base_string(self):

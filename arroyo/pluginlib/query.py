@@ -1,7 +1,7 @@
-from arroyo import plugin
+from arroyo import pluginlib
 
 
-class HighLevelQuery(plugin.Query):
+class HighLevelQuery(pluginlib.Query):
     def get_query_set(self, session, everything=False):
         qs = session.query(plugin.models.Source)
         qs = qs.join(self.ENTITY_MODEL)

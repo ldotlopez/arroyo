@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import asyncio
@@ -17,7 +17,7 @@ import bs4
 from appkit import utils
 
 
-class EliteTorrent(plugin.Provider):
+class EliteTorrent(pluginlib.Provider):
     __extension_name__ = 'elitetorrent'
 
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'

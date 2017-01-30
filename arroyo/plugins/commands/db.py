@@ -1,45 +1,45 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-models = plugin.models
+from arroyo import pluginlib
+models = pluginlib.models
 
 
-class Command(plugin.Command):
+class Command(pluginlib.Command):
     __extension_name__ = 'db'
 
     HELP = 'manage database'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--shell',
             dest='shell',
             action='store_true',
             help=('start a interactive python interpreter in the db '
                   'environment')),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--reset-db',
             dest='reset',
             action='store_true',
             help='empty db'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
             help='sets state to NONE on all sources'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
             help='sets state to ARCHIVED on all sources'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--reset',
             dest='reset_source_id',
             help='reset state of a source'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--archive',
             dest='archive_source_id',
             help='archive a source')

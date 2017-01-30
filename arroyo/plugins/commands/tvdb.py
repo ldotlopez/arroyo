@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
-from arroyo import models
+from arroyo import pluginlib
+pluginlib.models
+
 
 import json
 
@@ -107,10 +108,10 @@ class TVDB:
         sess.commit()
 
 
-class TVDBCommand(plugin.Command):
-    help = 'tvdb'
-    arguments = (
-        plugin.cliargument(
+class TVDBCommand(pluginlib.Command):
+    HELP = 'tvdb'
+    ARGUMENTS = (
+        pluginlib.cliargument(
             '-i', dest='item', required=True, type=int
         ),
     )

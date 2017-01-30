@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 import re
 import time
@@ -18,7 +18,7 @@ class _CategoryUnknowError(Exception):
     pass
 
 
-class ThePirateBay(plugin.Provider):
+class ThePirateBay(pluginlib.Provider):
     __extension_name__ = 'thepiratebay'
 
     # URL structure:
@@ -260,7 +260,7 @@ class ThePirateBay(plugin.Provider):
         return self.SEARCH_URL_PATTERN.format(q=q)
 
 
-# class ThePirateBayRSS(plugin.Provider):
+# class ThePirateBayRSS(pluginlib.Provider):
 #     __extension_name__ = 'thepiratebayrss'
 #
 #     _TLD = 'cr'

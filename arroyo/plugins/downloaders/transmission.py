@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
-from arroyo.plugin.tools import downloads
+from arroyo import pluginlib
+from arroyo.pluginlib import downloads
+models = pluginlib.models
 
 
 from urllib import parse
@@ -13,7 +14,6 @@ from sqlalchemy import orm
 import transmissionrpc
 
 
-models = plugin.models
 
 
 SETTINGS_NS = 'plugins.downloaders.transmission'
@@ -25,7 +25,7 @@ STATE_MAP = {
 }
 
 
-class TransmissionDownloader(plugin.Downloader):
+class TransmissionDownloader(pluginlib.Downloader):
     __extension_name__ = 'transmission'
 
     def __init__(self, app):

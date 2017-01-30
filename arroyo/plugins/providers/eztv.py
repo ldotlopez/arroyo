@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 import enum
 import re
@@ -12,7 +12,7 @@ import humanfriendly
 from appkit import utils
 
 
-class Eztv(plugin.Provider):
+class Eztv(pluginlib.Provider):
     __extension_name__ = 'eztv'
 
     _BASE_DOMAIN = 'https://eztv.ag'

@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import sys
 import yaml
 
 
-class ConfigCommand(plugin.Command):
+class ConfigCommand(pluginlib.Command):
     __extension_name__ = 'config'
 
     HELP = 'Configuration management'

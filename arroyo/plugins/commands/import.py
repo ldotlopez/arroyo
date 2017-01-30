@@ -1,42 +1,42 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
-class ImportCommand(plugin.Command):
+class ImportCommand(pluginlib.Command):
     __extension_name__ = 'import'
 
     HELP = 'Import an origin.'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--provider',
             dest='provider',
             type=str,
             help='provider to use'),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-u', '--uri',
             dest='uri',
             type=str,
             default=None,
             help='Seed URI'),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-i', '--iterations',
             dest='iterations',
             type=int,
             help='iterations to run',
             default=1),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-t', '--type',
             dest='type',
             type=str,
             help='force type of found sources'),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-l', '--language',
             dest='language',
             type=str,
             help='force language of found sources'),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',

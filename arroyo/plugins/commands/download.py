@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
+models = pluginlib.models
 
 
 from appkit import (
@@ -10,44 +11,41 @@ from appkit import (
 import humanfriendly
 
 
-models = plugin.models
-
-
-class DownloadCommand(plugin.Command):
+class DownloadCommand(pluginlib.Command):
     __extension_name__ = 'download'
 
     HELP = 'manage downloads'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-l', '--list',
             dest='show',
             action='store_true',
             help='show current downloads'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-a', '--add',
             dest='add',
             help='download a source ID'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-r', '--remove',
             dest='remove',
             help='cancel (and/or remove) a source ID'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-f', '--filter',
             dest='query',
             type=str,
             action=utils.DictAction,
             help='filters to apply in key_mod=value form'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
             help="Download matching sources from queries defined in config"),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',

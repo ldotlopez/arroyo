@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import datetime
@@ -14,7 +14,7 @@ import humanfriendly
 from appkit import utils
 
 
-class KickAss(plugin.Provider):
+class KickAss(pluginlib.Provider):
     __extension_name__ = 'kickass'
 
     _BASE_URI = 'https://kickass.cd'

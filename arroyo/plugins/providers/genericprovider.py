@@ -1,10 +1,10 @@
-from arroyo import plugin
+from arroyo import pluginlib
 
 import re
 from urllib import parse
 
 
-class Provider(plugin.Provider):
+class Provider(pluginlib.Provider):
     __extension_name__ = 'generic'
 
     DEFAULT_URI = None

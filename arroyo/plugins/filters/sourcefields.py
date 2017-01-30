@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-from arroyo.plugin.tools import filter
+from arroyo import pluginlib
+from arroyo.pluginlib import filter
+models = pluginlib.models
 
 
 import datetime
 import functools
 import time
 
+
 import humanfriendly
 from appkit import utils
 
 
-class Filter(plugin.QuerySetFilter):
+class Filter(pluginlib.QuerySetFilter):
     __extension_name__ = 'source-fields'
 
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
@@ -24,7 +26,7 @@ class Filter(plugin.QuerySetFilter):
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    APPLIES_TO = plugin.models.Source
+    APPLIES_TO = models.Source
     HANDLES = _strs + _nums + ['since']
 
     def alter(self, key, value, qs):

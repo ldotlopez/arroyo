@@ -21,8 +21,8 @@
 #  'title': 'Westworld.S01E10.iNTERNAL.HDTV.x264-TURBO[rartv]'}
 
 
-from arroyo import plugin
-from arroyo.plugin.tools import downloads
+from arroyo import pluginlib
+from arroyo.pluginlib import downloads
 
 import asyncio
 import json
@@ -34,7 +34,7 @@ import aiohttp
 import arrow
 
 
-class TorrentAPI(plugin.Provider):
+class TorrentAPI(pluginlib.Provider):
     __extension_name__ = 'torrentapi'
 
     # URL structure:

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-models = plugin.models
+from arroyo import pluginlib
+models = pluginlib.models
 
 
-class MockDownloader(plugin.Downloader):
+VARIABLES_NS = 'downloader.mock.states'
+
+class MockDownloader(pluginlib.Downloader):
     __extension_name__ = 'mock'
-
-    _VARIABLES_NS = 'downloader.mock.states'
 
     def __init__(self, app):
         super().__init__(app)
@@ -22,9 +22,9 @@ class MockDownloader(plugin.Downloader):
             self.get_urn_key(urn))
 
     def list(self):
-        idx = len(self._VARIABLES_NS) + 1
+        idx = len(VARIABLES_NS) + 1
         return [var[idx:] for var in
-                self.app.variables.children(self._VARIABLES_NS)]
+                self.app.variables.children(VARIABLES_NS)]
 
     def translate_item(self, urn):
         return self.app.db.get(models.Source, urn=urn)
@@ -37,10 +37,10 @@ class MockDownloader(plugin.Downloader):
             return None
 
     def get_source_key(self, source):
-        return '%s.%s' % (self._VARIABLES_NS, source.urn)
+        return '%s.%s' % (VARIABLES_NS, source.urn)
 
     def get_urn_key(self, urn):
-        return '%s.%s' % (self._VARIABLES_NS, urn)
+        return '%s.%s' % (VARIABLES_NS, urn)
 
     def _update_state(self, source, state):
         self.app.variables.set(self.get_source_key(source), state)

@@ -1,13 +1,13 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import functools
 import itertools
 
 
-class Sorter(plugin.Sorter):
+class Sorter(pluginlib.Sorter):
     __extension_name__ = 'basic'
 
     def cmp_source_health(self, a, b):

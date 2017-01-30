@@ -1,26 +1,26 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 from . import webapp
 
 
-class Command(plugin.Command):
+class Command(pluginlib.Command):
     arguments = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-i', '--interface',
             dest='host',
             default='127.0.0.1',
             help=('App host')
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-p', '--port',
             dest='port',
             default=5000,
             help=('App port')
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--debug',
             dest='debug',
             action='store_true',

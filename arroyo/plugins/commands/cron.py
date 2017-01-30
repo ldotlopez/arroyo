@@ -1,37 +1,37 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 from appkit import utils
 
 
-class CronCommand(plugin.Command):
+class CronCommand(pluginlib.Command):
     __extension_name__ = 'cron'
 
     HELP = 'Run cron tasks'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-a', '--all',
             dest='all',
             action='store_true',
             default=[],
             help=('Run all tasks')
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-t', '--task',
             dest='tasks',
             action='append',
             default=[],
             help=('Run specifics task')
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-f', '--force',
             dest='force',
             action='store_true',
             help=('Force tasks to run omiting intervals')
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-l', '--list',
             dest='list',
             action='store_true',

@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-models = plugin.models
+from arroyo import pluginlib
+models = pluginlib.models
 
 
-class SourceQuery(plugin.Query):
+class SourceQuery(pluginlib.Query):
     __extension_name__ = 'source'
 
     KIND = 'source'

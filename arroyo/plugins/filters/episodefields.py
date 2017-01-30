@@ -1,13 +1,14 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-from arroyo.plugin.tools import filter
+from arroyo import pluginlib
+from arroyo.pluginlib import filter
+models = pluginlib.models
 
 
 import functools
 
 
-class Filter(plugin.QuerySetFilter):
+class Filter(pluginlib.QuerySetFilter):
     __extension_name__ = 'episode-fields'
 
     _strs = ['series', 'series-glob']
@@ -15,7 +16,7 @@ class Filter(plugin.QuerySetFilter):
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    APPLIES_TO = plugin.models.Episode
+    APPLIES_TO = models.Episode
     HANDLES = _strs + _nums
 
     def alter(self, key, value, qs):

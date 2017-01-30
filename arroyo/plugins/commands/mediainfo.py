@@ -1,20 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-models = plugin.models
+from arroyo import pluginlib
+models = pluginlib.models
 
 
-class MediainfoCommand(plugin.Command):
+class MediainfoCommand(pluginlib.Command):
     __extension_name__ = 'mediainfo'
 
     HELP = 'guess mediainfo for sources.'
     ARGUMENTS = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-i', '--item',
             dest='item',
             help='run mediainfo process on selected item'
         ),
-        plugin.cliargument(
+        pluginlib.cliargument(
             '-a', '--all',
             action='store_true',
             dest='all',

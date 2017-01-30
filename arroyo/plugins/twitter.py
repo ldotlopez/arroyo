@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
+from arroyo import pluginlib
 
 
 import pprint
@@ -11,9 +11,9 @@ from appkit.messaging import twitter as ldottwitter
 import twitter
 
 
-_SETTINGS_NS = "plugin.twitter"
+SETTINGS_NS = "plugin.twitter"
 
-_NEW_APP_HELP = """
+NEW_APP_HELP_TEMPLATE = """
 You should create a new app from: https://apps.twitter.com/app/new
 
 Next you have been configure it you should save consumer key and consumer
@@ -25,7 +25,7 @@ secret values to your config as the following keys:
 Once you have done this you must re-run this command to authorize the app
 """
 
-_AUTH_DONE = """
+AUTH_DONE_TEMPLATE = """
 Authorization is done.
 
 Save these values to your config:
@@ -35,35 +35,35 @@ Save these values to your config:
 """
 
 
-class TwitterNotifierCommand(plugin.Command):
+class TwitterNotifierCommand(pluginlib.Command):
     help = 'Authorize twitter notifier'
 
     arguments = (
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--test',
             dest='test',
             action='store_true',
             help='Say "hi!" on twitter'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--message',
             dest='message',
             default='Hi there!',
             help='Text to send to twitter'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--auth',
             dest='auth',
             action='store_true',
             help='Authorize app'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--consumer-key',
             dest='consumer_key',
             default=None,
             help='Application consumer key'),
 
-        plugin.cliargument(
+        pluginlib.cliargument(
             '--consumer-secret',
             dest='consumer_secret',
             default=None,
@@ -80,22 +80,22 @@ class TwitterNotifierCommand(plugin.Command):
 
     def _run_auth(self, args):
         consumer_key = args.consumer_key or self.app.settings.get(
-            "{}.consumer-key".format(_SETTINGS_NS),
+            "{}.consumer-key".format(SETTINGS_NS),
             "")
 
         consumer_secret = args.consumer_secret or self.app.settings.get(
-            "{}.consumer-secret".format(_SETTINGS_NS),
+            "{}.consumer-secret".format(SETTINGS_NS),
             "")
 
         if not consumer_key or not consumer_secret:
-            print(_NEW_APP_HELP)
+            print(NEW_APP_HELP_TEMPLATE)
             return
 
         token, token_secret = twitter.oauth_dance(
             "", consumer_key, consumer_secret)
 
-        print(_AUTH_DONE.format(
-            settings_ns=_SETTINGS_NS,
+        print(AUTH_DONE_TEMPLATE.format(
+            settings_ns=SETTINGS_NS,
             token=token,
             token_secret=token_secret))
 
@@ -106,19 +106,19 @@ class TwitterNotifierCommand(plugin.Command):
             self.app.logger.warning(pprint.pformat(e.args))
 
 
-class TwitterNotifierService(plugin.Service):
+class TwitterNotifierService(pluginlib.Service):
     def __init__(self, app):
         super().__init__(app)
         self._logger = self.app.logger.getChild('twitter-notifier')
 
-        settings = self.app.settings.get_tree(_SETTINGS_NS, {})
+        settings = self.app.settings.get_tree(SETTINGS_NS, {})
 
         keys = 'consumer-key consumer-secret token token-secret'.split()
         try:
             api_params = {k.replace('-', '_'): settings[k] for k in keys}
         except KeyError as e:
             msg = "Missing {ns}.{key} setting"
-            msg = msg.format(ns=_SETTINGS_NS, key=e.args[0])
+            msg = msg.format(ns=SETTINGS_NS, key=e.args[0])
             raise plugin.exc.PluginArgumentError(msg)
 
         notify_on = settings.get('notify-on', '')

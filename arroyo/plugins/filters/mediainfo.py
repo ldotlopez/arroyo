@@ -1,10 +1,10 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import plugin
-models = plugin.models
+from arroyo import pluginlib
+models = pluginlib.models
 
 
-class CodecFilter(plugin.IterableFilter):
+class CodecFilter(pluginlib.IterableFilter):
     __extension_name__ = 'codec'
 
     APPLIES_TO = models.Source
@@ -15,7 +15,7 @@ class CodecFilter(plugin.IterableFilter):
         return (value == item_video_codec.lower())
 
 
-class QualityFilter(plugin.IterableFilter):
+class QualityFilter(pluginlib.IterableFilter):
     __extension_name__ = 'quality'
 
     APPLIES_TO = models.Source
