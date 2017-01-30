@@ -39,9 +39,10 @@ importer:
 # Selector
 selector:
     sorter: 'basic'
+
     query-defaults:
-        # # Wait 2 hours before consider source valid for download
-        age-min: 2H
+        # Wait 30 minutes before consider source valid for download
+        age-min: 30M
 
     query-episode-defaults: {}
         # # Don't download sources found before that date
