@@ -140,104 +140,6 @@ class Origin:
             name=self.provider.__extension_name__,
             hexid=hex(id(self)))
 
-    @asyncio.coroutine
-    def get_data(self):
-        ret = []
-
-        @asyncio.coroutine
-        def get_data_for_uri(uri):
-            data = yield from self.process(uri)
-
-            # self.process handles all exceptions from the fetch+parse process
-            # In self.process we had to choose between:
-            # - re-raise those exceptions
-            # - raise a new exception from those exceptions
-            # - simply return None
-            # We keep this assert as a guard for this decision
-            assert data is None or isinstance(data, list)
-
-            if data:
-                ret.extend(data)
-
-        tasks = [get_data_for_uri(uri) for uri in self.get_uris()]
-        yield from asyncio.gather(*tasks)
-
-        return ret
-
-    @asyncio.coroutine
-    def process(self, uri):
-        """
-        Coroutine that fetches and parses an URI
-        """
-
-        # Fetch URI
-        try:
-            buff = yield from self.fetch(uri)
-
-        except (asyncio.CancelledError,
-                asyncio.TimeoutError,
-                aiohttp.errors.ClientOSError,
-                aiohttp.errors.ClientResponseError,
-                aiohttp.errors.ServerDisconnectedError) as e:
-            msg = "Error fetching «{uri}»: {msg}"
-            msg = msg.format(
-                uri=uri, type=e.__class__.__name__,
-                msg=str(e) or 'no reason')
-            self.logger.error(msg)
-            return
-
-        except Exception as e:
-            msg = "Unhandled exception {type}: {e}"
-            msg = msg.format(type=type(e), e=e)
-            self.logger.critical(msg)
-            raise
-
-        if buff is None:
-            msg = "Empty buffer for «{uri}»"
-            msg = msg.format(uri=uri)
-            self.logger.error(msg)
-            return
-
-        # Parse buffer
-        try:
-            psrcs = self.parse(
-                buff,
-                parser=self.app.settings.get('importer.parser'))
-
-        except arroyo.exc.OriginParseError as e:
-            msg = "Error parsing «{uri}»: {e}"
-            msg = msg.format(uri=uri, e=e)
-            self.logger.error(msg)
-            return
-
-        if psrcs is None:
-            msg = ("Incorrect API usage in {name}, return None is not "
-                   "allowed. Raise an Exception or return [] if no "
-                   "sources are found")
-            msg = msg.format(name=self.name)
-            self.logger.critical(msg)
-            return
-
-        if not isinstance(psrcs, list):
-            msg = "Invalid data type for URI «{uri}»: '{type}'"
-            msg = msg.format(uri=uri, type=data.__class__.__name__)
-            self.logger.critical(msg)
-            return
-
-        if len(psrcs) == 0:
-            msg = "No sources found in «{uri}»"
-            msg = msg.format(uri=uri)
-            self.logger.warning(msg)
-            return
-
-        psrcs = self._normalize_source_data(*psrcs)
-
-        msg = "Found {n_srcs_data} sources in {uri}"
-        msg = msg.format(n_srcs_data=len(psrcs), uri=uri)
-        self.logger.info(msg)
-
-        return psrcs
-
 
 class Importer:
     def __init__(self, app, logger=None):
@@ -351,7 +253,7 @@ class Importer:
         ret = yield from asyncio.gather(*tasks)
         return ret
 
-    def process(self, *origins):
+    def get_data_from_origin(self, *origins):
         results = []
 
         @asyncio.coroutine
@@ -412,6 +314,10 @@ class Importer:
             msg = msg.format(n=len(res), uri=uri)
             self.logger.info(msg)
 
+        return data
+
+    def process(self, *origins):
+        data = self.get_data_from_origin(*origins)
         return self.process_source_data(*data)
 
     def normalize_source_data(self, origin, *psrcs):
@@ -543,18 +449,13 @@ class Importer:
                 if k in data:
                     setattr(source, k, data[k])
 
-        origin = self.app.get_extension(
-            Origin,
-            source.provider,
+        origin = Origin(
+            provider=self.app.get_extension(Provider, source.provider),
             uri=source.uri)
 
-        loop = asyncio.get_event_loop()
-        psources_data = loop.run_until_complete(origin.get_data())
-        if not psources_data:
-            return
-
-        psources_data = self._process_remove_duplicates(psources_data)
-        contexts = self._process_create_contexts(psources_data)
+        data = self.get_data_from_origin(origin)
+        data = self._process_remove_duplicates(data)
+        contexts = self._process_create_contexts(data)
         self._process_insert_existing_sources(contexts)
 
         # Insert original source into context
@@ -565,10 +466,12 @@ class Importer:
 
         self._process_update_existing_sources(contexts)
         self._process_insert_new_sources(contexts)
-        ret = self._process_finalize(contexts)
+        self._process_finalize(contexts)
 
         if not source.urn:
             raise exc.SourceResolveError(source)
+
+        return source
 
     def run(self):
         return self.process(*self.get_configured_origins())
