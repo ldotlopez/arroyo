@@ -11,7 +11,7 @@ import yaml
 class ConfigCommand(plugin.Command):
     __extension_name__ = 'config'
 
-    help = 'Configuration management'
+    HELP = 'Configuration management'
 
     def setup_argparser(cls, cmdargparser):
         cls.opparser = cmdargparser.add_subparsers(dest='operation')

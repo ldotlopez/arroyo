@@ -7,9 +7,8 @@ from arroyo import plugin
 class ImportCommand(plugin.Command):
     __extension_name__ = 'import'
 
-    help = 'Import an origin.'
-
-    arguments = (
+    HELP = 'Import an origin.'
+    ARGUMENTS = (
         plugin.cliargument(
             '--provider',
             dest='provider',

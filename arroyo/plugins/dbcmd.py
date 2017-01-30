@@ -7,9 +7,8 @@ models = plugin.models
 class Command(plugin.Command):
     __extension_name__ = 'db'
 
-    help = 'manage database'
-
-    arguments = (
+    HELP = 'manage database'
+    ARGUMENTS = (
         plugin.cliargument(
             '--shell',
             dest='shell',

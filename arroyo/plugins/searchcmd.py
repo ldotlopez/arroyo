@@ -14,9 +14,8 @@ from appkit import utils
 class SearchCommand(plugin.Command):
     __extension_name__ = 'search'
 
-    help = 'Search sources'
-
-    arguments = (
+    HELP = 'Search sources'
+    ARGUMENTS = (
         plugin.cliargument(
             '-a', '--all',
             dest='all_states',

@@ -7,9 +7,8 @@ models = plugin.models
 class MediainfoCommand(plugin.Command):
     __extension_name__ = 'mediainfo'
 
-    help = 'guess mediainfo for sources.'
-
-    arguments = (
+    HELP = 'guess mediainfo for sources.'
+    ARGUMENTS = (
         plugin.cliargument(
             '-i', '--item',
             dest='item',

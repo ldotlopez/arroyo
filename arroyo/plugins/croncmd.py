@@ -9,9 +9,8 @@ from appkit import utils
 class CronCommand(plugin.Command):
     __extension_name__ = 'cron'
 
-    help = 'Run cron tasks'
-
-    arguments = (
+    HELP = 'Run cron tasks'
+    ARGUMENTS = (
         plugin.cliargument(
             '-a', '--all',
             dest='all',
@@ -65,7 +64,7 @@ class CronCommand(plugin.Command):
                 msg = msg.format(
                     name=name,
                     interval=ext.human_interval,
-                    secs=ext.interval)
+                    secs=ext.INTERVAL)
 
                 print(msg)
 

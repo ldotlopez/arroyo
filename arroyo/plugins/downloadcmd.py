@@ -16,9 +16,8 @@ models = plugin.models
 class DownloadCommand(plugin.Command):
     __extension_name__ = 'download'
 
-    help = 'manage downloads'
-
-    arguments = (
+    HELP = 'manage downloads'
+    ARGUMENTS = (
         plugin.cliargument(
             '-l', '--list',
             dest='show',

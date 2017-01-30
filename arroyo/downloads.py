@@ -199,7 +199,7 @@ class Downloader(kit.Extension):
 
 class DownloadSyncCronTask(kit.Task):
     __extension_name__ = 'download-sync'
-    interval = '5M'
+    INTERVAL = '5M'
 
     def execute(self):
         self.app.downloads.sync()
@@ -207,7 +207,7 @@ class DownloadSyncCronTask(kit.Task):
 
 class DownloadQueriesCronTask(kit.Task):
     __extension_name__ = 'download-queries'
-    interval = '3H'
+    INTERVAL = '3H'
 
     def execute(self):
         queries = self.app.selector.get_configured_queries()

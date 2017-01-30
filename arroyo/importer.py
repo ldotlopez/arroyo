@@ -627,7 +627,7 @@ class ProcessingTag(enum.Enum):
 
 class ImporterCronTask(kit.Task):
     __extension_name__ = 'importer'
-    interval = '3H'
+    INTERVAL = '3H'
 
     def execute(self):
         self.app.importer.run()
