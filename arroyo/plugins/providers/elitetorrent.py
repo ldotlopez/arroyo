@@ -25,7 +25,6 @@ class EliteTorrent(plugin.Provider):
     URI_PATTERNS = [
         r'^http(s)?://([^.]+\.)?elitetorrent.net/'
     ]
-    _SETTINGS_NS = "plugin.elitetorrent"
 
     type_map = {
         'series': 'episode',

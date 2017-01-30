@@ -19,7 +19,7 @@ class Mediainfo:
 
     @functools.lru_cache(maxsize=16)
     def get_default_language_for_provider(self, provider):
-        k = 'plugin.' + provider + '.default-language'
+        k = 'plugins.provider.' + provider + '.default-language'
         return self._app.settings.get(k, default=None)
 
     def get_mediainfo(self, source):

@@ -52,26 +52,22 @@ selector:
         # language: eng-us
         # quality: 720p
 
-plugin:
+plugins:
     # # Extension example configuration
     # name:
     #     enabled = true
     #     parameter1 = value1
 
-    eztv: {}
+    providers.eztv: {}
         # eztv doesn't has default language setting since it's english only
 
-    thepiratebay:
+    providers.thepiratebay:
         default-language: eng-us
 
-    kickass:
+    providers.kickass:
         default-language: eng-us
 
-    spanishtracker:
-        # spanishtracker is broken for now
-        enabled: False
-
-    transmission:
+    downloaders.transmission:
         enabled: False
         address: 127.0.0.1
         port: 9091

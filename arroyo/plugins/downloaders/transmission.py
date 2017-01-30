@@ -16,35 +16,35 @@ import transmissionrpc
 models = plugin.models
 
 
+SETTINGS_NS = 'plugins.downloaders.transmission'
+STATE_MAP = {
+    'download pending': models.Source.State.QUEUED,
+    'downloading': models.Source.State.DOWNLOADING,
+    'seeding': models.Source.State.SHARING,
+    # other states need more logic
+}
+
+
 class TransmissionDownloader(plugin.Downloader):
     __extension_name__ = 'transmission'
-
-    _SETTINGS_NS = 'plugin.transmission'
-
-    _STATE_MAP = {
-        'download pending': models.Source.State.QUEUED,
-        'downloading': models.Source.State.DOWNLOADING,
-        'seeding': models.Source.State.SHARING,
-        # other states need more logic
-    }
 
     def __init__(self, app):
         super().__init__(app)
 
-        self._logger = self.app.logger.getChild('transmission')
+        self.logger = self.app.logger.getChild('transmission')
         self.app.settings.add_validator(self.settings_validator)
 
         try:
-            s = app.settings.get(self._SETTINGS_NS, default={})
-            self._api = transmissionrpc.Client(
+            s = app.settings.get(SETTINGS_NS, default={})
+            self.api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),
                 user=s.get('user', None),
                 password=s.get('password', None)
             )
-            self._shield = {
+            self.shield = {
                 'urn:btih:' + x.hashString: x
-                for x in self._api.get_torrents()}
+                for x in self.api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
             msg = "Unable to connect to transmission daemon: '{message}'"
@@ -54,25 +54,25 @@ class TransmissionDownloader(plugin.Downloader):
     def add(self, source, **kwargs):
         sha1_urn = downloads.calculate_urns(source.urn)[0]
 
-        if sha1_urn in self._shield:
-            self._logger.warning('Avoid duplicate')
-            return self._shield[sha1_urn]
+        if sha1_urn in self.shield:
+            self.logger.warning('Avoid duplicate')
+            return self.shield[sha1_urn]
 
         try:
-            ret = self._api.add_torrent(source.uri)
+            ret = self.api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
             raise plugin.exc.BackendError(e)
 
-        self._shield[sha1_urn] = ret
+        self.shield[sha1_urn] = ret
         return ret
 
     def remove(self, item):
-        self._shield = {
-            urn: i for (urn, i) in self._shield.items() if i != item}
-        return self._api.remove_torrent(item.id, delete_data=True)
+        self.shield = {
+            urn: i for (urn, i) in self.shield.items() if i != item}
+        return self.api.remove_torrent(item.id, delete_data=True)
 
     def list(self):
-        return self._api.get_torrents()
+        return self.api.get_torrents()
 
     def get_state(self, tr_obj):
         # stopped status can mean:
@@ -87,8 +87,8 @@ class TransmissionDownloader(plugin.Downloader):
 
         state = tr_obj.status
 
-        if state in self._STATE_MAP:
-            return self._STATE_MAP[state]
+        if state in STATE_MAP:
+            return STATE_MAP[state]
         else:
             raise plugin.exc.NoMatchingState(state)
 
@@ -110,7 +110,7 @@ class TransmissionDownloader(plugin.Downloader):
             except orm.exc.MultipleResultsFound:
                 msg = "Multiple results found for urn '{urn}'"
                 msg = msg.format(urn=u)
-                self._logger.critical(msg)
+                self.logger.critical(msg)
                 raise
 
                 # # This code was used to workaroung this exception.
@@ -121,13 +121,13 @@ class TransmissionDownloader(plugin.Downloader):
                 # if by_state.count() == 1:
                 #     msg = ("Exception saved using state property but this "
                 #            "is a bug")
-                #     self._logger.error(msg)
+                #     self.logger.error(msg)
                 #     ret = by_state.first()
                 #     break
                 # else:
                 #     msg = ("Unable to rescue invalid state. Multiple "
                 #            "sources found, fix this.")
-                #     self._logger.error(msg)
+                #     self.logger.error(msg)
 
             except orm.exc.NoResultFound:
                 pass
@@ -141,7 +141,7 @@ class TransmissionDownloader(plugin.Downloader):
             # msg = ("Missing urn '{urn}'\n"
             #        "This is a bug, a real bug. Fix it. Now")
             # msg = msg.format(urn=urns[0])
-            # self._logger.error(msg)
+            # self.logger.error(msg)
             return None
 
         # Attach some fields to item
@@ -155,7 +155,7 @@ class TransmissionDownloader(plugin.Downloader):
 
     @staticmethod
     def settings_validator(key, value):
-        if not key.startswith('plugin.transmission'):
+        if not key.startswith(SETTINGS_NS):
             return value
 
         prop = key[len(TransmissionDownloader._SETTINGS_NS)+1:]

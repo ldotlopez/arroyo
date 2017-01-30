@@ -87,27 +87,43 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
-    'mediainfocmd', 'searchcmd',
+    'commands.config',
+    'commands.cron',
+    'commands.db',
+    'commands.download',
+    'commands.import',
+    'commands.mediainfo',
+    'commands.search',
 
     # Downloaders
-    'mockdownloader', 'transmission',
+    'downloaders.mock',
+    'downloaders.transmission',
 
     # Filters
-    'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
+    'filters.episodefields',
+    'filters.mediainfo',
+    'filters.moviefields',
+    'filters.sourcefields',
 
     # Providers
-    'elitetorrent', 'epublibre', 'eztv', 'kickass', 'thepiratebay',
-    'torrentapi',
+    'providers.elitetorrent',
+    'providers.epublibre',
+    'providers.eztv',
+    'providers.genericprovider',
+    'providers.kickass',
+    'providers.thepiratebay',
+    'providers.torrentapi',
 
     # Sorters
-    'basicsorter',
+    'sorters.basic',
 
     # Queries
-    'sourcequery', 'episodequery', 'moviequery'
-    ]
+    'queries.episode',
+    'queries.movie',
+    'queries.source',
+]
 
-_defaults.update({'plugin.{}.enabled'.format(x): True
+_defaults.update({'plugins.{}.enabled'.format(x): True
                   for x in _plugins})
 
 
@@ -243,14 +259,13 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         # Load plugins
         # FIXME: Search for enabled plugins thru the keys of settings is a
         # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugin.'),
+        plugins = filter(lambda x: x.startswith('plugins.') and x.endswith('.enabled'),
                          self.settings.all_keys())
-        plugins = map(lambda x: x.split('.'), plugins)
-        plugins = filter(lambda x: len(x) >= 2, plugins)
-        plugins = map(lambda x: x[1], plugins)
+        plugins = map(lambda x: x[len('plugins.'):-len('.enabled')],
+                      plugins)
 
         for p in set(plugins):
-            if self.settings.get('plugin.' + p + '.enabled', default=False):
+            if self.settings.get('plugins.' + p + '.enabled', default=False):
                 self.load_plugin(p)
 
         # Run cron tasks
@@ -307,48 +322,25 @@ class ArroyoStore(store.Store):
         # self._logger = logging.getLogger('arroyo.settings')
         # self._logger.addHandler(handler)
 
-    def get(self, *args, **kwargs):
-        try:
-            return super().get(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+    def set(self, key, value):
+        parts = key.split('.')
 
-    def set(self, *args, **kwargs):
-        try:
-            return super().set(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
+            msg = "[Configuration Error] Origins use 'provider' instead of 'backend'"
+            raise ValueError(msg)
 
-    def delete(self, *args, **kwargs):
-        try:
-            super().delete(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        if key.startswith('plugin.'):
+            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            raise ValueError(msg)
 
-    def children(self, *args, **kwargs):
-        try:
-            return super().children(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        return super().set(key, value)
+
+    def get(self, key, default=store.UNDEFINED):
+        if key.startswith('plugin.'):
+            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            raise ValueError(msg)
+
+        return super().get(key, default=default)
 
     def dump(self, stream):
         buff = yaml.dump(self.get(None), )
