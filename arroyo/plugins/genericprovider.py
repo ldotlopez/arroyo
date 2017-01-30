@@ -4,8 +4,13 @@ import re
 from urllib import parse
 
 
-class GenericOrigin(plugin.Origin):
+class Provider(plugin.Provider):
     __extension_name__ = 'generic'
+
+    DEFAULT_URI = None
+
+    # URI_PATTERNS is not defined because we implement Provider.compatible_uri
+    # method
 
     def __init__(self, app, *args, **kwargs):
         super().__init__(app, *args, **kwargs)
@@ -36,7 +41,9 @@ class GenericOrigin(plugin.Origin):
 
         return ret
 
+    def compatible_uri(self, uri):
+        return FALSE
 
 __arroyo_extensions__ = [
-    GenericOrigin
+    Provider
 ]
