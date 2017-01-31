@@ -507,6 +507,11 @@ class Importer:
         return ret
 
     def _process_insert_existing_sources(self, contexts):
+        # Check there is any context because the in_ below
+        # warns about empty 'in' clauses
+        if not contexts:
+            return
+
         table = {ctx.discriminator: ctx for ctx in contexts}
         existing = self.app.db.session.query(models.Source).filter(
             models.Source._discriminator.in_(table.keys())
