@@ -90,11 +90,11 @@ class DownloadCommand(pluginlib.Command):
 
         if test == 0:
             msg = "No action specified"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         elif test > 1:
             msg = "Only one action at time is supported"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         if show:
             for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
@@ -145,7 +145,7 @@ class DownloadCommand(pluginlib.Command):
 
         if not queries:
             msg = "No queries specified"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         for query in queries:
             matches = self.app.selector.matches(query)

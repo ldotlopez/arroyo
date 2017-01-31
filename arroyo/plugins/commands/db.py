@@ -59,11 +59,11 @@ class Command(pluginlib.Command):
 
         if sum(test) == 0:
             msg = "No action specified"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         elif sum(test) > 1:
             msg = "Just one option can be specified at one time"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         if reset:
             self.app.db.reset()
@@ -97,7 +97,7 @@ class Command(pluginlib.Command):
             source = self.app.db.get(models.Source, id=source_id)
             if not source:
                 msg = "No source with ID={id}".format(id=source_id)
-                raise plugin.exc.ArgumentsError(msg)
+                raise pluginlib.exc.ArgumentsError(msg)
 
             source.state = state
             self.app.db.session.commit()
@@ -106,7 +106,7 @@ class Command(pluginlib.Command):
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
 
 __arroyo_extensions__ = [

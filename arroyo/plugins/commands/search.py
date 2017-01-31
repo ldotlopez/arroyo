@@ -67,7 +67,7 @@ class SearchCommand(pluginlib.Command):
 
         if not params:
             msg = "Al least one filter or keyword must be specified"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         query = self.app.selector.get_query_from_params(
             params=params, display_name='command-line'

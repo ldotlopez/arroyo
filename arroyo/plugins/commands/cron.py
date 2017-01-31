@@ -50,12 +50,12 @@ class CronCommand(pluginlib.Command):
         if test == 0:
             msg = ("One of '--list', '--all' or '--task' options must be "
                    "specified")
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         if test > 1:
             msg = ("Only one of '--list', '--all' and '--task' options can be "
                    "specified. They are mutually exclusive.")
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         if list_:
             g = sorted(self.app.get_extensions_for(plugin.Task))
@@ -80,7 +80,7 @@ class CronCommand(pluginlib.Command):
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
 __arroyo_extensions__ = [
     CronCommand

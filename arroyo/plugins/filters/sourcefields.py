@@ -35,7 +35,7 @@ class Filter(pluginlib.QuerySetFilter):
             try:
                 value = func(value)
             except ValueError as e:
-                raise plugin.exc.SettingError(key, value, e)
+                raise pluginlib.exc.SettingError(key, value, e)
 
         def _warn():
             msg = "Ignoring invalid setting '{key}': '{value}'"
