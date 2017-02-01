@@ -69,6 +69,36 @@ class SelectorInterfaceTest(unittest.TestCase):
 
         self.assertTrue('since' in query.params)
 
+    def test_download_only_once(self):
+        s = testapp.mock_source
+        srcs = [
+            s('Foo s03e04.mp4', type='episode'),
+        ]
+
+        app = testapp.TestApp({
+            'plugin.episodequery.enabled': True,
+
+            'plugin.sourcefilters.enabled': True,
+            'plugin.episodefilters.enabled': True,
+
+            'plugin.basicsorter.enabled': True,
+
+            'plugin.mockdownloader.enabled': True,
+
+            'downloader': 'mock'
+        })
+        app.insert_sources(*srcs)
+
+        query = app.selector.get_query_from_params(
+            params=dict(kind='episode', series='Foo')
+        )
+        matches = app.selector.matches(query)
+        choosen = app.selector.select_single(matches)
+        app.downloads.add(choosen)
+
+        matches = list(app.selector.matches(query))
+        self.assertEqual(matches, [])
+
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
@@ -372,7 +402,6 @@ class EpisodeSelectorTest(SelectorTestCase):
 
         candidates = list(app.selector.select(matches))
         self.assertEqual(len(candidates), 3)
-
 
 
 if __name__ == '__main__':

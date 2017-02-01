@@ -1,10 +1,13 @@
-
 # -*- coding: utf-8 -*-
 
 import unittest
 
-import testapp
+
+from arroyo import plugin
 from arroyo.plugins import watchlist
+
+
+import testapp
 
 
 class WatchlistTest(unittest.TestCase):
