@@ -43,8 +43,8 @@ from arroyo import (
 _defaults = {
     'async-max-concurrency': 5,
     'async-timeout': 10,
-    'auto-cron': False,
-    'auto-import': False,
+    'auto-cron': True,
+    'auto-import': None,
     'db-uri': 'sqlite:///' +
               utils.user_path(utils.UserPathType.DATA, 'arroyo.db',
                               create=True),
@@ -66,7 +66,7 @@ _defaults_types = {
     'async-max-concurrency': int,
     'async-timeout': float,
     'auto-cron': bool,
-    'auto-import': bool,
+    'auto-import': lambda x: None if x is None else bool(x),
     'db-uri': str,
     'downloader': str,
     'fetcher': dict,
@@ -177,7 +177,7 @@ def build_basic_settings(arguments=None):
 
     # Clean up args before merging with store
     delattr(args, 'help')
-    for attr in ['downloader', 'db-uri', 'auto-cron', 'auto-import']:
+    for attr in ['downloader', 'db-uri', 'auto-cron']:
         if getattr(args, attr, None) is None:
             delattr(args, attr)
 
