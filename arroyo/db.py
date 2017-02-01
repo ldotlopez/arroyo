@@ -42,9 +42,8 @@ class Db:
     def session(self):
         return self._sess
 
-    @session.setter
-    def session(self, value):
-        raise arroyo.exc.ReadOnlyProperty()
+    def install_model(self, model):
+        model.metadata.create_all(self.session.connection())
 
     def get(self, model, **kwargs):
         query = self.session.query(model).filter_by(**kwargs)

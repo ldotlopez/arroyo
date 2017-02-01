@@ -55,58 +55,52 @@ class SearchCommand(plugin.Command):
         filters = args.filters
         keywords = args.keywords
 
-        spec = {}
+        params = {}
 
         if filters:
-            spec.update(filters.items())
+            params.update(filters.items())
 
         if keywords:
-            spec.update({'name-glob': '*' + '*'.join(keywords) + '*'})
+            params.update({'name-glob': '*' + '*'.join(keywords) + '*'})
 
-        if spec:
-            if 'query' in self.app.settings:
-                self.app.settings.delete('query')
-
-            self.app.settings.set('query.command-line', spec)
-
-        specs = self.app.selector.get_queries_specs()
-        if not specs:
-            msg = 'One filter or one keyword or one [query.label] is required'
+        if not params:
+            msg = "Al least one filter or keyword must be specified"
             raise plugin.exc.PluginArgumentError(msg)
 
-        for spec in specs:
-            # Get matches
-            matches = self.app.selector.matches(
-                spec,
-                everything=all_states)
+        query = self.app.selector.get_query_from_params(
+            params=params, display_name='command-line'
+        )
 
-            # Sort matches by entity ID
-            matches = sorted(
-                matches,
-                key=lambda x: -sys.maxsize
-                if x.entity is None else x.entity.id)
+        # Get matches
+        matches = self.app.selector.matches(query, everything=all_states)
 
-            # Group by entity
-            groups = itertools.groupby(
-                matches,
-                lambda x: x.entity)
+        # Sort matches by entity ID
+        matches = sorted(
+            matches,
+            key=lambda x: -sys.maxsize
+            if x.entity is None else x.entity.id)
 
-            # Unfold groups
-            groups = ((grp, list(srcs)) for (grp, srcs) in groups)
+        # Group by entity
+        groups = itertools.groupby(
+            matches,
+            lambda x: x.entity)
 
-            # Order by entity str
-            groups = sorted(
-                groups,
-                key=lambda x: str(x[0]).lower() if x[0] else '')
+        # Unfold groups
+        groups = ((grp, list(srcs)) for (grp, srcs) in groups)
 
-            # Finally print
-            msg = "== Search '{label}: {n_results} result(s)'"
-            print(msg.format(label=spec.name, n_results=len(matches)))
+        # Order by entity str
+        groups = sorted(
+            groups,
+            key=lambda x: str(x[0]).lower() if x[0] else '')
 
-            for (entity, group) in groups:
-                print('{}'.format(entity or 'Ungroupped'))
-                lines = [self.format_source(x) for x in group]
-                print("\n".join(lines) + "\n")
+        # Finally print
+        msg = "== Search '{label}: {n_results} result(s)'"
+        print(msg.format(label=str(query), n_results=len(matches)))
+
+        for (entity, group) in groups:
+            print('{}'.format(entity or 'Ungroupped'))
+            lines = [self.format_source(x) for x in group]
+            print("\n".join(lines) + "\n")
 
 
 __arroyo_extensions__ = [

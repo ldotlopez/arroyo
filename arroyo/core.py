@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import argparse
+import asyncio
 import importlib
 import sys
 import warnings
@@ -264,23 +265,45 @@ class ArroyoStore(store.Store):
     def get(self, *args, **kwargs):
         try:
             return super().get(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
+
+    def set(self, *args, **kwargs):
+        try:
+            return super().set(*args, **kwargs)
+        except (
+            store.IllegalKeyError,
+            store.ValidationError
+        ) as e:
+            self._logger.error(str(e))
+            raise
 
     def delete(self, *args, **kwargs):
         try:
             super().delete(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
 
     def children(self, *args, **kwargs):
         try:
             return super().children(*args, **kwargs)
-        except (store.IllegalKeyError, store.KeyNotFoundError,
-                store.ValidationError) as e:
+        except (
+            store.IllegalKeyError,
+            store.KeyNotFoundError,
+            store.ValidationError
+        ) as e:
             self._logger.error(str(e))
+            raise
 
 
 class Arroyo:
@@ -301,6 +324,26 @@ class Arroyo:
 
         lvlname = self.settings.get('log-level')
         self.logger.setLevel(getattr(logging, lvlname))
+
+        # Configure fetcher object
+        fetcher_opts = self.settings.get('fetcher')
+        fetcher_opts = {
+            k.replace('-', '_'): v
+            for (k, v) in fetcher_opts.items()
+        }
+
+        enable_cache = fetcher_opts.pop('enable_cache')
+        cache_delta = fetcher_opts.pop('cache_delta')
+        logger = self.logger.getChild('fetcher')
+
+        self.fetcher = fetchers.AIOHttpFetcherWithAcessControl(
+            logger=logger,
+            enable_cache=enable_cache,
+            cache_delta=cache_delta,
+            max_reqs=self.settings.get('async-max-concurrency'),
+            timeout=self.settings.get('async-timeout'),
+            **fetcher_opts
+        )
 
         # Built-in providers
         self.db = db.Db(self.settings.get('db-uri'))
@@ -442,6 +485,7 @@ class Arroyo:
         ext = self.get_extension(extension.Command, args.subcommand)
         try:
             ext.run(args)
+
         except arroyo.exc.PluginArgumentError as e:
             subargparsers[args.subcommand].print_help()
             print("\nError message: {}".format(e), file=sys.stderr)

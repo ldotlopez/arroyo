@@ -15,22 +15,16 @@ from urllib import parse
 import bs4
 import humanfriendly
 
+from ldotcommons import utils
+
 
 class EliteTorrent(plugin.Origin):
-    BASE_URL = 'http://www.elitetorrent.net/descargas/'
-    PROVIDER_NAME = 'elitetorrent'
+    PROVIDER = 'elitetorrent'
+    DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
 
-    _time_table = {
-        'seg': 1,
-        'min': 60,
-        'hrs': 60*60,
-        'd': 60*60*24,
-        'sem': 60*60*24*7,
-        'mes': 60*60*24*30,
-        'an': 60*60*24*365
-    }
+    _SETTINGS_NS = "plugin.elitetorrent"
 
-    _categories = {
+    type_map = {
         'series': 'episode',
         'series vose': 'episode',
         'peliculas': 'movie',
@@ -39,7 +33,7 @@ class EliteTorrent(plugin.Origin):
         'estrenos': 'movie'
     }
 
-    _default_lang = 'spa-es'
+    default_language = 'spa-es'
     _langs = [
         'spa-es',
         'lat-es'
@@ -50,14 +44,14 @@ class EliteTorrent(plugin.Origin):
     def re_cache(re_str):
         return re.compile(re_str)
 
-    def paginate(self, url):
-        if self.re_cache(r'/torrent/\d+/').search(url):
-            yield url
+    def paginate(self):
+        if self.re_cache(r'/torrent/\d+/').search(self.uri):
+            yield self.uri
             return
 
-        parsed = parse.urlparse(url)
+        parsed = parse.urlparse(self.uri)
 
-        # Split paths and params from parsed URL
+        # Split paths and params from parsed URI
         tmp = [x for x in parsed.path.split('/') if x]
         paths = []
         params = collections.OrderedDict({
@@ -76,7 +70,7 @@ class EliteTorrent(plugin.Origin):
         try:
             pag_n = int(pag_n)
         except ValueError:
-            pag_n  = 1
+            pag_n = 1
 
         while True:
             params['pag'] = pag_n
@@ -91,19 +85,18 @@ class EliteTorrent(plugin.Origin):
 
             yield parse.urlunparse(parsed)
 
-    def get_query_url(self, query):
-        q = ''
+    def get_query_uri(self, query):
+        kind = query.kind
+        params = query.params
 
-        if query.get('language', None) not in self._langs:
+        if params.get('language', None) not in self._langs:
             return
 
-        kind = query.get('kind')
-
         if kind == 'episode':
-            q = query.get('series')
-            year = query.get('year', None)
-            season = query.get('season', None)
-            episode = query.get('episode', None)
+            q = params.get('series')
+            year = params.get('year', None)
+            season = params.get('season', None)
+            episode = params.get('episode', None)
 
             if year:
                 q += ' ({year})'.format(year=year)
@@ -113,19 +106,23 @@ class EliteTorrent(plugin.Origin):
                     season=season, episode=episode)
 
         elif kind == 'movie':
-            q = query.get('title')
+            q = params.get('title')
+            year = params.get('year')
             if year:
                 q += ' ({year})'.format(year)
 
         elif kind == 'source':
-            q = query.get('name', None) or \
-                query.get('name-like', None) or \
-                query.get('name-glob', None)
+            q = params.get('name', None) or \
+                params.get('name-like', None) or \
+                params.get('name-glob', None)
             if q:
                 q = q.replace('*', ' ')
 
-        q = parse.quote_plus(q.lower().strip())
+        else:
+            return
+
         if q:
+            q = parse.quote_plus(q.lower().strip())
             return 'http://www.elitetorrent.net/busqueda/' + q
 
     def parse(self, buff):
@@ -137,97 +134,147 @@ class EliteTorrent(plugin.Origin):
             return self.parse_listing(soup)
 
     def parse_listing(self, soup):
-        links = soup.select('a')
-        links = filter(
-            lambda x: self.re_cache(r'/torrent/\d+/').search(
-                x.attrs.get('href', '')),
-            links)
-        links = map(
-            lambda x: 'http://www.elitetorrent.net/' + x.attrs['href'],
-            links)
+        torrent_href_re = re.compile(r'(https?://(www.)?elitetorrent.net)?/torrent/\d+/')  # nopep8
 
-        specs = [importer.OriginSpec(name=x, backend=self.PROVIDER_NAME, url=x)
-                 for x in links]
-        origins = [self.app.importer.get_origin_for_origin_spec(x)
-                   for x in specs]
+        def parse_link(x):
+            href = x.attrs.get('href', '')
+            text = x.text
 
-        for x in origins:
-            self.app.importer.push_to_sched(*x.get_tasks())
+            if text == '' or href == '':
+                return None
 
-        return []
+            if not torrent_href_re.search(href):
+                return None
+
+            if href[0] == '/':
+                href = 'http://www.elitetorrent.net' + href
+
+            return dict(node=x.parent, name=text, uri=href)
+
+        # Filter and torrent links that point to this site.
+        links = [parse_link(x) for x in soup.select('a')]
+        cards = [x for x in links if x]
+
+        ret = []
+        for x in cards:
+            typ, language = self.parse_type_and_language(
+                x['node'].select_one('.categoria')
+            )
+            created = self.parse_uploaded(x['node'].select_one('.fecha'))
+
+            ret.append(dict(
+                name=x['name'],
+                uri=x['uri'],
+                type=typ,
+                language=language,
+                created=created
+            ))
+
+        return ret
 
     def parse_detailed(self, soup):
-        info = soup.select_one('.info-tecnica')
-        name = soup.select_one('#box-ficha h2').text
+        card = soup  # .select_one('#principal')
 
-        if '(vose)' in name.lower():
-            lang = None
-        else:
-            lang = self._default_lang
-
-        links = soup.select('.enlace_torrent')
-        links = map(lambda x: x.attrs['href'], links)
-        links = filter(lambda x: x.startswith('magnet:?'), links)
-        try:
-            uri = next(links)
-        except StopIteration:
-            return []
-
-        details = {}
-        needed_details = ['created', 'type', 'size']
-        for ch in info.children:
-            try:
-                txt = ch.text.lower()
-            except AttributeError:
-                continue
-
-            if txt == 'fecha':
-                try:
-                    tmp = datetime.strptime(ch.next_sibling.text, '%d-%m-%Y')
-                    details['created'] = int(time.mktime(tmp.timetuple()))
-                except ValueError:  # Sometime we can get things like
-                                    # 'Hoy, 20:32'. It's simplier to just drop
-                                    # it and go to defaults
-                    details['created'] = None
-
-            elif txt.startswith('categor'):
-                cat = ch.next_sibling.text.lower()
-
-                # Catch 'vose' categories
-                if cat.endswith(' vose'):
-                    lang = None
-
-                details['type'] = self._categories.get(cat, None)
-                if details['type'] is None:
-                    msg = "Unknow category : '{category}'"
-                    msg = msg.format(category=cat)
-                    self.app.logger.warning(msg)
-
-            elif txt.startswith('tama'):
-                details['size'] = humanfriendly.parse_size(
-                    ch.next_sibling.text)
-
-            # Break this loop ASAP please.
-            if all([x in details for x in needed_details]):
-                break
-
-        m = self.re_cache(r'semillas: (\d+) \| clientes: (\d+)').search(
-            soup.select_one('.ppal').text.lower()
+        name = card.select_one('h2').text
+        uri = soup.select_one('a[href^=magnet:?]').attrs['href']
+        typ, language = self.parse_type_and_language(
+            card.select_one('.info-tecnica').select('dd')[1]
+        )
+        created = self.parse_uploaded(
+            card.select_one('.info-tecnica').select('dd')[0]
         )
 
-        seeds = m.group(1) if m else None
-        leechers = m.group(2) if m else None
+        name = soup.select_one('#box-ficha h2').text
 
-        ret = {
-            'name': name,
-            'uri': uri,
-            'language': lang,
-            'seeds': seeds,
-            'leechers': leechers,
-        }
-        ret.update(details)
+        seeds, leechers = self.parse_seeds_and_leechers(
+            card.select_one('#torrent-info')
+        )
 
-        return [ret]
+        return [dict(
+            name=name,
+            uri=uri,
+            created=created,
+            type=typ,
+            language=language,
+            seeds=seeds,
+            leechers=leechers
+        )]
+
+    def parse_type_and_language(self, node):
+
+        if node is None:
+            return None
+
+        text = node.text.lower()
+
+        return (
+            self.type_map.get(text, None),
+            self.default_language if '(vose)' not in text else None
+        )
+
+    def parse_uploaded(self, node):
+        ago_table = dict(
+            seg=1,
+            mi=60,
+            h=60*60,
+            d=60*60*24,
+            sem=60*60*24*7,
+            me=60*60*24*30,
+            a=60*60*24*365
+        )
+
+        if node is None:
+            return None
+
+        text = node.text
+
+        # In listings, dates are specified as "Hace 3 semanas"
+        # (3 weeks ago)
+
+        ago_re = r'Hace (un|\d+) (seg|mi|h|d|sem|me|a)'
+        m = re.search(ago_re, text, re.IGNORECASE)
+        if m:
+            if m.group(2) not in ago_table:
+                return None
+
+            amount = 0
+            if m.group(1) == 'un':
+                amount = 1
+            else:
+                amount = int(m.group(1))
+
+            return utils.now_timestamp() - amount * ago_table[m.group(2)]
+
+        # In detail mode dates are more readable
+
+        dmy_re = r'(\d+-\d+-\d+)'
+        m = re.search(dmy_re, text, re.IGNORECASE)
+        if m:
+            tmp = datetime.strptime(m.group(1), '%d-%m-%Y')
+            return int(time.mktime(tmp.timetuple()))
+
+        # There are other formats like 'Hoy, 20:32'. It's simplier to just drop
+        # it and go to defaults
+
+        return None
+
+    def parse_seeds_and_leechers(self, node):
+        if node is None:
+            return None
+
+        text = node.text.lower()
+
+        seeds_re = r'semillas\W+(\d+)'
+        leechers_re = r'clientes\W+(\d+)'
+
+        seeds_m = re.search(seeds_re, text)
+        leechers_m = re.search(leechers_re, text)
+
+        return (
+            int(seeds_m.group(1)) if seeds_m else None,
+            int(leechers_m.group(1)) if leechers_m else None,
+        )
+
 
 __arroyo_extensions__ = [
     ('elitetorrent', EliteTorrent)

@@ -13,8 +13,8 @@ import guessit
 
 class Mediainfo:
     def __init__(self, app):
-        app.signals.connect('sources-added-batch', self._on_source_batch)
-        app.signals.connect('sources-updated-batch', self._on_source_batch)
+        # app.signals.connect('sources-added-batch', self._on_source_batch)
+        # app.signals.connect('sources-updated-batch', self._on_source_batch)
         self._app = app
         self._logger = app.logger.getChild('mediainfo')
 
@@ -88,8 +88,10 @@ class Mediainfo:
 
             elif info.get('type') == 'episode':
                 if 'season' in info:
-                    msg = "Episode '{source}' has 'part' and 'season'"
-                    msg = msg.format(source=source)
+                    msg = ("Episode '{source}' has 'part' and 'season'")
+                    msg = msg.format(
+                        source=source, type=info.get('type') or '(None)'
+                    )
                     self._logger.warning(msg)
                 else:
                     info['season'] = 0
@@ -98,7 +100,9 @@ class Mediainfo:
             else:
                 msg = ("Source '{source}' has 'part' and an unknow "
                        "type: '{type}'")
-                msg = msg.format(source=source, type=info.get('type', None))
+                msg = msg.format(
+                    source=source, type=info.get('type') or '(None)'
+                )
                 self._logger.warning(msg)
 
         # Reformat date as episode number for episodes if needed

@@ -2,8 +2,12 @@ from arroyo import exc, models
 from arroyo.cron import CronTask
 from arroyo.downloads import Downloader
 from arroyo.extension import Command, Service, argument
-from arroyo.importer import Origin, OriginSpec
-from arroyo.selector import Filter, Query, QuerySpec, Sorter
+from arroyo.importer import Origin
+from arroyo.selector import (
+    Filter,
+    Query,
+    Sorter
+)
 
 
 __all__ = [
@@ -20,10 +24,6 @@ __all__ = [
     'Query',
     'Service',
     'Sorter',
-
-    # Spec classes
-    'OriginSpec',
-    'QuerySpec',
 
     # Tools
     'argument'
