@@ -7,6 +7,9 @@ import sys
 import types
 
 
+import guessit
+
+
 import arroyo.exc
 from arroyo import (
     importer,
@@ -43,6 +46,9 @@ class Query(kit.Extension):
         self.params = params
         self.display_name = display_name
 
+    def asdict(self):
+        return self.params.copy()
+
     @property
     def base_string(self):
         return self._get_base_string()
@@ -75,6 +81,9 @@ class Query(kit.Extension):
 
         return self.KIND
 
+    def __eq__(self, other):
+        return isinstance(other, Query) and self.asdict() == other.asdict()
+
     def __repr__(self):
         if self.display_name:
             s = "'{name}', {params})".format(
@@ -98,6 +107,64 @@ class Selector:
         self.app.register_extension_point(Filter)
         self.app.register_extension_point(Query)
         self.app.register_extension_point(Sorter)
+
+    def get_query_from_string(self, string, type_hint=None):
+        def get_episode(info):
+            assert info['type'] == 'episode'
+
+            confident = (
+                'title' in info and
+                'season' in info and
+                'episode' in info)
+
+            return confident, dict(
+                series=info.get('title', None),
+                year=info.get('year', None),
+                season=info.get('season', None),
+                episode=info.get('episode', None),
+            )
+
+        def get_movie(info):
+            assert info['type'] == 'movie'
+
+            confident = (
+                'title' in info and
+                'year' in info)
+
+            return confident, dict(
+                title=info.get('title', None),
+                year=info.get('year', None)
+            )
+
+        def get_source(string):
+            words = string.lower().split()
+            words = [x.strip() for x in words]
+            words = [x for x in words if x]
+            return True, {
+                'name-glob': '*' + '*'.join(words) + '*'
+            }
+
+        guessed_info = guessit.guessit(string, options={'type': type_hint})
+
+        typ = guessed_info['type']
+
+        if typ == 'movie':
+            confident, info = get_movie(guessed_info)
+        elif typ == 'episode':
+            confident, info = get_episode(guessed_info)
+        else:
+            confident, info = get_source(string)
+
+        if type_hint:
+            confident = True
+
+        if not confident:
+            typ = None
+            dummy, info = get_source(string)
+
+        info = {k: v for (k, v) in info.items() if v}
+        info['type'] = typ or 'source'
+        return Query(self.app, params=info)
 
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
@@ -167,7 +234,7 @@ class Selector:
 
         return registry, conflicts
 
-    def matches(self, query, everything=False):
+    def matches(self, query, everything=False, auto_import=None):
         def _count(x):
             try:
                 return len(x)
@@ -177,7 +244,7 @@ class Selector:
         if not isinstance(query, Query):
             raise TypeError('query is not a Query')
 
-        self._auto_import(query)
+        self.maybe_run_importer_process(query, auto_import)
 
         debug = self.app.settings.get('log-level').lower() == 'debug'
 
@@ -371,8 +438,12 @@ class Selector:
         origins = [importer.Origin(p, uri=uri) for (p, uri) in exts_and_uris]
         return origins
 
-    def _auto_import(self, query):
-        if self.app.settings.get('auto-import'):
+    def maybe_run_importer_process(self, query, value=None):
+        if value is None:
+            have_origins = self.app.importer.get_configured_origins()
+            value = not have_origins
+
+        if value:
             origins = self.get_origins_for_query(query)
             self.app.importer.process(*origins)
 

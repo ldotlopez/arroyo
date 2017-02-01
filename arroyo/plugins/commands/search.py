@@ -18,6 +18,20 @@ class SearchCommand(pluginlib.Command):
     HELP = 'Search sources'
     ARGUMENTS = (
         pluginlib.cliargument(
+            '--import',
+            dest='scan',
+            action='store_true',
+            default=None,
+            help=('Force auto import')),
+
+        pluginlib.cliargument(
+            '--no-import',
+            dest='scan',
+            action='store_false',
+            default=None,
+            help=('Disable auto import')),
+
+        pluginlib.cliargument(
             '-a', '--all',
             dest='all_states',
             action='store_true',
@@ -74,7 +88,10 @@ class SearchCommand(pluginlib.Command):
         )
 
         # Get matches
-        matches = self.app.selector.matches(query, everything=all_states)
+        matches = self.app.selector.matches(
+            query,
+            auto_import=args.scan,
+            everything=all_states)
 
         # Sort matches by entity ID
         matches = sorted(

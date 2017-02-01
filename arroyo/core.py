@@ -43,8 +43,8 @@ from arroyo import (
 _defaults = {
     'async-max-concurrency': 5,
     'async-timeout': 10,
-    'auto-cron': False,
-    'auto-import': False,
+    'auto-cron': True,
+    'auto-import': True,
     'db-uri': 'sqlite:///' +
               utils.user_path(utils.UserPathType.DATA, 'arroyo.db',
                               create=True),
