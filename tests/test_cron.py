@@ -13,12 +13,14 @@ import testapp
 
 
 class NoopCommand(plugin.Command):
+    __extension_name__ = 'noop'
+
     def run(self, arguments):
         pass
 
 
 class TestZeroTask(plugin.CronTask):
-    NAME = 'zero'
+    __extension_name__ = 'zero'
     INTERVAL = 0
 
     def __init__(self, app):
@@ -31,7 +33,7 @@ class TestZeroTask(plugin.CronTask):
 
 
 class TestMinuteTask(plugin.CronTask):
-    NAME = 'minute'
+    __extension_name__ = 'minute'
     INTERVAL = 60
 
     def __init__(self, app):
@@ -45,7 +47,7 @@ class TestMinuteTask(plugin.CronTask):
 
 
 class MissingIntervalTask(plugin.CronTask):
-    pass
+    __extension_name__ = 'missing'
 
 
 class CronTest(unittest.TestCase):
@@ -54,7 +56,7 @@ class CronTest(unittest.TestCase):
         self.app = testapp.TestApp()
 
     def test_discover(self):
-        self.app.register_extension('minute', TestMinuteTask)
+        self.app.register_extension_class(TestMinuteTask)
 
         self.assertEqual(
             TestMinuteTask,
@@ -68,42 +70,31 @@ class CronTest(unittest.TestCase):
             self.app.get_implementations(cron.CronTask)['foo']
 
     def test_run(self):
-        self.app.register_extension('zero', TestZeroTask)
-        self.app.register_extension('minute', TestMinuteTask)
+        self.app.register_extension_class(TestZeroTask)
+        self.app.register_extension_class(TestMinuteTask)
 
         self.assertFalse(hasattr(self.app, 'minute'))
-        self.app.cron.run('zero')
-        self.app.cron.run('minute')
+        self.app.cron.run_by_name('zero')
+        self.app.cron.run_by_name('minute')
         self.assertEqual(getattr(self.app, 'zero', None), 0)
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
         time.sleep(1)
-        self.app.cron.run('zero')
-        self.app.cron.run('minute')
+        self.app.cron.run_by_name('zero')
+        self.app.cron.run_by_name('minute')
         self.assertEqual(getattr(self.app, 'zero', None), 1)
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
     def test_force_run(self):
-        self.app.register_extension('minute', TestMinuteTask)
+        self.app.register_extension_class(TestMinuteTask)
 
         self.assertFalse(hasattr(self.app, 'minute'))
 
-        self.app.cron.run('minute')
+        self.app.cron.run_by_name('minute')
         self.assertEqual(getattr(self.app, 'minute', None), 0)
 
-        self.app.cron.run('minute', force=True)
+        self.app.cron.run_by_name('minute', force=True)
         self.assertEqual(getattr(self.app, 'minute', None), 1)
-
-    # def test_auto_cron(self):
-    #     app = testapp.TestApp({
-    #         'auto-cron': True
-    #     })
-    #     app.register_extension('zero', TestZeroTask)
-    #     app.register_extension('command', 'noop', NoopCommand)
-
-    #     self.assertFalse(hasattr(self.app, 'zero'))
-    #     app.run_from_args(['noop'])
-    #     self.assertEqual(getattr(self.app, 'zero', None), 0)
 
 
 if __name__ == '__main__':

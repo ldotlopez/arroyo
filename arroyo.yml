@@ -1,4 +1,5 @@
 # Settings
+
 # sqlalchemy URI for database
 # See http://docs.sqlalchemy.org/en/rel_0_9/core/engines.html#database-urls
 db-uri: 'sqlite:////tmp/arroyo.db'
@@ -20,7 +21,7 @@ downloader: mock
 # Execute crontask at startup
 auto-cron: false
 # Enable auto import feature
-auto-import: true
+auto-import: false
 
 # Fetcher options
 fetcher:
@@ -30,12 +31,18 @@ fetcher:
         'User-Agent': 'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)'
         'Accept-Language': 'en, en-gb;q=0.9, en-us;q=0.9'
 
+importer:
+    # Posible choices: auto, lxml, html.parser, html5lib
+    # Precence in this order
+    parser: auto
+
 # Selector
 selector:
     sorter: 'basic'
+
     query-defaults:
-        # # Wait 2 hours before consider source valid for download
-        age-min: 2H
+        # Wait 30 minutes before consider source valid for download
+        age-min: 30M
 
     query-episode-defaults: {}
         # # Don't download sources found before that date
@@ -46,26 +53,22 @@ selector:
         # language: eng-us
         # quality: 720p
 
-plugin:
+plugins:
     # # Extension example configuration
     # name:
     #     enabled = true
     #     parameter1 = value1
 
-    eztv: {}
+    providers.eztv: {}
         # eztv doesn't has default language setting since it's english only
 
-    thepiratebay:
+    providers.thepiratebay:
         default-language: eng-us
 
-    kickass:
+    providers.kickass:
         default-language: eng-us
 
-    spanishtracker:
-        # spanishtracker is broken for now
-        enabled: False
-
-    transmission:
+    downloaders.transmission:
         enabled: False
         address: 127.0.0.1
         port: 9091
@@ -86,7 +89,7 @@ origin: {}
 
     # name:
     #     # Check plugins folder for available analizers
-    #     backend: foo
+    #     provider: foo
     #     # URL to analize
     #     url: http://example.com/latest
     #     # Iterations: some analizers can iterate over the given url parameter
@@ -100,25 +103,25 @@ origin: {}
     #     language:
 
     # eztv:
-    #     backend: eztv
+    #     provider: eztv
     #     iterations: 3
     #     type: episode
     #     language: eng-us
 
     # ka-eztv:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 3
     #     type: episode
     #     url: https://kat.am/user/EZTV/uploads/?field=time_add&sorder=desc
 
     # ka-episodes:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 1
     #     type: movie
     #     url: https://kat.am/tv/
 
     # ka-episodes:
-    #     backend: kickass
+    #     provider: kickass
     #     iterations: 1
     #     type: episode
     #     url: https://kat.am/movies/

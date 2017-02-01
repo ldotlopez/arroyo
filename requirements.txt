@@ -2,14 +2,14 @@
 # Core
 #
 aiohttp
+arrow
 bencodepy
 blinker
 humanfriendly
 guessit>=2.0.0
 sqlalchemy
 
--e git+https://github.com/ldotlopez/ldotcommons.git#egg=ldotcommons
-# -e git+https://github.com/ldotlopez/ldotcommons.git@46381be97cdea9f9ffe06fb3d3702b11ac8aa986#egg=ldotcommons
+-e git+https://github.com/ldotlopez/ldotcommons.git@appkit#egg=appkit
 
 #
 # Optional modules
@@ -18,13 +18,8 @@ sqlalchemy
 # Almost all origins
 beautifulsoup4
 feedparser
+lxml
 
 # transmission
 transmissionrpc
 
-# twitter
-twitter
-
-# webui
-flask
-git+https://github.com/tomchristie/flask-api#egg=Flask-API

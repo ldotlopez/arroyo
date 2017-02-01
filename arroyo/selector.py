@@ -1,20 +1,21 @@
 # -*- coding: utf-8 -*-
 
+import abc
+import functools
 import itertools
 import sys
-
-
-from ldotcommons import utils
+import types
 
 
 import arroyo.exc
 from arroyo import (
-    extension,
-    importer
+    importer,
+    kit,
+    models,
 )
 
 
-class Query(extension.Extension):
+class Query(kit.Extension):
     KIND = None
 
     def __init__(self, app, params={}, display_name=None):
@@ -42,7 +43,27 @@ class Query(extension.Extension):
         self.params = params
         self.display_name = display_name
 
-    def matches(self, include_all=False):
+    @property
+    def base_string(self):
+        return self._get_base_string()
+
+    def _get_base_string(self, base_key='name'):
+        ret = None
+
+        if base_key in self.params:
+            ret = self.params[base_key]
+
+        elif base_key+'-glob' in self.params:
+            ret = self.params[base_key+'-glob'].replace('*', ' ')
+            ret = ret.replace('.', ' ')
+
+        elif base_key+'-like' in self.params:
+            ret = self.params[base_key+'-like'].replace('%', ' ')
+            ret = ret.replace('_', ' ')
+
+        return ret.strip() if ret else None
+
+    def get_query_set(self, session, include_all=False):
         raise NotImplementedError()
 
     @property
@@ -74,12 +95,28 @@ class Query(extension.Extension):
 class Selector:
     def __init__(self, app):
         self.app = app
+        self.app.register_extension_point(Filter)
+        self.app.register_extension_point(Query)
+        self.app.register_extension_point(Sorter)
 
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
+
+        query_defalts = self.app.settings.get(
+            'selector.query-defaults',
+            default={})
+        kind_defaults = self.app.settings.get(
+            'selector.query-{kind}-defaults'.format(kind=impl_name),
+            default={})
+
+        params_ = {}
+        params_.update(query_defalts)
+        params_.update(kind_defaults)
+        params_.update(params)
+
         return self.app.get_extension(  # FIX: Handle exceptions
             Query, impl_name,
-            params=params,
+            params=params_,
             display_name=display_name
         )
 
@@ -100,17 +137,152 @@ class Selector:
 
         return ret
 
-    def matches(self, query, everything=True):
+    def _get_filter_registry(self):
+        registry = {}
+        conflicts = set()
+
+        # Build filter register
+        # This register a is two-level dict. First by model, second by key
+        for (name, ext) in self.app.get_extensions_for(Filter):
+            if ext.APPLIES_TO not in registry:
+                registry[ext.APPLIES_TO] = {}
+
+            ext_conflicts = set(registry[ext.APPLIES_TO]).intersection(
+                set(ext.HANDLES))
+            if ext_conflicts:
+                conflicts = conflicts.union(ext_conflicts)
+                msg = ('Filter «{name}» disabled. Conflicts in {model}: '
+                       '{conflicts}')
+                msg = msg.format(
+                    name=name,
+                    model=repr(ext.APPLIES_TO),
+                    conflicts=','.join(list(ext_conflicts)))
+
+                self.app.logger.warning(msg)
+                continue
+
+            # Update registry with impl
+            registry[ext.APPLIES_TO].update({
+                key: ext for key in ext.HANDLES})
+
+        return registry, conflicts
+
+    def matches(self, query, everything=False):
+        def _count(x):
+            try:
+                return len(x)
+            except TypeError:
+                return x.count()
+
         if not isinstance(query, Query):
             raise TypeError('query is not a Query')
+
+        self._auto_import(query)
+
+        debug = self.app.settings.get('log-level').lower() == 'debug'
 
         msg = "Search matches for query: {query}"
         msg = msg.format(query=str(query.params))
         self.app.logger.debug(msg)
 
-        self._auto_import(query)
+        # Get base query set from query
+        qs = query.get_query_set(self.app.db.session, everything)
+        models = itertools.chain(qs._entities, qs._join_entities)
+        models = [x.mapper.class_ for x in models]
 
-        yield from query.matches(everything=everything)
+        # Get filters
+        qs_funcs, iter_funcs, dummy, dummy = \
+            self.get_filters_from_params(models, query.params)
+
+        ret = qs
+        unrolled = False
+
+        if debug:
+
+            msg = "Initial"
+
+        for func in qs_funcs + iter_funcs:
+            ext = func.func.__self__
+            (key, value) = func.args
+
+            # For debug logging level we have to do some ugly things
+            if debug:
+                if isinstance(ret, types.GeneratorType):
+                    ret = list(ret)
+                precount = _count(ret)
+
+            # Check if we need to unroll result
+            need_unroll = (
+                unrolled and
+                isinstance(ext, IterableFilter) and
+                not isinstance(ret, collections.Iterable))
+            if need_unroll:
+                ret = (x for x in qs)
+                unrolled = True
+
+            ret = func(ret)
+
+            if debug:
+                if isinstance(ret, types.GeneratorType):
+                    ret = list(ret)
+
+                msg = ("Apply filter {name}({key}, {value}) over {precount} "
+                       "items: {postcount} results")
+                msg = msg.format(
+                    name=ext.__extension_name__,
+                    key=key,
+                    value=value,
+                    precount=precount,
+                    postcount=_count(ret))
+                self.app.logger.debug(msg)
+
+        if not unrolled:
+            ret = list(ret)
+
+        return ret
+
+    def get_filters_from_params(self, models, params):
+        if not isinstance(models, list):
+            raise TypeError('models should be a list of models')
+
+        if not isinstance(params, dict):
+            raise TypeError('params should be a dict <str:str>')
+
+        registry, conflicts = self._get_filter_registry()
+
+        iter_filters = []
+        qs_filters = []
+        missing = []
+
+        for (key, value) in params.items():
+            ext = None
+            for model in models:
+                if model not in registry or key not in registry[model]:
+                    continue
+
+                ext = registry[model][key]
+
+                if isinstance(ext, QuerySetFilter):
+                    qs_filters.append(functools.partial(
+                        ext.alter, key, value))
+
+                elif isinstance(ext, IterableFilter):
+                    iter_filters.append(functools.partial(
+                        ext.apply, key, value))
+
+                else:
+                    msg = "Unknow filter subclass {name}"
+                    msg = msg.format(name=ext.__class__.__name__)
+                    raise arroyo.exc.FatalError(msg)
+
+            if ext is None:
+                missing.append(key)
+
+                msg = "Unable to find matching filter for «{key}»"
+                msg = msg.format(key=key)
+                raise arroyo.exc.FatalError(msg)
+
+        return qs_filters, iter_filters, conflicts, missing
 
     def sort(self, matches):
         sorter = self.app.get_extension(
@@ -124,7 +296,11 @@ class Selector:
 
     def select(self, matches):
         def _entity_grouper(src):
+            assert isinstance(src, models.Source)
+
             if src.type == 'episode':
+                assert isinstance(src.episode, models.Episode)
+
                 return "{}-{}-{}-{}".format(
                     src.episode.series.lower(),
                     src.episode.year or '-',
@@ -133,6 +309,8 @@ class Selector:
                 )
 
             if src.type == 'movie':
+                assert isinstance(src.episode, models.Movie)
+
                 return "{}-{}".format(
                     src.movie.title.lower(),
                     src.movie.year or '-'
@@ -167,29 +345,30 @@ class Selector:
         msg = msg.format(query=query)
         self.app.logger.info(msg)
 
-        impls = self.app.get_implementations(importer.Origin)
-        if not impls:
+        exts = list(self.app.get_extensions_for(importer.Provider))
+
+        if not exts:
             msg = ("There are no origin implementations available or none of "
                    "them is enabled, check your configuration")
             self.app.logger.warning(msg)
             return []
 
-        impls_and_uris = []
-        for (name, impl) in impls.items():
-            uri = impl(self.app).get_query_uri(query)
+        exts_and_uris = []
+        for (name, ext) in exts:
+            uri = ext.get_query_uri(query)
             if uri:
                 msg = " Found compatible origin '{name}'"
                 msg = msg.format(name=name)
                 self.app.logger.info(msg)
-                impls_and_uris.append((impl, uri))
+                exts_and_uris.append((ext, uri))
 
-        if not impls_and_uris:
+        if not exts_and_uris:
             msg = "No compatible origins found for {query}"
             msg = msg.format(query=query)
             self.app.logger.warning(msg)
             return []
 
-        origins = [impl(self.app, uri=uri) for (impl, uri) in impls_and_uris]
+        origins = [importer.Origin(p, uri=uri) for (p, uri) in exts_and_uris]
         return origins
 
     def _auto_import(self, query):
@@ -197,118 +376,28 @@ class Selector:
             origins = self.get_origins_for_query(query)
             self.app.importer.process(*origins)
 
-    def get_filters(self, models, params):
-        table = {}
 
-        for filtercls in self.app.get_implementations(Filter).values():
-            if filtercls.APPLIES_TO not in models:
-                continue
-
-            for k in [k for k in filtercls.HANDLES if k in params]:
-                if k not in table:
-                    table[k] = filtercls
-                else:
-                    msg = ("{key} is currently mapped to {active}, "
-                           "ignoring {current}")
-                    msg = msg.format(
-                        key=k,
-                        active=repr(table[k]),
-                        current=repr(filtercls))
-                    self.app.logger.warning(msg)
-
-        return {k: table[k](self.app, k, params[k]) for k in table}
-
-    def apply_filters(self, qs, models, params):
-        debug = self.app.settings.get('log-level').lower() == 'debug'
-
-        guessed_models = itertools.chain(qs._entities, qs._join_entities)
-        guessed_models = [x.mapper.class_ for x in guessed_models]
-        assert set(guessed_models) == set(models)
-
-        filters = self.get_filters(guessed_models, params)
-
-        missing = set(params).difference(set(filters))
-
-        sql_aware = {True: [], False: []}
-        for f in filters.values():
-            test = f.__class__.alter_query != Filter.alter_query
-            sql_aware[test].append(f)
-
-        for x in sql_aware:
-            filter_list = ', '.join([x.__module__ for x in sql_aware[x]])
-
-            msg = ("1. {type} based filters: {filter_list}")
-            msg = msg.format(type='SQL' if x else 'Python',
-                             filter_list=filter_list or '[]')
-            self.app.logger.debug(msg)
-
-        if debug:
-            msg = "2. Initial element is count {count}"
-            msg = msg.format(count=qs.count())
-            self.app.logger.debug(msg)
-
-        for f in sql_aware.get(True, []):
-            try:
-                qs = f.alter_query(qs)
-                if debug:
-                    msg = ("3. After apply '{filter}({key}, {value})' "
-                           "element count is {count}")
-                    msg = msg.format(
-                        filter=f.__module__,
-                        key=f.key, value=f.value,
-                        count=qs.count())
-                    self.app.logger.debug(msg)
-
-            except arroyo.exc.SettingError as e:
-                msg = ("- Ignoring invalid setting «{key}»: «{value}». "
-                       "Filter discarted")
-                msg = msg.format(key=e.key, value=e.value)
-                self.app.logger.warning(msg)
-
-        items = (x for x in qs)
-
-        for f in sql_aware.get(False, []):
-            items = f.apply(items)
-            if debug:
-                if not isinstance(items, list):
-                    items = list(items)
-
-                msg = ("3. After apply '{filter}({key}, {value})' "
-                       "element count is {count}")
-                msg = msg.format(
-                    filter=f.__module__, count=len(items),
-                    key=f.key, value=f.value)
-                self.app.logger.debug(msg)
-
-        if debug:
-            if not isinstance(items, list):
-                items = list(items)
-
-            msg = "4. Final result: {count} elements"
-            msg = msg.format(count=len(items))
-            self.app.logger.debug(msg)
-
-        return items, missing
+class Filter(kit.Extension):
+    HANDLES = []  # keys
+    APPLIES_TO = None  # model
 
 
-class Filter(extension.Extension):
-    HANDLES = ()
-
-    def __init__(self, app, key, value):
-        super().__init__(app)
-        self.key = key
-        self.value = value
-
-    def filter(self, x):
+class IterableFilter(Filter):
+    @abc.abstractmethod
+    def filter(self, key, value, item):
         raise NotImplementedError()
 
-    def apply(self, iterable):
-        return filter(self.filter, iterable)
+    def apply(self, key, value, iterable):
+        return (x for x in iterable if self.filter(key, value, x))
 
-    def alter_query(self, qs):
+
+class QuerySetFilter(Filter):
+    @abc.abstractmethod
+    def alter(self, key, value, qs):
         raise NotImplementedError()
 
 
-class Sorter(extension.Extension):
+class Sorter(kit.Extension):
+    @abc.abstractmethod
     def sort(self, sources):
         return sources

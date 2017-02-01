@@ -4,7 +4,6 @@ from arroyo import models
 
 
 import functools
-from os import path
 
 
 import babelfish
@@ -16,11 +15,11 @@ class Mediainfo:
         # app.signals.connect('sources-added-batch', self._on_source_batch)
         # app.signals.connect('sources-updated-batch', self._on_source_batch)
         self._app = app
-        self._logger = app.logger.getChild('mediainfo')
+        self.logger = app.logger.getChild('mediainfo')
 
     @functools.lru_cache(maxsize=16)
     def get_default_language_for_provider(self, provider):
-        k = 'plugin.' + provider + '.default-language'
+        k = 'plugins.provider.' + provider + '.default-language'
         return self._app.settings.get(k, default=None)
 
     def get_mediainfo(self, source):
@@ -76,7 +75,7 @@ class Mediainfo:
             if isinstance(info.get(k), list):
                 msg = 'Drop multiple instances of {key} in {source}'
                 msg = msg.format(source=source, key=k)
-                self._logger.warning(msg)
+                self.logger.warning(msg)
                 info[k] = info[k][0]
 
         # Integrate part as episode in season 0
@@ -84,7 +83,7 @@ class Mediainfo:
             if info.get('type') == 'movie':
                 msg = "Movie '{source}' has 'part'"
                 msg = msg.format(source=source)
-                self._logger.warning(msg)
+                self.logger.warning(msg)
 
             elif info.get('type') == 'episode':
                 if 'season' in info:
@@ -92,7 +91,7 @@ class Mediainfo:
                     msg = msg.format(
                         source=source, type=info.get('type') or '(None)'
                     )
-                    self._logger.warning(msg)
+                    self.logger.warning(msg)
                 else:
                     info['season'] = 0
                     info['episode_number'] = info.pop('part')
@@ -103,7 +102,7 @@ class Mediainfo:
                 msg = msg.format(
                     source=source, type=info.get('type') or '(None)'
                 )
-                self._logger.warning(msg)
+                self.logger.warning(msg)
 
         # Reformat date as episode number for episodes if needed
         if info.get('type', None) == 'episode' and \
@@ -140,7 +139,7 @@ class Mediainfo:
             except babelfish.exceptions.LanguageConvertError as e:
                 msg = "Language error in '{source}': {msg}"
                 msg = msg.format(source=source.name, msg=e)
-                self._logger.warning(msg)
+                self.logger.warning(msg)
                 del info['language']
 
         else:
@@ -156,18 +155,28 @@ class Mediainfo:
 
         return info
 
-    def process(self, *sources):
+    def process(self, *sources_and_metas):
         """
         Mediainfo.process takes sources and tries to fill aditional info like
         language, episode or movie relationships
         """
-        for src in sources:
+        for x in sources_and_metas:
+            if isinstance(x, models.Source):
+                src, meta = x, None
+            else:
+                src, meta = x[0], x[1]
+
+            # if meta:
+            #     msg = "Source {source} has metadata: {meta}"
+            #     msg = msg.format(source=src, meta=meta)
+            #     self.logger.debug(msg)
+
             # Check for older "APIs"
             if src.type == 'unknown':
                 msg = ("Deprecated API: source from {provider} "
                        "with type 'unknow', use (None)")
                 msg = msg.format(provider=src.provider)
-                self._logger.error(msg)
+                self.logger.error(msg)
                 src.type = None
 
             # Sources with 'other' type are not processed
@@ -180,7 +189,7 @@ class Mediainfo:
                 msg = "Type missmatch for '{source}': {type1} != {type2}"
                 msg = msg.format(
                     source=src, type1=src.type, type2=info['type'])
-                self._logger.warning(msg)
+                self.logger.warning(msg)
                 continue
 
             # Update src's type and language
@@ -191,7 +200,7 @@ class Mediainfo:
                 except ValueError as e:
                     msg = "Guessed type for {src} is invalid: {type}"
                     msg = msg.format(src=src.name, type=info_type)
-                    self._logger.warning(msg)
+                    self.logger.warning(msg)
 
             info_lang = info.get('language')
             if src.language is None and info_lang is not None:
@@ -200,7 +209,7 @@ class Mediainfo:
                 except ValueError as e:
                     msg = "Guessed language for {src} is invalid: {language}"
                     msg = msg.format(src=src.name, language=info_lang)
-                    self._logger.warning(msg)
+                    self.logger.warning(msg)
 
             # ... but delete the old ones first
             #
@@ -238,7 +247,7 @@ class Mediainfo:
                 except ValueError as e:
                     msg = ("unable to get specilized data for "
                            "'{source}': {reason}")
-                    self._logger.warning(msg.format(source=src, reason=e))
+                    self.logger.warning(msg.format(source=src, reason=e))
                     continue
 
             # Link source and specialized_source
@@ -283,6 +292,9 @@ class Mediainfo:
             raise ValueError('invalid type in info data: ' + info['type'])
 
         ret, created = self._app.db.get_or_create(model, **arguments)
+        if created:
+            self._app.db.session.add(ret)
+
         return ret
 
     def _on_source_batch(self, sender, sources):

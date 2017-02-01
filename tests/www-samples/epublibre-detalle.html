@@ -1,0 +1,678 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <meta charset="UTF-8" />
+        
+        <meta name="description" content="Web de la Biblioteca Digital del Proyecto Scriptorium. Más libros, más libres" />
+        <meta name="keywords" content="Epublibre, EPL, libros, libres, EPUB, biblioteca, Scriptorium" />
+		<meta name="author" content="Epublibre" />
+		<title>epublibre - El alma del hombre bajo el socialismo</title>
+        <meta name="robots" content="noindex, nofollow"/><meta name="googlebot" content="noindex, nofollow"/>        
+		<link rel="shortcut icon" href="https://www.epublibre.org/img/favicon2.ico">
+        <link rel="stylesheet" href="https://www.epublibre.org/css/bootstrap.css">
+		
+		<link href="https://www.epublibre.org/css/jquery.rating.css" rel="stylesheet">
+		<link rel="stylesheet" href="https://www.epublibre.org/css/base.css">
+        <link rel="stylesheet" href="https://www.epublibre.org/css/sprites.css">
+        <script src="https://www.epublibre.org/js/jquery-1.7.2.min.js"></script>
+		<script src="https://www.epublibre.org/js/bootstrap.js"></script>
+        
+		<script type="text/javascript">
+		
+		function loadjscssfile(filename, filetype){
+			if (filetype=="js"){ 
+				var fileref=document.createElement('script');
+				fileref.setAttribute("type","text/javascript");
+				fileref.setAttribute("src", filename);
+			}
+			else if (filetype=="css"){
+				var fileref=document.createElement("link");
+				fileref.setAttribute("rel", "stylesheet");
+				fileref.setAttribute("type", "text/css");
+				fileref.setAttribute("href", filename);
+			}
+			if (typeof fileref!="undefined")
+				document.getElementsByTagName("head")[0].appendChild(fileref);
+		}
+		
+		
+		if (document.all && document.documentMode) {
+			loadjscssfile("https://www.epublibre.org/css/ie.css", "css");
+		}
+		</script>
+    </head>
+
+    <body>
+		
+		<div class="container">
+			
+			
+			
+<div class="row">
+	<div class="span12">
+		<div class="ali_derecha pad_t negrita">
+			<a href="https://www.epublibre.org/acceso/solicitar" class="no_subrayar"><i class="icon-star icon-white"></i> solicitud de acceso</a>&nbsp; &nbsp; &nbsp;<a href="https://www.epublibre.org/acceso/login" class="no_subrayar"><i class="icon-user icon-white"></i> acceder</a>		</div>
+	</div>
+</div>
+
+
+<div class="row">
+
+	
+	<div class="span2" style="position:relative;">
+        <a href="https://www.epublibre.org/inicio/index"><img src="https://www.epublibre.org/img/logo_nav.png" alt="epublibre" style="position:absolute;top:-27px;"/></a>	</div>
+	<div class="span2 txt_pequena txt_blanco pad_t_15">
+		más libros, más libres
+	</div>
+	
+	
+	
+	<div class="span6">
+	<div class="menu ali_derecha">
+		<a href="https://www.epublibre.org/catalogo/novedades">novedades</a>&nbsp;&nbsp;<a href="https://www.epublibre.org/catalogo/index">catálogo</a>&nbsp;&nbsp;<a href="https://www.epublibre.org/catalogo_col/index">colecciones</a>&nbsp;&nbsp;<a href="https://www.epublibre.org/directorio/index">directorio</a>&nbsp;&nbsp;<a href="https://www.epublibre.org/manual/index">manuales</a>&nbsp;&nbsp;	</div>
+</div>	
+	
+    
+    <div class="span2 margen_b_5">
+        <div class="pad_t">
+            <form action="https://www.epublibre.org/catalogo/index" method="post" accept-charset="utf-8"><div style="display:none">
+<input type="hidden" name="csrf_test_name" value="f14093259fe0ede72a9fc1e4d1ed221b" />
+</div>            <div class="input-append">
+                <input class="input-small busca_inverse" id="bus" name="bus" type="text" placeholder="título, autor, colección" autocomplete="off" onblur="javascript:cambiar2();" onfocus="javascript:cambiar();"/>
+                <button id="buscador_btn" class="btn btn-small btn-inverse" type="submit"  onblur="javascript:cambiar2();" onfocus="javascript:cambiar();"><i id="buscador_icon" class="icon-search icon-white"></i></button>
+            </div>
+            </form>        </div>
+    </div>
+    
+	
+</div>
+
+
+
+
+
+
+
+
+
+
+<script type="text/javascript">
+	function cambiar() {
+		document.getElementById('buscador_btn').className = 'btn btn-small btn-primary';
+		document.getElementById('buscador_icon').className = 'icon-search';
+	}
+	function cambiar2() {
+		document.getElementById('buscador_btn').className = 'btn btn-small btn-inverse';
+		document.getElementById('buscador_icon').className = 'icon-search icon-white';
+	}
+</script>
+			
+			
+			
+			
+<div class="cab_detalle">
+	<div class="row">
+  
+    
+    <div class="cont-ampl-portada">
+        <div id="cont_portada" class="txt_pequena ali_centro ampl-portada" style="display:none;">
+            <img id="img_portada_ampl" onclick="javascript:reducir()" src="http://i68.tinypic.com/34xfh9g.jpg" alt="" width="100%" height="100%" />
+        </div>
+    </div>
+	
+	<div class="span2">
+        <div class="portada-libro">
+            <!--<div class="texto-portada">
+                <h2>Oscar Wilde<br></h2>
+                <h1>El alma del hombre bajo el socialismo</h1>
+            </div>-->
+            <div class="portada-libro">
+                <img id="portada" src="http://i68.tinypic.com/34xfh9g.jpg" alt="" width="140" height="210" rel="tooltip" title="Haz click para ampliar" class="red-portada" onclick="javascript:ampliar();" />
+            </div>
+        </div>
+		<div class="etiqueta3"><img class="sprite estado-2" rel="tooltip" title="Disponible" src="https://www.epublibre.org/img/vacio.png"/></div>
+	</div>
+	
+	
+	
+	<div class="span8 pad_t_20">
+		<div class="well_black pad txt_blanco" style="min-height:45px;">
+			<div style="float:left;">
+				<div class="det_titulo" id="titulo_libro" style="display:inline-block;">
+					El alma del hombre bajo el socialismo				</div>
+				<br/>
+				<div class="negrita aut_sec" style="display:inline-block;">
+					<a href="https://www.epublibre.org/autor/index/275">Oscar Wilde</a>				</div>
+			</div>
+			<div class="negrita" style="display:inline;float:right;text-align:center;font-size:13px;">
+                <a href="https://www.epublibre.org/catalogo/index/0/nuevo/todos/sin/1">
+                    <div style="vertical-align:text-top;" class="sprite idioma_1"></div><br/>
+                    <span class="txt_blanco">Español</span>
+                </a>
+			</div>
+		</div>
+		<div class="txt_blanco">
+            <div style="height:54px;min-height:40px;width:620px;margin-top:-10px;">
+                
+                <div style="float:left;width:70%;padding-right:0%;">
+	<table style="font-size:12px;">
+		<tr>
+			<td>Páginas:</td>
+			<td><span class="well_blue btn-small negrita celda-info">47</span></td>
+			<td class="pad_l_5">
+				En la web desde:</td><td><span class="well_blue btn-small negrita">16-12-2016</span>			</td>
+				                    <td class="pad_l_5">Publicado en:</td>
+                    <td><span class="well_blue btn-small negrita">1891</span></td>
+						</tr>
+		<tr>
+			<td>Revisión:</td>
+			<td><span class="well_blue btn-small negrita celda-info">1.0</span></td>
+			<td class="pad_l_5">Estado:</td><td><span class="well_blue btn-small negrita celda-info" style="width:64px;">Disponible</span></td>			<td colspan="2" class="ali_derecha">
+							</td>
+		</tr>
+	</table>
+</div>                
+                
+                <div style="float:right;width:30%;padding-right:0%;text-align:right;">
+                	                </div>
+                
+            </div>
+            
+                            <div class="borde-derecha">
+                    <div class="avatar50 borde-portada">
+                        <img id="avatar50" src="https://www.epublibre.org/img/titi.jpg" alt="Titivillus" rel="tooltip" title="Responsable: Titivillus"/>
+                    </div>
+                </div>
+                        
+            <div class="agradecimientos">
+                            </div>
+        </div>
+        <div>
+                            <div class="btn-toolbar2" style="display:inline-block;">
+                                            <div class="btn-group">
+                                                                                                                        
+                                                                    <a href="magnet:?xt=urn:btih:F020741CEF86B3D5C016C6CB8399EB2D931BECB1&dn=EPL_El_alma_del_hombre_bajo_el_socialismo&tr=http://tracker.tfile.me/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.publicbt.com:80&tr=udp://open.demonii.com:1337/announce" id="en_desc" class="btn btn-small btn-success">
+                                                                    <i class="icon-magnet icon-white"></i> Descargar (magnet link)
+                                </a>
+                                                    </div>
+                        
+                        <div class="pull-right info-descargas">
+                            <a  href="#" class="btn btn-tiny btn-inverse" onclick="javascript:$('#info_desc').toggle('slow');return false;">¿No sabes cómo descargar?</a>
+                            <div id="info_desc" class="well_black txt_mediana txt_blanco desplegable-info">
+                                <div class="interior_aviso">
+                                    <p>Nuestros libros se descargan mediante enlaces magnet. Necesitas tener instalado en tu equipo un programa torrent para la descarga. Algunos de los programas que puedes usar son:</p>
+                                    <ul class="negrita en_linea">
+                                        <li><a href="http://www.qbittorrent.org/" target="_blank">qBittorrent</a></li>
+                                        <li><a href="http://www.utorrent.com/" target="_blank">uTorrent</a></li>
+                                        <li><a href="http://www.transmissionbt.com/" target="_blank">Transmission</a></li>
+                                        <li><a href="http://www.vuze.com/" target="_blank">Vuze</a></li>
+                                    </ul>
+                                    <p>Alternativamente, puedes utilizar alguno de estos servicios web (copia el magnet link con el botón derecho y pégalo donde corresponda):</p>
+                                    <ul class="en_linea">
+                                        <li><a class="negrita" href="#modal_zbigz" data-toggle="modal">zbigz.com</a></li>
+                                        <li><a class="negrita" href="http://put.io" target="_blank">put.io</a> (*)</li>
+                                        <li><a class="negrita" href="http://filestream.me" target="_blank">filestream.me</a> (*)</li>
+                                        <li>(*) Necesitan registrarse previamente en su página web.</li>
+                                    </ul>
+                                    <p>Más información sobre los enlaces magnet <a href="https://www.epublibre.org/foro/viewtopic.php?f=8&t=266" target="_blank">aquí</a></p>
+                                </div>
+                            </div>
+                        </div>
+                        
+                                        
+                                    </div>
+                                </div>
+	</div>
+	
+	
+	
+	<div class="span2">
+		<div class="margen_17-l">
+			
+			
+									
+			
+			
+			<div id="cont_puntuacion" class="well_orange ali_centro txt_blanco negrita ali_centro">
+                <div id="barra_puntuacion" >
+                                                <input class="star-radio" type="radio" name="rating" value="1" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="2" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="3" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="4" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="5" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="6" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="7" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="8" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="9" disabled=disabled />
+                                                                        <input class="star-radio" type="radio" name="rating" value="10" checked="checked" disabled=disabled />
+                                                                <br/><span id="msgVotos">1 voto</span>                </div>
+                				<div id="loading" style="clear:both;"></div>
+			</div>
+			
+            
+            
+												
+		</div>
+	</div>
+	
+	
+</div>
+
+
+<div id="modal_erratas" class="modal modal-info erratas hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+		<button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+		<h4 id="myModalLabel" style="margin-bottom:0px;">Envío de aviso para "El alma del hombre bajo el socialismo"<span id="load2"></span></h4>
+	</div>
+	<form action="https://www.epublibre.org/libro/enviar_errata_ajax" method="post" accept-charset="utf-8" class="form-inline" id="myform"><div style="display:none">
+<input type="hidden" name="csrf_test_name" value="f14093259fe0ede72a9fc1e4d1ed221b" />
+</div>	<div class="modal-body">
+		<input type="hidden" name="epl_id" id="txt_libro" value="34839"/>
+        <div class="row-fluid">
+            
+            <div class="span7">
+                <div class="control-group">
+                    <label for="tipo">Tipo informe a enviar</label>                    <select id="txt_tipo_errata" onchange="javascript:tipo(this.value);" name="txt_tipo_errata" class="input-large">
+                        <option value="ne">&nbsp;</option>
+                        <option value="ficha">Errata en ficha</option>
+                        <option value="libro">Errata en libro</option>
+                        <option value="enlace">Problema con descarga</option>
+                    </select>
+                  </div>
+            </div>
+            
+            
+            <div class="span5" id="vers_errata" style="display:none;">
+                <div class="control-group pull-right">
+                    <label for="version">Versión del libro</label>                                        <select id="txt_version" name="txt_version" class="input-mini">
+                    <option value="1.0" selected>1.0</option>                    </select>
+                </div>
+            </div>
+            
+            <div id="error_tipo" style="display:none;margin-top:-5px;margin-bottom:5px;" class="alert alert-error margen_t_10 ajustado_cont">
+                <img class="sprite icon-warning" src="https://www.epublibre.org/img/vacio.png"/> Es necesario especificar el tipo de informe.
+            </div>
+        </div>
+        
+        <div class="control-group">
+			<div id="toolbar"  style="display: none;">
+				<div class="btn-group pull-left">
+					<a href="https://www.epublibre.org/" class="btn btn-mini btn-inverse" rel="tooltip" title="ctrl+b<br/>negrita" data-wysihtml5-command="bold"><i class="icon-bold icon-white"></i></a><a href="https://www.epublibre.org/" class="btn btn-mini btn-inverse" rel="tooltip" title="ctrl+i<br/>cursiva" data-wysihtml5-command="italic"><i class="icon-italic icon-white"></i></a>				</div>
+                <div class="txt_verde txt_pequena pull-right">
+                    Etiquetas permitidas: [quote][/quote], [code][/code], [url][/url], [spoiler][/spoiler]
+                </div>
+			</div>
+			<textarea name="informe" cols="40" rows="15" id="txt_informe" class="span9" style="height:230px;" ></textarea>			<div id="error_contenido" style="display:none;" class="alert alert-error margen_t_10 ajustado_cont">
+				<img class="sprite icon-warning" src="https://www.epublibre.org/img/vacio.png"/> El informe no puede estar vacío
+			</div>
+		</div>
+
+		<div id="cont_enlaces" class="control-group" style="display:none;">
+        			<label for="enlace">Enlace (opcional) <a href="#" id="prevenir" rel="tooltip" title="Si se desea incluir un enlace a algún tipo de fichero, introducirlo a continuación"><i class="icon-question-sign"></i></a></label>			<input type="text" name="enlace" value="" id="txt_enlace" class="span9" autocomplete="off"  />			<div id="error_enlace" style="display:none;" class="alert alert-error margen_t_10 ajustado_cont">
+				<img class="sprite icon-warning" src="https://www.epublibre.org/img/vacio.png"/> El enlace no es válido. Debe comenzar por <strong>http://</strong> o <strong>https://</strong>
+			</div>
+        </div>
+		<div id="error_general" style="display:none;" class="alert alert-error">
+			<img class="sprite icon-warning" src="https://www.epublibre.org/img/vacio.png"/> Ha ocurrido un error, inténtalo de nuevo
+		</div>
+	</div>
+	<div class="modal-footer">
+                    <div id="cont_botones">
+            <a class="btn btn-small btn-primary" onclick="javascript:enviar();" href="#">Enviar</a>
+            <button class="btn btn-small btn-danger" data-dismiss="modal" aria-hidden="true">Cancelar</button>
+        </div>
+	</div>
+	</form></div>
+
+
+<div id="modal_zbigz" class="modal modal-warning hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true">
+	<div class="modal-header">
+        <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+		<h4 id="myModalLabel">Aviso relativo a zbigz</h4>
+	</div>
+  
+    <div class="modal-body">
+        <p>Se va a realizar la descarga de un archivo usando el servicio de zbigz.<br/>
+           Zbigz es un servicio externo a nuestra web, cuya responsabilidad y funcionamiento no depende de ePubLibre.</p>
+        <p>Por favor, <strong>NO informar en los comentarios de posibles problemas al utilizar este servicio</strong>, puesto que ni dependen de nosotros ni podemos hacer nada para solucionarlos.</p>
+        <input type="hidden" id="enlace_zbigz" value="magnet:?xt=urn:btih:F020741CEF86B3D5C016C6CB8399EB2D931BECB1&dn=EPL_El_alma_del_hombre_bajo_el_socialismo&tr=http://tracker.tfile.me/announce&tr=udp://tracker.opentrackr.org:1337/announce&tr=udp://tracker.openbittorrent.com:80&tr=udp://tracker.publicbt.com:80&tr=udp://open.demonii.com:1337/announce" />
+    </div>
+    <div class="modal-footer ali_centro">
+        <button id="btn_continuar" class="btn btn-small btn-info" data-toggle="modal" onclick="javascript:continuar_zbigz();">Continuar</button>
+        <button class="btn btn-small btn-danger" data-dismiss="modal" aria-hidden="true">Cancelar</button>
+    </div>
+</div>
+
+
+<script src="https://www.epublibre.org/js/wyssimple.js"></script>
+<script src="https://www.epublibre.org/js/wysihtml5-0.3.0.min.js"></script>
+<script src="https://www.epublibre.org/js/jquery.rating.js"></script>
+<script type="text/javascript">
+  
+    
+    function ampliar () {
+        $('#cont_portada').show('slow');
+    };
+    function reducir() {
+        $('#cont_portada').hide('slow');
+    }
+    $('#cont_portada').mouseout(function(){reducir();});
+    
+    
+	$("[name=lect]").live('click', function(event) {
+		event.preventDefault();
+	});
+    $("#prevenir").live('click', function(event) {
+		event.preventDefault();
+	});
+	
+  
+    
+	function marcar(accion, valor) {
+		var url = "https://www.epublibre.org/libro/marcar/ajax/34839/"+accion+"/"+valor;
+        $("[rel=tooltip]").tooltip('hide');
+        $('#lecturas').html('<div id="loading2"></div>');
+		$("#loading2").html('<img alt="" height="31" width="31" src="https://www.epublibre.org//img/ajaxL4.gif" />');
+		$.ajax({
+			cache: false,
+			type: "POST",
+			url: url,
+			dataType: 'json',
+			success: function(e) {
+				$('#lecturas').html(e);
+                $("[rel=tooltip]").tooltip({'placement':'top'});
+			}
+		});
+	}
+	
+    
+    
+	function gracias() {
+		var url = "https://www.epublibre.org/libro/marcar/ajax/34839/gracias";
+        $("[rel=tooltip]").tooltip('hide');
+		$("#gracias").html('<img alt="" height="31" width="31" src="https://www.epublibre.org//img/ajaxL4.gif" />');
+		$.ajax({
+			cache: false,
+			type: "POST",
+			url: url,
+			dataType: 'json',
+			success: function(e) {
+				$("#num_gracias").html(e);
+                $("#gracias").html('');
+                $("[rel=tooltip]").tooltip({'placement':'top'});
+			}
+		});
+	}
+	
+    
+    
+	$('.star-radio').rating({
+		required: true,
+		callback: function(value, link) {
+			enviar_voto(value);
+		}
+	});
+	
+    
+    
+    function enviar_voto(value)
+    {
+        $('.star-radio').rating('readOnly', true, true);
+        $('[rel=tooltip]').tooltip('hide');
+        $("#msgVotos").html('<img alt="" src="https://www.epublibre.org//img/ajax.gif">');
+        $.ajax({
+            type: 'post',
+            url: 'https://www.epublibre.org/libro/rate/34839/'+value,
+            dataType: 'json',
+            success: function(e) {
+                if (e.error!='') {
+                    $('#msgVotos').html('<div class="txt_negro normal pequena">'+e.error+'</div>');
+                    $('.star-radio').rating('readOnly', false, false);
+                }
+                else {
+                    $('#cont_puntuacion').html(e.html);
+                    $('.star-radio').rating();
+                    $('#cont_mi_nota').show('slow', function(){
+                        $("#btn_retirar_nota").css('display','');
+                    });
+                }
+                $("[rel=tooltip]").tooltip({'placement':'top'});
+            }
+        });
+    }
+    
+    
+    function retirar_voto()
+    {
+        $('[rel=tooltip]').tooltip('hide');
+        var nota = $("#cont_mi_nota").html();
+        $("#msgVotos").html('<img alt="" src="https://www.epublibre.org//img/ajax.gif">');
+        $("#btn_retirar_nota").css('display','none');
+        $.ajax({
+            type: 'post',
+            url: 'https://www.epublibre.org/libro/unrate/34839',
+            dataType: 'json',
+            success: function(e) {
+                if (e.error!='') {
+                    $('#msgVotos').html('<div class="txt_negro normal pequena">'+e.error+'</div>');
+                    $("#cont_mi_nota").html(nota);
+                    $("#btn_retirar_nota").css('display','');
+                }
+                else {
+                    $('#cont_mi_nota').hide('slow', function(){
+                        $('#cont_puntuacion').html(e.html);
+                        $('.star-radio').rating({
+                            required: true,
+                            callback: function(value, link) {
+                                enviar_voto(value);
+                            }
+                        });
+                        $("[rel=tooltip]").tooltip({'placement':'top'});
+                    });
+                }
+            }
+        });
+    }
+    
+    
+    
+    
+    $("#en_desc").live('click', function(event) {
+        $.ajax({ url: 'https://www.epublibre.org/libro/libroclick/ajax/34839' });
+    });
+    
+    
+    
+    
+	var editor = new wysihtml5.Editor("txt_informe", {
+		toolbar:        "toolbar",
+        autolink:       false,
+		parserRules:    wysihtml5ParserRules,
+		useLineBreaks:  true,
+        autoLink:       false
+	});
+	
+	
+	
+	function enviar()
+	{
+		error = false;
+		if ($('#txt_informe').val()=='')
+		{
+			$('#error_contenido').css('display','');
+			error = true;
+		}
+        else
+            $('#error_contenido').css('display','none');
+        if ($('#txt_tipo_errata').val()=='ne')
+        {
+            $('#error_tipo').css('display','');
+            error = true;
+        }
+        else
+            $('#error_tipo').css('display','none');
+        if (!error)
+        {
+            var en = document.getElementById('txt_enlace').value;
+            var patron = /^http[s]?:\/\//;
+            if ((en!='') && (!en.toLowerCase().match(patron)))
+            {
+                $('#error_enlace').css('display','');
+                error = true;
+            }
+            else
+            {
+                $('#error_enlace').css('display','none');
+                error = false;
+            }
+        }
+		if (error) return false;
+		document.forms["myform"].submit();
+        return false;
+	}
+	
+    
+    
+	$("#prevenir").live('click', function(event) {
+		event.preventDefault();
+	});
+	
+    
+    
+	function tipo(txt) {
+        if (txt!="ne") {
+            $('#error_tipo').css('display','none');
+        }
+        if (txt=="libro") {
+            $('#vers_errata').css('display','');
+            $('#cont_enlaces').css('display','');
+        }
+        else {
+            $('#vers_errata').css('display','none');
+            $('#cont_enlaces').css('display','none');
+        }
+	}
+	
+    
+    
+    function continuar_zbigz() {
+        enlace = $("#enlace_zbigz").val();
+        window.open('http://m.zbigz.com/myfiles?url='+enlace);
+        $('#modal_zbigz').modal('hide');
+    }
+</script>
+</div>
+
+
+
+<div class="bg_blanco">
+	<div class="row pad_tabla">
+	<table width="100%">
+		<tr>
+            			<td class="contenido" style="max-width:630px;">
+              
+                
+                                
+			
+				
+                <div><div class="titulo">El alma del hombre bajo el socialismo</div></div><div> <div class="detalle"><div class="negrita">Sinopsis</div><div class="ali_justi"><span>Para un escritor como Wilde, las apreciaciones evidenciadas en el libro <i>El alma del hombre bajo el socialismo</i>, parecieran no corresponder a su entelequia, en la que merodea otra clase de ficción: la utopía del hombre visto desde sus propias mezquindades, pero también con posibilidades de futuro. Por tanto, es un libro reflexivo que condensa todo su pensamiento en cuanto a las ideas políticas, la utopía y el sentido del arte.</span></div><br/><table width="100%"><tr><td valign="top" width="42%">  <div class="negrita"> Autores </div> <div class="ali_justi"> <span> <table> <tr> <td class="celda-rotulo"> <div class="label"> Escritor </div> </td> <td class="negrita txt_azul" nowrap="nowrap"> &nbsp; <a href="https://epublibre.org/autor/index/275">Oscar Wilde</a> </td> </tr> <tr> <td class="celda-rotulo"> <div class="label"> Traductor </div> </td> <td class="negrita txt_azul" nowrap="nowrap"> &nbsp; <a href="https://epublibre.org/autor/index/16767">Jaime Londoño</a> </td> </tr> </table> </span> </div> </td><td valign="top" width="58%">  <div class="negrita"> Géneros </div> <div class="ali_justi"> <span> <table class="negrita"><tr><td class="celda-rotulo"><div class="label">Tipo</div></td><td>&nbsp;No Ficción</td></tr><tr><td class="celda-rotulo"><div class="label">Género</div></td><td>&nbsp;<a href="https://epublibre.org/genero/index/genero/7/10">Ensayo</a></td></tr><tr><td class="celda-rotulo"><div class="label">Temas</div></td><td>&nbsp;<a href="https://epublibre.org/genero/index/subgenero/7/27">Ciencias sociales</a></td></tr></table> </span> </div> </td></tr></table><br/> <br/>  <div class="negrita"> Características adicionales </div> <div style="margin:5px 0px 10px 0px;"> <div class="pull-left margen-det"> <a href="https://epublibre.org/catalogo/anotada"> <img class="sprite car-3" src="https://epublibre.org/img/vacio.png" id="stk" rel="tooltip" title="Edición anotada:<br>El libro contiene anotaciones explicativas"/> </a> </div> <div style="clear:both;"></div> </div>  <br/></div></div>				
+								
+				
+                <div><div class="titulo degradado">Comentarios</div> </div><br/><div><div class="detalle"><div> <a name="comentarios"></a><span><div id="contenido"></div><div id="no_com" class="alert alert-success"><strong>No hay comentarios.</strong></div></span></div></div></div><div id="modal_elim_com" class="modal modal-danger hide fade" tabindex="-1" role="dialog" aria-labelledby="myModalLabel" aria-hidden="true"><div class="modal-header"><button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button><h4 id="myModalLabel">Retirar comentario</h4></div><form action="https://www.epublibre.org/libro/retirar_comentario/34839" method="post" accept-charset="utf-8" id="eliminar" name="eliminar"><div style="display:none"><input type="hidden" name="csrf_test_name" value="757f9cc327a65c87f06ee2f2f69bfc89" /></div><div class="modal-body"><p>¿Estás seguro de que deseas retirar el comentario publicado?</p><input type="hidden" id="eliminar_msj" name="eliminar_msj"/> <input type="hidden" id="epl_id" name="epl_id" value="34839"/></div><div class="modal-footer"><button name="bt_entrar" type="button" class="btn btn-small btn-primary" onclick="javascript:retirar_msj();" >Retirar</button><button class="btn btn-small btn-danger" data-dismiss="modal" aria-hidden="true">Cancelar</button></div></form></div><script type="text/javascript"> 	$("#pagina a").live('click', function(event) {	event.preventDefault();	});			$("#pagina a").live('click', function() {	var url = $(this).attr("href");	var n = url.lenght;	if (url.substring(n-1,n)=='#') exit;	if (url.lastIndexOf("/")==url.length-1) {url = url + "0"};	url = url + "/ajax"; var tam_pag = $("#paginador").height();	$("#paginador").html('<img alt="" height="25" width="25" src="https://www.epublibre.org//img/ajax.gif" />').height(tam_pag);	$.ajax({	cache: false,	type: "POST",	url: url,	dataType: 'json',	success: function(e) {	$('#contenido').html(e.contenido);	$('#paginador').html(e.paginacion);	$('#loading').addClass('nomostrar');	$("#loading").html('');	$("[rel=tooltip1]").tooltip({'placement':'top'});	}	});	});	 var contenido_comentario = ''; 	function edit_msj(id){ $("#contenido [role=button]").css('display','none'); $("#formulario_com").css('display','none'); $("#contenido_com_"+id).css('display','none'); contenido_comentario = $("#edit").val(); $("#editor").css('display', '');	}	 	function cancel_msj(id){ $("#contenido [role=button]").css('display',''); $("#formulario_com").css('display',''); $("#contenido_com_"+id).css('display',''); $("#editor").css('display', 'none'); $("#edit").val(contenido_comentario); contenido_comentario = '';	}	 	function guardar_msj(id) {	var url = "https://www.epublibre.org/libro/editar_comentario/ajax"; var texto = $("#contenido_com_"+id).html();	$("#contenido_com_"+id).html('<img alt="" height="31" width="31" src="https://www.epublibre.org//img/ajax.gif" />'); $("#editor").css('display','none'); $("#contenido_com_"+id).css('display', '');	$.ajax({	cache: false,	type: "POST",	url: url,	dataType: 'json', data: $("#form_edicion").serialize(),	success: function(e) { if (e.error!='') { $("#com_error").html(e.error); $("#com_error").css('display', ''); $("#contenido_com_"+id).html(texto); } else { $('#contenido_com_'+id).html(e.contenido); } $("#contenido [role=button]").css('display',''); $("#formulario_com").css('display','');	}	});	}	 	function del_msj(id){	document.forms['eliminar'].elements['eliminar_msj'].value = id;	}	 	function retirar_msj() {	var url = "https://www.epublibre.org/libro/retirar_comentario/ajax"; var id = $("#eliminar_msj").val(); var texto = $("#contenido_com_"+id).html(); $("#com_error").css('display', 'none'); $("#contenido [role=button]").css('display','none'); $("#contenido_com_"+id).html('<img alt="" height="31" width="31" src="https://www.epublibre.org//img/ajax.gif" />'); $("#cont_com").css('display','none'); $("#modal_elim_com").modal('hide');	$.ajax({	cache: false,	type: "POST",	url: url,	dataType: 'json', data: $("#eliminar").serialize(),	success: function(e) { if (e!='') { $("#com_error").html(e); $("#com_error").css('display', ''); $("#contenido_com_"+id).html(texto); $("#cont_com").css('display', ''); $("#contenido [role=button]").css('display',''); } else { $("#com_"+id).remove(); $("#com_publicado").html('El comentario se ha retirado correctamente') .hide() .slideToggle(500) .delay(3500) .slideToggle(500, function() { $("#cont_com").css('display', ''); $("#contenido [role=button]").css('display',''); }); }	}	});	}	 	function nuevo_msj() { var val = $("#comentario").val(); if ((val=='') || (val.length<5)) { $("#com_error").html('El comentario debe tener 5 caracteres de longitud como mínimo.').css('display',''); return false; } $(".alert-error").css('display', 'none');	var url = "https://www.epublibre.org/libro/comentario_nuevo/ajax"; $("#cont_com").css('display', 'none');	$("#temporizador").html('<div class="alert alert-success txt_mediana"><img alt="" height="31" width="31" src="https://www.epublibre.org//img/ajax.gif" />&nbsp;&nbsp;&nbsp;Enviando comentario...</div>');	$.ajax({	cache: false,	type: "POST",	url: url,	dataType: 'json', data: $("#form_nuevo").serialize(),	success: function(e) { if (e.error!='') { $("#com_error").html(e.error); $("#com_error").css('display', ''); $("#cont_com").css('display', ''); } else {  if ($("#editor").length) $("#editor").remove(); if ($("#btn_editar").length) $("#btn_editar").remove();  var div = document.createElement("div"); $(div).addClass("alert alert-success") .attr("id", "com_"+e.id) .html(e.contenido) .prependTo($("#contenido")) .hide() .slideToggle(300); $("#contenido [role=button]").css('display','none'); if ($("#no_com").length) $("#no_com").css('display','none'); $("#com_publicado").html('El comentario se ha publicado correctamente') .hide() .slideToggle(500) .delay(3500) .slideToggle(500,function() { $("#cont_com").css('display', ''); $("#contenido [role=button]").css('display',''); }); } $("#comentario").val(''); $("#temporizador").html('');	}	});	}	  function conf_traslado() { if($("input[name='com_sel[]']:checked").length > 0) { $("#error_seleccion").css("display", "none"); $("#modal_conf_traslado").modal("show"); } else $("#error_seleccion").css("display", ""); }  function realizar_traslado() { var id_hilo = $("#id_hilo").val(); if ((id_hilo=='') || (($.isNumeric(id_hilo)) && (id_hilo>0))) { $("#modal_conf_traslado #error_id_hilo").css("display", "none"); if ($("#hilo").val()!='') { $("#modal_conf_traslado #error_hilo").css("display", "none"); $("#titulo_hilo").val($("#hilo").val()); $("#id_hilo_ex").val(id_hilo); var contenido = '<div class="alert alert-success">Realizando traslado de los comentarios....&nbsp;&nbsp<img alt="" height="31" width="31" src="https://www.epublibre.org/img/ajax.gif" /></div>'; $("#modal_conf_traslado .modal-body").html(contenido); $("#modal_conf_traslado .modal-footer").css("display", "none"); $("#trasladar_com").submit(); } else $("#modal_conf_traslado #error_hilo").css("display", ""); } else $("#modal_conf_traslado #error_id_hilo").css("display", ""); }</script>				
+				
+			</td>
+                            
+                <td class="banda-separacion"></td>
+                
+                <td class="mensajes">
+                                                    
+                            <div>
+
+	
+	<div>
+		<div class="span4 titulo">
+			Lo que te estás perdiendo...
+			<br/>
+		</div>
+	</div>
+	
+    
+	<div>
+        <div class="span4 pad_similar">
+            <br/>
+            <span>
+            <ul>
+                <li>Libros similares</li>
+                <li>Premios recibidos</li>
+                <li>Usuarios que lo han leído</li>
+                <li>Más títulos del mismo autor</li>
+                <li>Usuarios que lo tienen</li>
+                <li>Informes de erratas</li>
+                <li>Añadir libros a tu biblioteca personal</li>
+            </ul>
+            <br/>
+            Para poder disfrutar de esa información
+            <br/>
+            <strong><a href="https://www.epublibre.org/acceso/login">accede a tu cuenta</a></strong> si ya estás registrado, o
+            <br/>
+            <strong><a href="https://www.epublibre.org/acceso/solicitar">solicita tu acceso</a></strong> a la comunidad <strong>EPL.</strong>
+            </span>
+        </div>
+    </div>
+    
+	<br/>
+</div>                            
+                                        </td>
+            		</tr>
+	</table>
+</div></div>
+
+
+
+<script type="text/javascript">
+	
+    $('.popover-libro').popover({trigger:'hover',html:true,placement:'top'});
+    $('.popover-usuario').popover({
+          trigger: 'hover', html: true, placement:'top',
+          template: '<div class="popover popover-pequeno"><div class="arrow"></div><div class="popover-inner"><h3 class="popover-title"></h3><div class="popover-content"><p></p></div></div></div>'
+    });
+    $("[rel=tooltip1]").tooltip({'placement':'top'});
+    
+	
+	
+    $("img").error(function() {
+        $(this).css("display", "none");
+    });
+    
+	
+</script>
+			
+			
+			
+			<div class="row">
+	<div class="span12 foot">
+		<div>
+			<div class="pull-left pad negrita">
+				&copy; 2013 - epublibre | proyecto scriptorium
+			</div>
+		</div>
+		<div style="clear:both;"></div>
+	</div>
+</div>			
+			
+		</div>
+		
+		<script type="text/javascript">
+		
+			
+			$('body').on('touchstart.dropdown', '.dropdown-menu', function (e) { e.stopPropagation(); });
+            
+			
+			
+			$("[rel=tooltip]").tooltip({'selector': '','placement':'top'});
+			
+			
+		</script>
+		
+    </body>
+</html>

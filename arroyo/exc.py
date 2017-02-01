@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 
+from appkit import application
+
 
 class _BaseException(Exception):
     def __init__(self, msg, **kwargs):
@@ -16,11 +18,25 @@ class SettingError(_BaseException):
         super().__init__(msg, key=key, value=value, original=original)
 
 
+# Origin related
+class OriginParseError(_BaseException):
+    pass
+
+
 class SourceResolveError(_BaseException):
     pass
 
 
-class PluginArgumentError(Exception):
+class ArgumentsError(application.ArgumentsError, _BaseException):
+    pass
+
+
+# Other
+
+class FatalError(_BaseException):
+    """
+    Used to stop arroyo
+    """
     pass
 
 

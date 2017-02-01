@@ -5,7 +5,7 @@ import unittest
 
 import os
 
-from ldotcommons import fetchers
+from appkit import network
 
 import testapp
 from arroyo.importer import OriginSpec
@@ -40,7 +40,7 @@ class ImporterTest(unittest.TestCase):
 
         self.assertEqual(len(ret['added-sources']), 0)
         self.assertEqual(len(ret['updated-sources']), 0)
-        self.assertTrue(isinstance(e, fetchers.FetchError))
+        self.assertTrue(isinstance(e, network.FetchError))
 
     def test_foo(self):
         app = testapp.TestApp()

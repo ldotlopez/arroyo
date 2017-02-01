@@ -7,9 +7,20 @@ from arroyo import plugin
 import testapp
 
 
-class TestOrigin2:
+warnings.warn("This test doesn't validate keys")
+
+
+class TestOrigin:
+    PARSE_TESTS = []
+    PAGINATION_TESTS = []
+    QUERY_TESTS = []
+
     def setUp(self):
-        settings = {}
+        settings = {
+            'plugin.sourcequery.enabled': True,
+            'plugin.episodequery.enabled': True,
+            'plugin.moviequery.enabled': True
+        }
         settings.update(
             {'plugin.' + x + '.enabled': True
              for x in self.PLUGINS}
@@ -17,7 +28,7 @@ class TestOrigin2:
         self.app = testapp.TestApp(settings)
 
     def test_implementation(self):
-        impl = self.app.get_implementation(
+        impl = self.app.get_extension(
             plugin.Origin,
             self.IMPLEMENTATION_NAME)
 
@@ -28,15 +39,17 @@ class TestOrigin2:
             hasattr(impl, 'process'),
             msg='No process() in {}'.format(impl))
         self.assertTrue(
-            hasattr(impl, 'BASE_URL'),
-            msg='No BASE_URL in {}'.format(impl))
+            hasattr(impl, 'DEFAULT_URI'),
+            msg='No DEFAULT_URI in {}'.format(impl))
 
     def test_pagination(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        origin = self.app.importer.get_origin_for_origin_spec(spec)
+        for (start, expected) in self.PAGINATION_TESTS:
+            origin = self.app.get_extension(
+                plugin.Origin,
+                self.IMPLEMENTATION_NAME,
+                uri=start)
 
-        for (start, expected) in self.PAGINATION_TEST:
-            g = origin.paginate(start or origin.BASE_URL)
+            g = origin.paginate()
             collected = []
 
             while len(collected) < len(expected):
@@ -48,13 +61,45 @@ class TestOrigin2:
             self.assertEqual(collected, expected,
                              msg='Fail pagination for {}'.format(start))
 
+    def test_parse(self):
+        for (sample, n_expected) in self.PARSE_TESTS:
+            origin = self.app.get_extension(
+                plugin.Origin,
+                self.IMPLEMENTATION_NAME)
 
-class EztvTest2(TestOrigin2, unittest.TestCase):
+            with open(testapp.www_sample_path(sample), 'rb') as fh:
+                results = list(origin.parse(
+                    fh.read(), 'html.parser'))
+
+            self.assertEqual(
+                n_expected, len(results),
+                msg="Parse missmatch for {}".format(sample)
+            )
+
+    def test_query_uri(self):
+        origin = self.app.get_extension(
+            plugin.Origin, self.IMPLEMENTATION_NAME
+        )
+
+        for (query, uri) in self.QUERY_TESTS:
+            if not isinstance(query, dict):
+                words = [x for x in query.split(' ') if x]
+                query = {'name-glob': '*' + '*'.join(words) + '*'}
+
+            query = self.app.selector.get_query_from_params(query)
+
+            self.assertEqual(
+                uri,
+                origin.get_query_uri(query),
+                msg='Failed query for {}'.format(repr(query)))
+
+
+class EztvTest(TestOrigin, unittest.TestCase):
     PLUGINS = ['eztv']
     IMPLEMENTATION_NAME = 'eztv'
 
-    PAGINATION_TEST = [
-        # (baseurl, [page_n, page_n+1, ...])
+    PAGINATION_TESTS = [
+        # (baseuri, [page_n, page_n+1, ...])
 
         (None, [
             'https://eztv.ag/page_0'
@@ -74,231 +119,133 @@ class EztvTest2(TestOrigin2, unittest.TestCase):
         # ('https://eztv.ag/foo', None),  # Not sure how to handle this
     ]
 
-    def test_series_index_parse(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        eztv = self.app.importer.get_origin_for_origin_spec(spec)
+    PARSE_TESTS = [
+        ('eztv-page-0.html', 50),
+        ('eztv-bsg.html', 96),
+    ]
 
-        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
-            res = eztv.parse_series_index(fh.read())
-
-        self.assertEqual(
-            res['The Walking Dead'],
-            'https://eztv.ag/shows/428/the-walking-dead/'
-        )
-        self.assertEqual(len(res), 1830)
-
-    def test_series_table_selector(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.IMPLEMENTATION_NAME)
-        eztv = self.app.importer.get_origin_for_origin_spec(spec)
-
-        with open(testapp.www_sample_path('eztv-series-index.html')) as fh:
-            table = eztv.parse_series_index(fh.read())
-
-        self.assertEqual(
-            eztv.get_url_for_series(table, 'Battlestar Galactica'),
-            'https://eztv.ag/shows/18/battlestar-galactica/'
-        )
-
-        self.assertEqual(
-            eztv.get_url_for_series(table, 'battlestar galactica'),
-            'https://eztv.ag/shows/18/battlestar-galactica/'
-        )
-
-        self.assertEqual(
-            eztv.get_url_for_series(table, 'the leftovers'),
-            'https://eztv.ag/shows/1060/the-leftovers/'
-        )
-
-        with self.assertRaises(KeyError):
-            eztv.get_url_for_series(table, 'foo')
-
-
-class TestOrigin:
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        warnings.warn("TestOrigin doesn't validate keys")
-
-    def setUp(self):
-        settings = {}
-        settings.update(
-            {'plugin.' + x + '.enabled': True
-             for x in self.PLUGINS}
-        )
-        self.app = testapp.TestApp(settings)
-
-    def test_implementation(self):
-        impl = self.app.get_implementation(plugin.Origin, self.BACKEND)
-        self.assertTrue(
-            hasattr(impl, 'paginate'),
-            msg='No paginate() in {}'.format(impl))
-        self.assertTrue(
-            hasattr(impl, 'process'),
-            msg='No process() in {}'.format(impl))
-        self.assertTrue(
-            hasattr(impl, 'BASE_URL'),
-            msg='No BASE_URL in {}'.format(impl))
-
-    def test_initial_seed(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
-        origin = self.app.importer.get_origin_for_origin_spec(spec)
-
-        g = origin.paginate(origin.BASE_URL)
-        self.assertEqual(next(g), origin.BASE_URL)
-
-    def test_pagination(self):
-        spec = plugin.OriginSpec(name='foo', backend=self.BACKEND)
-        origin = self.app.importer.get_origin_for_origin_spec(spec)
-
-        for (start, expected) in self.PAGINATIONS.items():
-            start = start or origin.BASE_URL
-            g = origin.paginate(start)
-            collected = []
-
-            while len(collected) < len(expected):
-                try:
-                    collected.append(next(g))
-                except StopIteration:
-                    collected.append(None)
-
-            self.assertEqual(collected, expected)
-
-    def test_processors(self):
-        for (url, n_expected) in self.URL_TESTS:
-            spec = plugin.OriginSpec(
-                name='foo', backend=self.BACKEND, url=url)
-
-            srcs = self.app.importer.process_spec(spec)
-            srcs = srcs['added-sources'] + srcs['updated-sources']
-            self.assertEqual(
-                len(srcs), n_expected,
-                msg='From {}'.format(url))
-
-
-class TestEztv(TestOrigin, unittest.TestCase):
-    PLUGINS = ['eztv']
-    BACKEND = 'eztv'
-    KEYS = ['language', 'name', 'timestamp', 'type', 'uri']
-    PAGINATIONS = {
-        # Default
-        None: ['https://eztv.ag/page_{}'.format(i) for i in [0, 1, 2]],
-
-        # TV Show page
-        'http://eztv.it/shows/123/show-title/':
-            ['http://eztv.it/shows/123/show-title/', None],
-
-        # TDL change and start at page 3
-        'https://eztv.xx/page_2':
-            ['https://eztv.xx/page_{}'.format(i) for i in [2, 3]]
-
-    }
-    URL_TESTS = [
-        ('http://eztv.ag/page/0', 41)
+    QUERY_TESTS = [
+        ('foo', None),
+        (dict(kind='episode', series='lost'), 'https://eztv.ag/search/lost'),  # nopep8
+        (dict(kind='episode', series='youre the worst'), 'https://eztv.ag/search/youre-the-worst')  # nopep8
     ]
 
 
-class TestKickass(TestOrigin, unittest.TestCase):
+class ElitetorrentTest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['elitetorrent']
+    IMPLEMENTATION_NAME = 'elitetorrent'
+
+    PAGINATION_TESTS = [
+        # (baseuri, [page_n, page_n+1, ...])
+    ]
+
+    PARSE_TESTS = [
+        ('elitetorrent-listing.html', 48),
+        ('elitetorrent-search-result.html', 48),
+        ('elitetorrent-detail.html', 1),
+    ]
+
+    QUERY_TESTS = [
+        (
+            'new girl',  # language=esp-es required
+            None,
+        ),
+        (
+            dict(name='new girl', language='spa-es'),
+            'http://www.elitetorrent.net/resultados/new+girl/orden:fecha',
+        ),
+    ]
+
+
+class EpublibreTest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['epublibre']
+    IMPLEMENTATION_NAME = 'epublibre'
+
+    PAGINATION_TESTS = [
+    ]
+
+    PARSE_TESTS = [
+        ('epublibre-listado.html', 18),
+        ('epublibre-detalle.html', 1)
+    ]
+
+    QUERY_TESTS = [
+    ]
+
+
+class KickassTest(TestOrigin, unittest.TestCase):
     PLUGINS = ['kickass']
-    BACKEND = 'kickass'
-    KEYS = []
-    PAGINATIONS = {
-        # Default
-        None: ['http://kat.cr/new/?page=1'],
+    IMPLEMENTATION_NAME = 'kickass'
 
-        # Index at 7
-        'http://kat.cr/usearch?foo=bar&page=8&lol=wow':
-            ['http://kat.cr/usearch?foo=bar&page={}&lol=wow'.format(i)
-             for i in range(8, 17)],
+    PAGINATION_TESTS = [
+        # (baseuri, [page_n, page_n+1, ...])
 
-        'http://kat.cr/usearch/category%3Atv%200sec/?page=1':
-            ['http://kat.cr/usearch/category%3Atv%200sec/?page={}'.format(i)
-             for i in range(1, 5)]
-    }
-    URL_TESTS = [
-        (r'http://kat.cr/usearch/category%3Atv%200sec/', 25)
+        (None, [
+            'https://kickass.cd/new/',
+            'https://kickass.cd/new/2/'
+        ]),
+
+        ('https://kickass.cd/new/15/', [
+            'https://kickass.cd/new/15/',
+            'https://kickass.cd/new/16/',
+            'https://kickass.cd/new/17/'
+        ]),
+
+        ('https://kickass.cd/usearch/the+walking+dead/', [
+            'https://kickass.cd/usearch/the+walking+dead/',
+            'https://kickass.cd/usearch/the+walking+dead/2/'
+        ]),
+
+        ('https://kickass.cd/tv/?field=size&sorder=desc', [
+            'https://kickass.cd/tv/?field=size&sorder=desc',
+            'https://kickass.cd/tv/2/?field=size&sorder=desc',
+            'https://kickass.cd/tv/3/?field=size&sorder=desc'
+        ]),
+
+        ('https://kickass.cd/usearch/lost/?field=time_add&sorder=desc', [
+            'https://kickass.cd/usearch/lost/?field=time_add&sorder=desc',
+            'https://kickass.cd/usearch/lost/2/?field=time_add&sorder=desc'
+        ]),
+
+        ('https://kickass.cd/no-final-slash', [
+            'https://kickass.cd/no-final-slash/',
+            'https://kickass.cd/no-final-slash/2/',
+        ]),
+
+        # ('https://eztv.ag/foo', None),  # Not sure how to handle this
+    ]
+
+    PARSE_TESTS = [
+        ('kat-new.html', 30),
+        ('kat-avs-search.html', 30),
+        ('kat-full.html', 120)
+    ]
+
+    QUERY_TESTS = [
+        (
+            'the big bang theory',
+            'https://kickass.cd/usearch/the+big+bang+theory/?field=time_add&sorder=desc'  # nopep8
+        ),
+        (
+            dict(kind='episode', series='the big bang theory'),
+            'https://kickass.cd/usearch/the+big+bang+theory+category%3Atv/?field=time_add&sorder=desc'  # nopep8
+        )
     ]
 
 
-class TestSpanishTracker(TestOrigin, unittest.TestCase):
-    PLUGINS = ['spanishtracker']
-    BACKEND = 'spanishtracker'
-    KEYS = [
-        'language', 'leechers', 'name', 'seeds', 'size', 'timestamp',
-        'type', 'uri'
-    ]
-    PAGINATIONS = {
-        'http://spanishtracker.com/torrents.php?aaa=bbb&foo=bar&page=3':
-            ['http://spanishtracker.com/torrents.php?aaa=bbb&foo=bar&page={}'.format(i)
-             for i in [3, 4, 5]]
-    }
-    URL_TESTS = []
+class TorrentAPITest(TestOrigin, unittest.TestCase):
+    PLUGINS = ['torrentapi']
+    IMPLEMENTATION_NAME = 'torrentapi'
 
-
-class TestTpb(TestOrigin, unittest.TestCase):
-    PLUGINS = ['thepiratebay']
-    BACKEND = 'thepiratebay'
-    KEYS = ['leechers', 'name', 'seeds', 'size', 'timestamp', 'uri']
-    PAGINATIONS = {
-        'http://thepiratebay.com/recent/0/':
-            ['http://thepiratebay.com/recent/{}/'.format(i)
-             for i in range(2)],
-
-        'http://thepiratebay.com/recent/45/':
-            ['http://thepiratebay.com/recent/{}/'.format(i)
-             for i in [45, 46]],
-
-        'http://thepiratebay.com/recent/8/b/':
-            ['http://thepiratebay.com/recent/{}/b/'.format(i)
-             for i in [8, 9]]
-    }
-    URL_TESTS = [
-        ('https://thepiratebay.am/recent', 30),
-        ('https://thepiratebay.am/search/a/0/99/0', 30)
+    PAGINATION_TESTS = [
     ]
 
+    PARSE_TESTS = [
+        ('torrentapi-listing.json', 25)
+    ]
 
-class TestTpbRss(TestOrigin, unittest.TestCase):
-    PLUGINS = ['thepiratebay']
-    BACKEND = 'tpbrss'
-    KEYS = ['name', 'size', 'timestamp', 'uri']
-    PAGINATIONS = {}
-    URL_TESTS = []
-
-
-#     def test_processing(self):
-
-#         tests = (
-#             (eztv, 'eztv_main.html', 50, eztv_keys),
-#             (eztv, 'eztv_show.html', 84, eztv_keys),
-
-#             (tpb, 'tpb_main.html', 30, tpb_keys),
-#             (tpb, 'tpb_user.html', 30, tpb_keys),
-
-#             (tpbrss, 'tpbrss_main.html', 60, tpbrss_keys),
-
-#             (spanishtracker, 'spanishtracker_main.html', 30,
-#              spanishtracker_keys)
-#         )
-
-#         for (mod, sample, nelements, keys) in tests:
-#             sample = path(__file__).dirname() / "samples" / sample
-#             fh = open(sample)
-#             res = mod.process(fh.read())
-#             fh.close()
-
-#             self.assertEqual(len(res), nelements,
-#                              msg="wrong processing on {}".format(sample))
-
-#             for r in res:
-#                 language = r.get('language', None)
-#                 if language:
-#                     self.assertIsNotNone(
-#                         re.match(r'^[a-z]{2}(-[a-z]{2,3})?$', language),
-#                         msg='Language {} invalid in {}'.format(language, mod))
-
-#                 self.assertEqual(
-#                     sorted(r.keys()),
-#                     sorted(keys),
-#                     msg="Results from {} doesn't matches keys".format(mod))
+    QUERY_TESTS = [
+    ]
 
 
 if __name__ == '__main__':

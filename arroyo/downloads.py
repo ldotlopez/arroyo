@@ -1,25 +1,27 @@
 # -*- coding: utf-8 -*-
 
+
 import base64
 import binascii
 import hashlib
 import re
 from urllib import parse
 
+
 import bencodepy
+
+import arroyo.exc
 from arroyo import (
-    cron,
-    exc,
-    extension,
+    kit,
     models
 )
 
 
-class BackendError(exc._BaseException):
+class BackendError(arroyo.exc._BaseException):
     pass
 
 
-class ResolveError(exc._BaseException):
+class ResolveError(arroyo.exc._BaseException):
     pass
 
 
@@ -30,9 +32,10 @@ class Downloads:
     """
 
     def __init__(self, app, logger=None):
+        app.register_extension_point(Downloader)
+        app.register_extension_class(DownloadSyncCronTask)
+        app.register_extension_class(DownloadQueriesCronTask)
         app.signals.register('source-state-change')
-        app.register_extension('download-sync', DownloadSyncCronTask)
-        app.register_extension('download-queries', DownloadQueriesCronTask)
 
         self.app = app
         self.logger = logger or app.logger.getChild('downloads')
@@ -60,8 +63,8 @@ class Downloads:
         try:
             self.backend.add(source)
         except Exception as e:
-            msg = "Downloader '{name}' error"
-            msg.format(name=self.backend_name)
+            msg = "Downloader '{name}' error: {e}"
+            msg = msg.format(name=self.backend_name, e=e)
             raise BackendError(msg, original_exception=e) from e
 
         source.state = models.Source.State.INITIALIZING
@@ -77,16 +80,16 @@ class Downloads:
         self.app.signals.send('source-state-change', source=source)
 
     def add_all(self, *sources):
-        assert \
-            len(sources) > 0 and \
-            all([isinstance(x, models.Source) for x in sources])
+        assert isinstance(sources, list)
+        assert len(sources) > 0
+        assert all([isinstance(x, models.Source) for x in sources])
 
         ret = []
         for src in sources:
             try:
-                added = self.add(src)
+                self.add(src)
                 ret.append((src, True, None))
-            except _BaseException as e:
+            except arroyo.exc_BaseException as e:
                 ret.append((src, False, e))
 
         return ret
@@ -177,7 +180,7 @@ class Downloads:
         }
 
 
-class Downloader(extension.Extension):
+class Downloader(kit.Extension):
     def add(self, source, **kwargs):
         raise NotImplementedError()
 
@@ -194,32 +197,32 @@ class Downloader(extension.Extension):
         raise NotImplementedError()
 
 
-class DownloadSyncCronTask(cron.CronTask):
-    NAME = 'download-sync'
+class DownloadSyncCronTask(kit.Task):
+    __extension_name__ = 'download-sync'
     INTERVAL = '5M'
 
-    def run(self):
+    def execute(self):
         self.app.downloads.sync()
-        super().run()
 
 
-class DownloadQueriesCronTask(cron.CronTask):
-    NAME = 'download-queries'
+class DownloadQueriesCronTask(kit.Task):
+    __extension_name__ = 'download-queries'
     INTERVAL = '3H'
 
-    def run(self):
-        specs = self.app.selector.get_queries_specs()
-        for spec in specs:
-            matches = self.app.selector.matches(spec)
+    def execute(self):
+        queries = self.app.selector.get_configured_queries()
+        for q in queries:
+            matches = self.app.selector.matches(q)
             srcs = self.app.selector.select(matches)
 
             if srcs is None:
                 continue
 
             for src in srcs:
-                self.app.downloads.add(src)
-
-        super().run()
+                try:
+                    self.app.downloads.add(src)
+                except Exception as e:
+                    self.app.logger.error(str(e))
 
 
 def calculate_urns(urn):
@@ -338,3 +341,17 @@ def rewrite_uri(uri):
     query = '&'.join(['{}={}'.format(k, v) for (k, v) in parsed_map])
 
     return 'magnet:?' + query
+
+
+def set_query_params(uri, overwrite=False, **params):
+    parsed = parse.urlparse(uri)
+    qs = parse.parse_qs(parsed.query)
+
+    for (key, val) in params.items():
+        if overwrite or (key not in qs):
+            qs[key] = [val]
+
+    qs = {k: v[-1] for (k, v) in qs.items()}
+    qs = parse.urlencode(qs)
+    parsed = parsed._replace(query=qs)
+    return parse.urlunparse(parsed)

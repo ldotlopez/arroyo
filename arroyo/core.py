@@ -1,70 +1,85 @@
 # -*- coding: utf-8 -*-
 
+
 import argparse
 import asyncio
 import importlib
 import sys
 import warnings
 
-from ldotcommons import (
-    fetchers,
+
+import bs4
+import yaml
+from appkit import (
+    cache,
     keyvaluestore,
+    network,
     logging,
     store,
     utils
 )
+from appkit.application import (
+    commands,
+    cron,
+    services
+)
 
 import arroyo.exc
 from arroyo import (
-    importer,
-    cron,
     db,
     downloads,
-    extension,
+    importer,
+    kit,
     mediainfo,
     models,
     selector,
     signaler
 )
 
+
 #
 # Default values for config
 #
 _defaults = {
-    'db-uri': 'sqlite:///' +
-              utils.user_path('data', 'arroyo.db', create=True),
-    'downloader': 'mock',
+    'async-max-concurrency': 5,
+    'async-timeout': 10,
     'auto-cron': False,
     'auto-import': False,
-    'legacy': False,
-    'log-level': 'WARNING',
-    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
-    'fetcher.enable-cache': True,
+    'db-uri': 'sqlite:///' +
+              utils.user_path(utils.UserPathType.DATA, 'arroyo.db',
+                              create=True),
+    'downloader': 'mock',
     'fetcher.cache-delta': 60 * 20,
+    'fetcher.enable-cache': True,
     'fetcher.headers': {
         'User-Agent':
             'Mozilla/5.0 (X11; Linux x86) Home software (KHTML, like Gecko)',
         },
-    'async-max-concurrency': 5,
-    'async-timeout': 10,
+    'importer.parser': 'auto',
+    'log-format': '[%(levelname)s] [%(name)s] %(message)s',
+    'log-level': 'WARNING',
+    'selector.query-defaults.age-min': '2H',
     'selector.sorter': 'basic'
 }
 
 _defaults_types = {
-    'db-uri': str,
-    'downloader': str,
-    'auto-cron': bool,
-    'auto-import': bool,
-    'log-level': str,
-    'log-format': str,
-    'user-agent': str,
-    'fetcher': dict,
-    'fetcher.enable-cache': bool,
-    'fetcher.cache-delta': int,
-    'fetcher.headers': dict,
     'async-max-concurrency': int,
     'async-timeout': float,
-    'selector.sorter': str
+    'auto-cron': bool,
+    'auto-import': bool,
+    'db-uri': str,
+    'downloader': str,
+    'fetcher': dict,
+    'fetcher.cache-delta': int,
+    'fetcher.enable-cache': bool,
+    'fetcher.headers': dict,
+    'importer': dict,
+    'importer.parser': str,
+    'log-format': str,
+    'log-level': str,
+    'selector': dict,
+    'selector.sorter': str,
+    'selector.query-defaults': str
 }
 
 #
@@ -72,94 +87,61 @@ _defaults_types = {
 #
 _plugins = [
     # Commands
-    'configcmd', 'croncmd', 'dbcmd', 'downloadcmd', 'importcmd',
-    'mediainfocmd', 'searchcmd',
+    'commands.config',
+    'commands.cron',
+    'commands.db',
+    'commands.download',
+    'commands.import',
+    'commands.mediainfo',
+    'commands.search',
 
     # Downloaders
-    'mockdownloader', 'transmission',
+    'downloaders.mock',
+    'downloaders.transmission',
 
     # Filters
-    'sourcefilters', 'episodefilters', 'mediainfofilters', 'moviefilters',
+    'filters.episodefields',
+    'filters.mediainfo',
+    'filters.moviefields',
+    'filters.sourcefields',
 
-    # Origins
-    'elitetorrent', 'eztv', 'kickass', 'spanishtracker', 'thepiratebay',
+    # Providers
+    'providers.elitetorrent',
+    'providers.epublibre',
+    'providers.eztv',
+    'providers.generic',
+    'providers.kickass',
+    'providers.thepiratebay',
+    'providers.torrentapi',
 
     # Sorters
-    'basicsorter',
+    'sorters.basic',
 
     # Queries
-    'sourcequery', 'episodequery', 'moviequery'
-    ]
+    'queries.episode',
+    'queries.movie',
+    'queries.source',
+]
 
-_defaults.update({'plugin.{}.enabled'.format(x): True
+_defaults.update({'plugins.{}.enabled'.format(x): True
                   for x in _plugins})
 
 
-def build_argument_parser():
-        parser = argparse.ArgumentParser(add_help=False)
-        parser.add_argument(
-            '-h', '--help',
-            action='store_true',
-            dest='help')
+def build_basic_settings(arguments=None):
+    if arguments is None:
+        arguments = []
 
-        parser.add_argument(
-            '-v', '--verbose',
-            dest='verbose',
-            default=0,
-            action='count')
-
-        parser.add_argument(
-            '-q', '--quiet',
-            dest='quiet',
-            default=0,
-            action='count')
-
-        parser.add_argument(
-            '-c', '--config-file',
-            dest='config-files',
-            action='append',
-            default=[])
-
-        parser.add_argument(
-            '--plugin',
-            dest='plugins',
-            action='append',
-            default=[])
-
-        parser.add_argument(
-            '--db-uri',
-            dest='db-uri')
-
-        parser.add_argument(
-            '--downloader',
-            dest='downloader')
-
-        parser.add_argument(
-            '--auto-import',
-            default=None,
-            action='store_true',
-            dest='auto-import')
-
-        parser.add_argument(
-            '--auto-cron',
-            default=None,
-            action='store_true',
-            dest='auto-cron')
-
-        return parser
-
-
-def build_basic_settings(arguments=[]):
     global _defaults, _plugins
 
     # The first task is parse arguments
-    argparser = build_argument_parser()
+    argparser = kit.CommandManager.build_base_argument_parser()
     args, remaining = argparser.parse_known_args()
 
     # Now we have to load default and extra config files.
     # Once they are loaded they are useless in 'args'.
     config_files = getattr(args, 'config-files',
-                           utils.user_path('config', 'arroyo.yml'))
+                           utils.user_path(utils.UserPathType.CONFIG,
+                                           'arroyo.yml'))
 
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
@@ -209,21 +191,99 @@ def build_basic_settings(arguments=[]):
     return store
 
 
-# class EncodedStreamHandler(logging.StreamHandler):
-#     def __init__(self, encoding='utf-8', *args, **kwargs):
-#         super(EncodedStreamHandler, self).__init__(*args, **kwargs)
-#         self.encoding = encoding
-#         self.terminator = self.terminator.encode(self.encoding)
+class Arroyo(services.ApplicationMixin, kit.Application):
+    def __init__(self, settings=None):
+        super().__init__('arroyo')
 
-#     def emit(self, record):
-#         try:
-#             msg = self.format(record).encode(self.encoding)
-#             stream = self.stream
-#             stream.buffer.write(msg)
-#             stream.buffer.write(self.terminator)
-#             self.flush()
-#         except Exception:
-#             self.handleError(record)
+        self.settings = settings or build_basic_settings([])
+
+        # Build and configure logger
+        self.logger = logging.getLogger('arroyo')
+
+        lvlname = self.settings.get('log-level')
+        lvl = getattr(logging.Level, lvlname)
+        self.logger.setLevel(lvl.value)  # Modify level on on the handler
+
+        # Auto setting: importer parser
+        if self.settings.get('importer.parser') == 'auto':
+            for parser in ['lxml', 'html.parser', 'html5lib']:
+                try:
+                    bs4.BeautifulSoup('', parser)
+                    self.settings.set('importer.parser', parser)
+                    msg = "Using '{parser}' as bs4 parser"
+                    msg = msg.format(parser=parser)
+                    self.logger.debug(msg)
+                    break
+                except bs4.FeatureNotFound:
+                    pass
+            else:
+                msg = "Unable to find any parser"
+                raise ValueError(msg)
+
+        # Configure fetcher object
+        fetcher_opts = self.settings.get('fetcher')
+        fetcher_opts = {
+            k.replace('-', '_'): v
+            for (k, v) in fetcher_opts.items()
+        }
+
+        logger = self.logger.getChild('fetcher')
+        enable_cache = fetcher_opts.pop('enable_cache')
+        cache_delta = fetcher_opts.pop('cache_delta')
+
+        self.fetcher = ArroyoAsyncFetcher(
+            logger=logger,
+            enable_cache=enable_cache,
+            cache_delta=cache_delta,
+            max_requests=self.settings.get('async-max-concurrency'),
+            timeout=self.settings.get('async-timeout'),
+            **fetcher_opts
+        )
+
+        # Built-in providers
+        self.db = db.Db(self.settings.get('db-uri'))
+        self.variables = keyvaluestore.KeyValueManager(models.Variable,
+                                                       session=self.db.session)
+        self.signals = signaler.Signaler()
+        self.commands = kit.CommandManager(self)
+        self.cron = kit.CronManager(self)
+
+        self.importer = importer.Importer(self)
+        self.selector = selector.Selector(self)
+        self.downloads = downloads.Downloads(self)
+
+        # Mediainfo instance is not never used directly, it can be considered
+        # as a "service", but it's keep anyway
+        self.mediainfo = mediainfo.Mediainfo(self)
+
+        # Load plugins
+        # FIXME: Search for enabled plugins thru the keys of settings is a
+        # temporal solution.
+        plugins = filter(lambda x: x.startswith('plugins.') and x.endswith('.enabled'),
+                         self.settings.all_keys())
+        plugins = map(lambda x: x[len('plugins.'):-len('.enabled')],
+                      plugins)
+
+        for p in set(plugins):
+            if self.settings.get('plugins.' + p + '.enabled', default=False):
+                self.load_plugin(p)
+
+        # Run cron tasks
+        if self.settings.get('auto-cron'):
+            self.cron.execute_all()
+
+    # @classmethod
+    # def build_argument_parser(cls):
+    #     return build_argument_parser()
+
+    def execute(self, *args):
+        try:
+            return self.commands.execute(*args)
+
+        except (arroyo.exc.BackendError,
+                arroyo.exc.NoImplementationError,
+                arroyo.exc.FatalError) as e:
+            self.logger.critical(e)
 
 
 class ArroyoStore(store.Store):
@@ -248,7 +308,7 @@ class ArroyoStore(store.Store):
             items=items,
             validators=[store.TypeValidator(_defaults_types)]
         )
-        self._logger = logging.get_logger('arroyo.settings')
+        self._logger = logging.getLogger('arroyo.settings')
 
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
@@ -262,234 +322,65 @@ class ArroyoStore(store.Store):
         # self._logger = logging.getLogger('arroyo.settings')
         # self._logger.addHandler(handler)
 
-    def get(self, *args, **kwargs):
-        try:
-            return super().get(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+    def set(self, key, value):
+        parts = key.split('.')
 
-    def set(self, *args, **kwargs):
-        try:
-            return super().set(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
+            msg = "[Configuration Error] Origins use 'provider' instead of 'backend'"
+            raise ValueError(msg)
 
-    def delete(self, *args, **kwargs):
-        try:
-            super().delete(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        if key.startswith('plugin.'):
+            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            raise ValueError(msg)
 
-    def children(self, *args, **kwargs):
-        try:
-            return super().children(*args, **kwargs)
-        except (
-            store.IllegalKeyError,
-            store.KeyNotFoundError,
-            store.ValidationError
-        ) as e:
-            self._logger.error(str(e))
-            raise
+        return super().set(key, value)
+
+    def get(self, key, default=store.UNDEFINED):
+        if key.startswith('plugin.'):
+            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            raise ValueError(msg)
+
+        return super().get(key, default=default)
+
+    def dump(self, stream):
+        buff = yaml.dump(self.get(None), )
+        stream.write(buff)
+
+    def load(self, stream):
+        data = store.flatten_dict(yaml.load(stream.read()))
+
+        for (k, v) in data.items():
+            self.set(k, v)
 
 
-class Arroyo:
-    def __init__(self, settings=None):
-        self.settings = settings or build_basic_settings([])
+class ArroyoAsyncFetcher(network.AsyncFetcher):
+    def __init__(self, *args, enable_cache=False, cache_delta=-1, timeout=-1,
+                 **kwargs):
 
-        # Support structures for plugins
-        self._services = {}
-        self._registry = {}
+        logger = kwargs.get('logger', None)
 
-        # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # handler.setFormatter(logging.Formatter(
-        #     self.settings.get('log-format')))
-        # self.logger = logging.getLogger('arroyo')
-        # self.logger.addHandler(handler)
-        self.logger = logging.get_logger('arroyo')
+        self._timeout = timeout
 
-        lvlname = self.settings.get('log-level')
-        self.logger.setLevel(getattr(logging, lvlname))
+        if enable_cache:
+            fetcher_cache = cache.DiskCache(
+                basedir=utils.user_path(utils.UserPathType.CACHE, 'network',
+                                        create=True, is_folder=True),
+                delta=cache_delta,
+                logger=logger)
 
-        # Configure fetcher object
-        fetcher_opts = self.settings.get('fetcher')
-        fetcher_opts = {
-            k.replace('-', '_'): v
-            for (k, v) in fetcher_opts.items()
-        }
+            if logger:
+                msg = "{clsname} using cachepath '{path}'"
+                msg = msg.format(clsname=self.__class__.__name__,
+                                 path=fetcher_cache.basedir)
+                logger.debug(msg)
+        else:
+            fetcher_cache = None
 
-        enable_cache = fetcher_opts.pop('enable_cache')
-        cache_delta = fetcher_opts.pop('cache_delta')
-        logger = self.logger.getChild('fetcher')
+        kwargs['cache'] = fetcher_cache
+        super().__init__(*args, **kwargs)
 
-        self.fetcher = fetchers.AIOHttpFetcherWithAcessControl(
-            logger=logger,
-            enable_cache=enable_cache,
-            cache_delta=cache_delta,
-            max_reqs=self.settings.get('async-max-concurrency'),
-            timeout=self.settings.get('async-timeout'),
-            **fetcher_opts
-        )
-
-        # Built-in providers
-        self.db = db.Db(self.settings.get('db-uri'))
-        self.variables = keyvaluestore.KeyValueManager(models.Variable,
-                                                       session=self.db.session)
-        self.signals = signaler.Signaler()
-        self.cron = cron.CronManager(self)
-
-        self.importer = importer.Importer(self)
-        self.selector = selector.Selector(self)
-        self.downloads = downloads.Downloads(self)
-
-        # Mediainfo instance is not never used directly, it can be considered
-        # as a "service", but it's keep anyway
-        self.mediainfo = mediainfo.Mediainfo(self)
-
-        # Load plugins
-        # FIXME: Search for enabled plugins thru the keys of settings is a
-        # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugin.'),
-                         self.settings.all_keys())
-        plugins = map(lambda x: x.split('.'), plugins)
-        plugins = filter(lambda x: len(x) >= 2, plugins)
-        plugins = map(lambda x: x[1], plugins)
-
-        for p in set(plugins):
-            if self.settings.get('plugin.' + p + '.enabled', default=True):
-                self.load_plugin(p)
-
-        # Run cron tasks
-        if self.settings.get('auto-cron'):
-            self.cron.run_all()
-
-    def get_fetcher(self):
-        opts = self.settings.get('fetcher', default={})
-        opts = {k.replace('-', '_'): v
-                for (k, v) in opts.items()}
-
-        opts['logger'] = self.logger.getChild('fetcher')
-
-        return fetchers.Fetcher('urllib', **opts)
-
-    def load_plugin(self, name):
-        # Load module
-        module_name = 'arroyo.plugins.' + name
-
-        try:
-            m = importlib.import_module(module_name)
-            mod_exts = getattr(m, '__arroyo_extensions__', [])
-            if not mod_exts:
-                raise ImportError("Plugin doesn't define any extension")
-            for ext_def in mod_exts:
-                self.register_extension(*ext_def)
-
-        except ImportError as e:
-            msg = "Extension '{name}' missing or invalid: {msg}"
-            self.logger.warning(msg.format(name=name, msg=str(e)))
-
-    def register_extension(self, name, cls):
-        # Check extension type
-        typ = None
-        for x in extension.Extension.__subclasses__():
-            if issubclass(cls, x):
-                typ = x
-                break
-
-        if not typ:
-            msg = "Extension '{name}' has invalid type"
-            msg = msg.format(name=name)
-            raise ImportError(msg)
-
-        if typ not in self._registry:
-            self._registry[typ] = {}
-
-        if name in self._registry[typ]:
-            msg = "Extension '{name}' already registered, skipping"
-            msg = msg.format(name=name)
-            raise ImportError(msg)
-
-        self._registry[typ][name] = cls
-
-        if issubclass(cls, extension.Service):
-            if name in self._services:
-                msg = ("Service '{name}' already registered by "
-                       "'{cls}'")
-                msg = msg.format(
-                    name=name,
-                    cls=type(self._services[name]))
-                self.logger.critical(msg)
-            else:
-                try:
-                    self._services[cls] = cls(self)
-                except arroyo.exc.PluginArgumentError as e:
-                    self.logger.critical(str(e))
-
-    def get_implementations(self, extension_point):
-        if isinstance(extension_point, str):
-            raise Exception(extension_point)
-
-        return {k: v for (k, v) in
-                self._registry.get(extension_point, {}).items()}
-
-    def get_implementation(self, extension_point, name):
-        if isinstance(extension_point, str):
-            raise Exception(extension_point)
-
-        impls = self._registry.get(extension_point, {})
-        if name not in impls:
-            raise arroyo.exc.NoImplementationError(extension_point, name)
-
-        return impls[name]
-
-    def get_extension(self, extension_point, name, *args, **kwargs):
-        impl = self.get_implementation(extension_point, name)
-        return impl(self, *args, **kwargs)
-
-    def run_from_args(self, command_line_arguments=sys.argv[1:]):
-        # Build full argument parser
-        argparser = build_argument_parser()
-        subparser = argparser.add_subparsers(
-            title='subcommands',
-            dest='subcommand',
-            description='valid subcommands',
-            help='additional help')
-
-        impls = self.get_implementations(extension.Command).items()
-        subargparsers = {}
-        for (name, cmdcls) in impls:
-            subargparsers[name] = subparser.add_parser(name, help=cmdcls.help)
-            cmdcls.setup_argparser(subargparsers[name])
-
-        # Parse arguments
-        args = argparser.parse_args(command_line_arguments)
-        if not args.subcommand:
-            argparser.print_help()
-            return
-
-        # Get extension instances and extract its argument names
-        ext = self.get_extension(extension.Command, args.subcommand)
-        try:
-            ext.run(args)
-
-        except arroyo.exc.PluginArgumentError as e:
-            subargparsers[args.subcommand].print_help()
-            print("\nError message: {}".format(e), file=sys.stderr)
-
-        except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError) as e:
-            self.logger.critical(e)
+    @asyncio.coroutine
+    def fetch_full(self, *args, **kwargs):
+        kwargs['timeout'] = self._timeout
+        resp, content = yield from super().fetch_full(*args, **kwargs)
+        return resp, content

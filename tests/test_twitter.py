@@ -5,7 +5,7 @@ from arroyo import models
 from testapp import TestApp, mock_source
 
 
-from ldotcommons.messaging import twitter as ldottwitter
+from appkit.messaging import twitter as appkit_twitter
 
 
 class TwitterTest(unittest.TestCase):
@@ -64,7 +64,7 @@ class TwitterTest(unittest.TestCase):
         foo = mock_source('Foo')
         self.app.insert_sources(foo)
 
-        with self.app.hijack(ldottwitter.Twitter, 'send', fake_send):
+        with self.app.hijack(appkit_twitter.Twitter, 'send', fake_send):
             self.app.downloads.add(foo)
             self.app.downloads.backend._update_state(
                 foo,

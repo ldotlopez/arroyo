@@ -1,22 +1,24 @@
 # -*- coding: utf-8 -*-
 
-import hashlib
 import re
-from urllib import parse
 import sys
 
-from ldotcommons import keyvaluestore, utils
-from ldotcommons.sqlalchemy import Base
+from appkit import (
+    keyvaluestore,
+    utils
+)
+from appkit.db import sqlalchemyutils as sautils
 from sqlalchemy import (
-    and_,
-    func,
-    or_,
-    schema,
     Column,
     Integer,
     String,
-    ForeignKey
+    ForeignKey,
+    and_,
+    func,
+    schema
 )
+
+from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     backref,
@@ -25,7 +27,7 @@ from sqlalchemy.orm import (
 )
 
 
-Variable = keyvaluestore.keyvaluemodel('Variable', Base, dict({
+Variable = keyvaluestore.keyvaluemodel('Variable', sautils.Base, dict({
     '__doc__': "Define variables.",
     '__table_args__': (schema.UniqueConstraint('key'),)
     }))
@@ -33,7 +35,7 @@ Variable = keyvaluestore.keyvaluemodel('Variable', Base, dict({
 
 SourceTag = keyvaluestore.keyvaluemodel(
     'SourceTag',
-    Base,
+    sautils.Base,
     dict({
         '__doc__': "Define custom data attached to a source.",
         '__tablename__': 'sourcetag',
@@ -47,7 +49,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
     }))
 
 
-class Source(Base):
+class Source(sautils.Base):
     __tablename__ = 'source'
 
     # TODO: rethink those classes
@@ -271,7 +273,7 @@ class Source(Base):
         return self.format(self.Formats.DEFAULT)
 
 
-class Selection(Base):
+class Selection(sautils.Base):
     __tablename__ = 'selection'
 
     id = Column(Integer, primary_key=True)
@@ -303,7 +305,7 @@ class EpisodeSelection(Selection):
             source=self.source.__repr__())
 
 
-class Episode(Base):
+class Episode(sautils.Base):
     __tablename__ = 'episode'
     __table_args__ = (
         schema.UniqueConstraint('series', 'year', 'season',
@@ -396,7 +398,7 @@ class MovieSelection(Selection):
             source=self.source.__repr__())
 
 
-class Movie(Base):
+class Movie(sautils.Base):
     __tablename__ = 'movie'
     __table_args__ = (
         schema.UniqueConstraint('title', 'year'),
