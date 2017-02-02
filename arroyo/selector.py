@@ -122,6 +122,8 @@ class Selector:
                 year=info.get('year', None),
                 season=info.get('season', None),
                 episode=info.get('episode', None),
+                quality=info.get('screen_size', None),
+                codec=info.get('video_codec', None)
             )
 
         def get_movie(info):
@@ -133,7 +135,9 @@ class Selector:
 
             return confident, dict(
                 title=info.get('title', None),
-                year=info.get('year', None)
+                year=info.get('year', None),
+                quality=info.get('screen_size', None),
+                codec=info.get('video_codec', None)
             )
 
         def get_source(string):

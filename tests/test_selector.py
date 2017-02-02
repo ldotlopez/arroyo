@@ -52,6 +52,16 @@ class QueryBuilderTest(unittest.TestCase):
             {'name-glob': '*flash*gordon*', 'type': 'source'}
         )
 
+    def test_mediainfo(self):
+        app = testapp.TestApp()
+        q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
+        self.assertEqual(
+            q.params['quality'], '720p'
+        )
+        self.assertEqual(
+            q.params['codec'], 'h264'  # x264 is detected as h264
+        )
+
 
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
