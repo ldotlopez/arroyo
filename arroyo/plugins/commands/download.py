@@ -17,6 +17,20 @@ class DownloadCommand(pluginlib.Command):
     HELP = 'manage downloads'
     ARGUMENTS = (
         pluginlib.cliargument(
+            '--import',
+            dest='scan',
+            action='store_true',
+            default=None,
+            help=('Force auto import')),
+
+        pluginlib.cliargument(
+            '--no-import',
+            dest='scan',
+            action='store_false',
+            default=None,
+            help=('Disable auto import')),
+
+        pluginlib.cliargument(
             '-l', '--list',
             dest='show',
             action='store_true',
@@ -148,7 +162,8 @@ class DownloadCommand(pluginlib.Command):
             raise pluginlib.exc.ArgumentsError(msg)
 
         for query in queries:
-            matches = self.app.selector.matches(query)
+            matches = self.app.selector.matches(query, auto_import=args.scan)
+
             srcs = list(self.app.selector.select(matches))
             if not srcs:
                 msg = "No results for {name}"
