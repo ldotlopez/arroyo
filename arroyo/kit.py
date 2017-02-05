@@ -94,12 +94,6 @@ class CommandManager(commands.CommandManager):
             dest='downloader')
 
         parser.add_argument(
-            '--auto-import',
-            default=None,
-            action='store_true',
-            dest='auto-import')
-
-        parser.add_argument(
             '--auto-cron',
             default=None,
             action='store_true',
