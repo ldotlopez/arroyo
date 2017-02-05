@@ -113,6 +113,7 @@ _plugins = [
     'providers.kickass',
     'providers.thepiratebay',
     'providers.torrentapi',
+    'providers.yts',
 
     # Sorters
     'sorters.basic',

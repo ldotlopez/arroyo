@@ -44,7 +44,7 @@ class TestProvider:
 
     def test_pagination(self):
         for (start, expected) in self.PAGINATION_TESTS:
-            provider = self.app.get_extension(plugin.Provider,
+            provider = self.app.get_extension(pluginlib.Provider,
                                               self.PROVIDER_NAME)
             g = provider.paginate(start or provider.DEFAULT_URI)
             collected = []
@@ -251,6 +251,22 @@ class TorrentAPITest(TestProvider, unittest.TestCase):
 
     PARSE_TESTS = [
         ('torrentapi-listing.json', 25)
+    ]
+
+    QUERY_TESTS = [
+    ]
+
+
+class YtsTest(TestProvider, unittest.TestCase):
+    PLUGINS = ['providers.yts']
+    PROVIDER_NAME = 'yts'
+
+    PAGINATION_TESTS = [
+    ]
+
+    PARSE_TESTS = [
+        ('yts-listing.html', 40),
+        ('yts-detail.html', 2)
     ]
 
     QUERY_TESTS = [
