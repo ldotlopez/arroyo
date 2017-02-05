@@ -469,7 +469,7 @@ class Importer:
         self._process_finalize(contexts)
 
         if not source.urn:
-            raise exc.SourceResolveError(source)
+            raise arroyo.exc.SourceResolveError(source)
 
         return source
 
