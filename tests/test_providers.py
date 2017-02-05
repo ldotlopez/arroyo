@@ -92,7 +92,7 @@ class TestProvider:
 
 
 class ElitetorrentTest(TestProvider, unittest.TestCase):
-    PLUGINS = ['elitetorrent']
+    PLUGINS = ['providers.elitetorrent']
     PROVIDER_NAME = 'elitetorrent'
 
     PAGINATION_TESTS = [
@@ -118,7 +118,7 @@ class ElitetorrentTest(TestProvider, unittest.TestCase):
 
 
 class EztvTest(TestProvider, unittest.TestCase):
-    PLUGINS = ['eztv']
+    PLUGINS = ['providers.eztv']
     PROVIDER_NAME = 'eztv'
 
     PAGINATION_TESTS = [
@@ -155,7 +155,7 @@ class EztvTest(TestProvider, unittest.TestCase):
 
 
 class KickassTest(TestProvider, unittest.TestCase):
-    PLUGINS = ['kickass']
+    PLUGINS = ['providers.kickass']
     PROVIDER_NAME = 'kickass'
 
     PAGINATION_TESTS = [
@@ -215,7 +215,7 @@ class KickassTest(TestProvider, unittest.TestCase):
 
 
 class ThepiratebayTest(TestProvider, unittest.TestCase):
-    PLUGINS = ['thepiratebay']
+    PLUGINS = ['providers.thepiratebay']
     PROVIDER_NAME = 'thepiratebay'
 
     PAGINATION_TESTS = [
@@ -243,7 +243,7 @@ class ThepiratebayTest(TestProvider, unittest.TestCase):
 
 
 class TorrentAPITest(TestProvider, unittest.TestCase):
-    PLUGINS = ['torrentapi']
+    PLUGINS = ['providers.torrentapi']
     PROVIDER_NAME = 'torrentapi'
 
     PAGINATION_TESTS = [
