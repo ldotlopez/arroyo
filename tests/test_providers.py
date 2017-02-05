@@ -214,6 +214,22 @@ class KickassTest(TestProvider, unittest.TestCase):
     ]
 
 
+class NyaaTest(TestProvider, unittest.TestCase):
+    PLUGINS = ['providers.nyaa']
+    PROVIDER_NAME = 'nyaa'
+
+    PAGINATION_TESTS = [
+        (None, [
+            'https://www.nyaa.se/?sort=0&order=1',
+            'https://www.nyaa.se/?sort=0&order=1&offset=2']),
+    ]
+
+    PARSE_TESTS = [
+        ('nyaa-listing.html', 105),
+        ('nyaa-detail.html', 1)
+    ]
+
+
 class ThepiratebayTest(TestProvider, unittest.TestCase):
     PLUGINS = ['providers.thepiratebay']
     PROVIDER_NAME = 'thepiratebay'
