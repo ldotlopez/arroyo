@@ -167,7 +167,7 @@ class Selector:
 
         return registry, conflicts
 
-    def matches(self, query, everything=False):
+    def matches(self, query, everything=False, auto_import=None):
         def _count(x):
             try:
                 return len(x)
@@ -177,7 +177,7 @@ class Selector:
         if not isinstance(query, Query):
             raise TypeError('query is not a Query')
 
-        self._auto_import(query)
+        self.maybe_run_importer_process(query, auto_import)
 
         debug = self.app.settings.get('log-level').lower() == 'debug'
 
@@ -196,10 +196,6 @@ class Selector:
 
         ret = qs
         unrolled = False
-
-        if debug:
-
-            msg = "Initial"
 
         for func in qs_funcs + iter_funcs:
             ext = func.func.__self__
@@ -371,9 +367,12 @@ class Selector:
         origins = [importer.Origin(p, uri=uri) for (p, uri) in exts_and_uris]
         return origins
 
-    def _auto_import(self, query):
-        if self.app.settings.get('auto-import'):
-            origins = self.get_origins_for_query(query)
+    def maybe_run_importer_process(self, query, value=None):
+        if value is None:
+            have_origins = self.app.importer.get_configured_origins()
+            value = not have_origins
+
+        if value:
             self.app.importer.process(*origins)
 
 
