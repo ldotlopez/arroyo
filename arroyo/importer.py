@@ -247,8 +247,19 @@ class Importer:
         g = origin.provider.paginate(origin.uri)
         iterations = max(1, origin.iterations)
 
-        tasks = [self.get_buffer_from_uri(origin, next(g))
-                 for dummy in range(iterations)]
+        # Generator can raise StopIteration before iterations is reached
+        # We use a for loop instead to catch gracefully this situation
+        tasks = []
+        for i in range(iterations):
+            try:
+                uri = next(g)
+                tasks.append(self.get_buffer_from_uri(origin, uri))
+            except StopIteration:
+                msg = ("{provider} has stopped the pagination after "
+                       "iteration #{index}")
+                msg = msg.format(provider=origin.provider, index=i)
+                self.logger.warning(msg)
+                break
 
         ret = yield from asyncio.gather(*tasks)
         return ret
