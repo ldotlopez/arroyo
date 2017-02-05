@@ -369,10 +369,11 @@ class Selector:
 
     def maybe_run_importer_process(self, query, value=None):
         if value is None:
-            have_origins = self.app.importer.get_configured_origins()
-            value = not have_origins
+            origins = self.app.importer.get_configured_origins()
+            value = not origins
 
         if value:
+            origins = self.app.selector.get_origins_for_query(query)
             self.app.importer.process(*origins)
 
 
