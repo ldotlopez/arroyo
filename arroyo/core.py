@@ -158,7 +158,7 @@ def build_basic_settings(arguments=None):
 
     # a) Plugins must be merged
     for ext in args.plugins:
-        store.set('plugin.{}.enabled'.format(ext), True)
+        store.set('plugins.{}.enabled'.format(ext), True)
     delattr(args, 'plugins')
 
     # b) log level modifers must me handled and removed from args
@@ -179,8 +179,10 @@ def build_basic_settings(arguments=None):
     # Clean up args before merging with store
     delattr(args, 'help')
     for attr in ['downloader', 'db-uri', 'auto-cron', 'auto-import']:
-        if getattr(args, attr, None) is None:
+        try:
             delattr(args, attr)
+        except AttributeError:
+            pass
 
     store.load_arguments(args)
 
@@ -258,12 +260,9 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load plugins
-        # FIXME: Search for enabled plugins thru the keys of settings is a
-        # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugins.') and x.endswith('.enabled'),
-                         self.settings.all_keys())
-        plugins = map(lambda x: x[len('plugins.'):-len('.enabled')],
-                      plugins)
+        plugins = [x[len('plugins.'):-len('.enabled')]
+                   for x in self.settings.all_keys()
+                   if x.startswith('plugins.') and x.endswith('.enabled')]
 
         for p in set(plugins):
             if self.settings.get('plugins.' + p + '.enabled', default=False):
