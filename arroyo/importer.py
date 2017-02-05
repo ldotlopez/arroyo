@@ -184,9 +184,11 @@ class Importer:
                     break
 
         if not extension:
-            msg = "No provider plugin is compatible with '{uri}'"
+            msg = ("No provider plugin is compatible with '{uri}'. "
+                   "Fallback to generic")
             msg = msg.format(uri=uri)
-            raise ValueError(msg)
+            self.logger.warning(msg)
+            extension = self.app.get_extension(Provider, 'generic')
 
         overrides = {}
         if language:
