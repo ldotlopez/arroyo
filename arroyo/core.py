@@ -308,19 +308,9 @@ class ArroyoStore(store.Store):
             items=items,
             validators=[store.TypeValidator(_defaults_types)]
         )
-        self._logger = logging.getLogger('arroyo.settings')
 
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
-
-        # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # formater = logging.Formatter(
-        #     self.get('log-format', default=r'%(message)s'))
-        # handler.setFormatter(formater)
-
-        # self._logger = logging.getLogger('arroyo.settings')
-        # self._logger.addHandler(handler)
 
     def set(self, key, value):
         parts = key.split('.')
