@@ -1,0 +1,858 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<title>Search and Browse YIFY Movies Torrent Downloads - YTS</title>
+<meta charset="utf-8">
+<!--[if IE]> <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1"> <![endif]-->
+<meta name="viewport" content="width=device-width, minimal-ui, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="description" content="Download YIFY Movies: Playing for Time, Breakout, Death Machines, The Edge of Seventeen, Ozzy, Young Billy Young, Girl Asleep, Rivers 9, Arrival, Joyeux Noel"/>
+<meta name="keywords" content="yts, yify, yify movies, yts movies, yts torrents, yify movies, yify torrents"/>
+<meta property="og:title" content="Search and Browse YIFY Movies Torrent Downloads - YTS"/>
+<meta property="og:image" content="https://yts.ag/assets/images/website/og_yts_logo.png"/>
+<meta property="og:description" content="Download YIFY Movies: Playing for Time, Breakout, Death Machines, The Edge of Seventeen, Ozzy, Young Billy Young, Girl Asleep, Rivers 9, Arrival, Joyeux Noel"/>
+<meta property="og:url" content="https://yts.ag/browse-movies"/>
+<!--[if IE]> <meta http-equiv="X-UA-Compatible" content="IE=Edge,chrome=1" /> <![endif]-->
+<link rel="shortcut icon" href="/assets/images/website/favicon.ico">
+<link rel="apple-touch-icon" sizes="57x57" href="/assets/images/website/apple-touch-icon-57x57.png">
+<link rel="apple-touch-icon" sizes="114x114" href="/assets/images/website/apple-touch-icon-114x114.png">
+<link rel="apple-touch-icon" sizes="72x72" href="/assets/images/website/apple-touch-icon-72x72.png">
+<link rel="apple-touch-icon" sizes="144x144" href="/assets/images/website/apple-touch-icon-144x144.png">
+<link rel="apple-touch-icon" sizes="60x60" href="/assets/images/website/apple-touch-icon-60x60.png">
+<link rel="apple-touch-icon" sizes="120x120" href="/assets/images/website/apple-touch-icon-120x120.png">
+<link rel="apple-touch-icon" sizes="76x76" href="/assets/images/website/apple-touch-icon-76x76.png">
+<link rel="apple-touch-icon" sizes="152x152" href="/assets/images/website/apple-touch-icon-152x152.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/images/website/apple-touch-icon-180x180.png">
+<link rel="icon" type="image/png" href="/assets/images/website/favicon-160x160.png" sizes="160x160">
+<link rel="icon" type="image/png" href="/assets/images/website/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/png" href="/assets/images/website/favicon-16x16.png" sizes="16x16">
+<link rel="icon" type="image/png" href="/assets/images/website/favicon-32x32.png" sizes="32x32">
+<meta name="msapplication-TileColor" content="#00a300">
+<meta name="msapplication-TileImage" content="/assets/images/website/mstile-144x144.png">
+<meta name="msapplication-config" content="/assets/images/website/browserconfig.xml">
+<link rel="search" type="application/opensearchdescription+xml" href="/opensearch" title="YTS - The Official Home of YIFY Movie Torrent Downloads"/>
+<link href='https://fonts.googleapis.com/css?family=Arimo:400,700,400italic,700italic&amp;subset=latin,latin-ext' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" href="/assets/fonts/fonts.css">
+<link rel="stylesheet" href="/assets/minified/bacb5de663bc55f0cbed2b4a7d1504dc.css">
+</head>
+<body class="non-touch">
+<script>
+      (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+      (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+      m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+      })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+      ga('create', 'UA-69675816-1', 'auto');
+      ga('send', 'pageview');
+    </script>
+<header class="nav-bar">
+<div class="nav-logo pull-left">
+<a href="https://yts.ag/"><img src="https://yts.ag/assets/images/website/logo-YTS.svg" alt="YTS YIFY"/></a>
+</div>
+<span class="header-slogan hidden-xs pull-left">HD movies at the smallest file size.</span>
+<div class="main-nav-links hidden-sm hidden-xs">
+<form method="GET" action="https://yts.ag/search-movies" accept-charset="UTF-8" id="quick-search" name="quick-search">
+<div id="quick-search-container">
+<input id="quick-search-input" name="query" autocomplete="off" type="search" value="Quick search">
+<div class="ajax-spinner"></div>
+</div>
+</form>
+<ul class="nav-links">
+<li><a href="https://yts.ag/"> Home </a></li>
+<li><a href="https://yts.ag/browse-movies"> Browse Movies </a></li>
+</ul>
+<ul class="nav-links nav-link-guest">
+<li><a class="login-nav-btn" href="javascript:void(0)"> Login </a> &nbsp;|&nbsp; <a class="register-nav-btn" href="javascript:void(0)"> Register </a></li>
+</ul>
+</div>
+<div class="nav-mobile-buttons hidden-md hidden-lg">
+<a class="touchable" id="mobile-search-btn" href="javascript:void(0)"> <span class="glyphicon glyphicon-search"></span> </a>
+<a class="touchable" href="https://yts.ag/browse-movies"> <span class="glyphicon glyphicon-list-alt"></span> </a>
+<a class="touchable" href="https://yts.ag/login"> <span class="glyphicon glyphicon-user"></span> </a>
+</div>
+</header>
+<div id="background-image" style="background: url(/assets/images/movies//background.jpg) no-repeat center center; background-size: cover; -webkit-background-size: cover;-moz-background-size: cover; -o-background-size: cover;"></div>
+<div id="background-overlay"></div>
+<div class="modal modal-auth hidden-xs hidden-sm">
+<div class="modal-container">
+<div class="modal-switcher">
+<span id="modal-login"> Login </span>
+<span id="modal-register"> Register </span>
+</div>
+<div class="modal-content">
+<div class="modal-login-content">
+<form method="POST" action="https://yts.ag/" accept-charset="UTF-8" autocorrect="off" autocapitalize="off" spellcheck="off">
+<input name="_token" type="hidden" value="5Vsj4rOZCMfjkM0xlHYsRx2mEprlxRFY00QpuxLp">
+<span class="error-msg"></span>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-user"></span>
+<input placeholder="Username or Email" autocorrect="off" autocapitalize="off" spellcheck="off" name="username" type="text">
+</div>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-lock"></span>
+<input placeholder="Password" autocorrect="off" autocapitalize="off" spellcheck="off" name="password" type="password" value="">
+</div>
+<button class="button-green-download2-big" type="button">Login</button>
+</form>
+<p class="bottom-msg">
+<a class="forgotpassword-nav-btn" href="javascript:void(0)">Forgot your password? / Resend Activation</a>
+</p>
+</div>
+<div class="modal-register-content">
+<form method="POST" action="https://yts.ag/" accept-charset="UTF-8" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off">
+<input name="_token" type="hidden" value="5Vsj4rOZCMfjkM0xlHYsRx2mEprlxRFY00QpuxLp">
+<span class="error-msg"></span>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-user"></span>
+<input placeholder="Username" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off" name="username" type="text">
+</div>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-envelope"></span>
+<input placeholder="E-Mail" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off" name="email" type="email">
+</div>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-lock"></span>
+<input placeholder="Password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off" name="password" type="password" value="">
+</div>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-lock"></span>
+<input placeholder="Confirm Password" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off" name="password_confirmation" type="password" value="">
+</div>
+<button class="button-green-download2-big" type="button">Register</button>
+</form>
+</div>
+<div class="modal-forgotpass-content">
+<form method="POST" action="https://yts.ag/" accept-charset="UTF-8" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off">
+<input name="_token" type="hidden" value="5Vsj4rOZCMfjkM0xlHYsRx2mEprlxRFY00QpuxLp">
+<span class="error-msg"></span>
+<p class="info-msg"> If you have Forgotten your password or you want to send you again the activation link, just type in your Email and we will send you a link to Reset your password or Activate your account. </p>
+<div class="inner-addon">
+<span class="glyphicon glyphicon-envelope"></span>
+<input placeholder="E-Mail" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="off" name="email" type="email">
+</div>
+<button class="button-green-download2-big" type="button">Reset Password | Resend Activation</button>
+</form>
+<p class="bottom-msg">
+<a class="login-nav-btn" href="javascript:void(0)">Back to login</a>
+</p>
+</div>
+<div class="modal-activate-account-content">
+<p class="info-msg">
+<b>Thanks for signing up!</b>
+<br>
+Please check your email and click the link to <b>Activate Your Account</b> in the message we just sent to your e-mail address.
+<br><br>
+Once your account is activated, we'll send you an email with some information to help you get started with YTS.AG.
+</p>
+</div>
+<div class="modal-loading-content">
+<img src="/assets/images/website/ajax-spinner.gif" alt="ajax spinner loading"/>
+<p class="info-msg"> Loading, please wait </p>
+</div>
+</div>
+</div>
+</div>
+<div class="main-content">
+<div id="mobile-search-input" class="hidden-md hidden-lg">
+<form method="POST" action="https://yts.ag/search-movies" accept-charset="UTF-8">
+<input name="_token" type="hidden" value="5Vsj4rOZCMfjkM0xlHYsRx2mEprlxRFY00QpuxLp">
+<div class="input-group container search-query">
+<input class="form-control" placeholder="Search for a movie&hellip;" autocorrect="off" autocomplete="off" name="keyword" type="search">
+<span class="input-group-btn"> <button class="btn btn-success" type="submit">Search</button> </span>
+</div>
+<div class="container">
+<div class="row">
+<div class="col-xs-10">
+<div class="selects-container">
+<p>Quality:</p>
+<select name="quality">
+<option value="all" selected="selected">All</option>
+<option value="720p">720p</option>
+<option value="1080p">1080p</option>
+<option value="3D">3D</option>
+</select>
+</div>
+<div class="selects-container">
+<p>Genre:</p>
+<select name="genre">
+<option value="all" selected="selected">All</option>
+<option value="action">Action</option>
+<option value="adventure">Adventure</option>
+<option value="animation">Animation</option>
+<option value="biography">Biography</option>
+<option value="comedy">Comedy</option>
+<option value="crime">Crime</option>
+<option value="documentary">Documentary</option>
+<option value="drama">Drama</option>
+<option value="family">Family</option>
+<option value="fantasy">Fantasy</option>
+<option value="film-noir">Film-Noir</option>
+<option value="game-show">Game-Show</option>
+<option value="history">History</option>
+<option value="horror">Horror</option>
+<option value="music">Music</option>
+<option value="musical">Musical</option>
+<option value="mystery">Mystery</option>
+<option value="news">News</option>
+<option value="reality-tv">Reality-TV</option>
+<option value="romance">Romance</option>
+<option value="sci-fi">Sci-Fi</option>
+<option value="sport">Sport</option>
+<option value="talk-show">Talk-Show</option>
+<option value="thriller">Thriller</option>
+<option value="war">War</option>
+<option value="western">Western</option>
+</select>
+</div>
+</div>
+<div class="col-xs-10">
+<div class="selects-container">
+<p>Rating:</p>
+<select name="rating">
+<option value="0" selected="selected">All</option>
+<option value="9">9+</option>
+<option value="8">8+</option>
+<option value="7">7+</option>
+<option value="6">6+</option>
+<option value="5">5+</option>
+<option value="4">4+</option>
+<option value="3">3+</option>
+<option value="2">2+</option>
+<option value="1">1+</option>
+</select>
+</div>
+<div class="selects-container selects-container-last">
+<p>Order By:</p>
+<select name="order_by">
+<option value="latest" selected="selected">Latest</option>
+<option value="oldest">Oldest</option>
+<option value="seeds">Seeds</option>
+<option value="peers">Peers</option>
+<option value="year">Year</option>
+<option value="rating">Rating</option>
+<option value="likes">Likes</option>
+<option value="alphabetical">Alphabetical</option>
+<option value="downloads">Downloads</option>
+</select>
+</div>
+</div>
+</div>
+</div>
+</form>
+</div>
+<div class="ac-results hidden-sm hidden-xs">
+<ul></ul>
+</div>
+<noscript>
+<div class="container">
+<div class="row">
+<div class="col-xs-20 text-center">
+<p class="no-javascript-warning">Javascript not supported on your browser, please enable Javascript in order to fully utilize the website</p>
+</div>
+</div>
+</div>
+</noscript>
+<div id="main-search" class="content-dark hidden-sm hidden-xs">
+<div class="container">
+<form method="post" action="https://yts.ag/search-movies" accept-charset="UTF-8">
+<input name="_token" type="hidden" value="UZzXxauUHxorVLoOQBJB57aJI7kEaVllrx4E9HpP">
+<div id="main-search-fields">
+<p class="pull-left term">Search Term:</p>
+<input name="keyword" autocomplete="off" type="search">
+<div class="selects-container">
+<p>Quality:</p>
+<select name="quality">
+<option value="all">All</option>
+<option value="720p">720p</option>
+<option value="1080p">1080p</option>
+<option value="3D">3D</option>
+</select>
+</div>
+<div class="selects-container">
+<p>Genre:</p>
+<select name="genre">
+<option value="all">All</option>
+<option value="action">Action</option>
+<option value="adventure">Adventure</option>
+<option value="animation">Animation</option>
+<option value="biography">Biography</option>
+<option value="comedy">Comedy</option>
+<option value="crime">Crime</option>
+<option value="documentary">Documentary</option>
+<option value="drama">Drama</option>
+<option value="family">Family</option>
+<option value="fantasy">Fantasy</option>
+<option value="film-noir">Film-Noir</option>
+<option value="game-show">Game-Show</option>
+<option value="history">History</option>
+<option value="horror">Horror</option>
+<option value="music">Music</option>
+<option value="musical">Musical</option>
+<option value="mystery">Mystery</option>
+<option value="news">News</option>
+<option value="reality-tv">Reality-TV</option>
+<option value="romance">Romance</option>
+<option value="sci-fi">Sci-Fi</option>
+<option value="sport">Sport</option>
+<option value="talk-show">Talk-Show</option>
+<option value="thriller">Thriller</option>
+<option value="war">War</option>
+<option value="western">Western</option>
+</select>
+</div>
+<div class="selects-container">
+<p>Rating:</p>
+<select name="rating">
+<option value="0">All</option>
+<option value="9">9+</option>
+<option value="8">8+</option>
+<option value="7">7+</option>
+<option value="6">6+</option>
+<option value="5">5+</option>
+<option value="4">4+</option>
+<option value="3">3+</option>
+<option value="2">2+</option>
+<option value="1">1+</option>
+</select>
+</div>
+<div class="selects-container selects-container-last">
+<p>Order By:</p>
+<select name="order_by">
+<option value="latest">Latest</option>
+<option value="oldest">Oldest</option>
+<option value="seeds">Seeds</option>
+<option value="peers">Peers</option>
+<option value="year">Year</option>
+<option value="rating">Rating</option>
+<option value="likes">Likes</option>
+<option value="alphabetical">Alphabetical</option>
+<option value="downloads">Downloads</option>
+</select>
+</div>
+</div>
+<div id="main-search-btn">
+<input class="button-green-download2-big" type="submit" value="Search">
+</div>
+</form>
+</div>
+</div>
+<div class="browse-content">
+<div class="container">
+<h2>5,975 YIFY Movies Found</h2>
+<div class="hidden-sm hidden-xs">
+<ul class="tsc_pagination tsc_paginationA tsc_paginationA06">
+<li class="hidden"><a href="">&laquo;</a></li><li><a href="javascript:void(0)" class="current">1</a></li><li><a href="/browse-movies?page=2">2</a></li><li><a href="/browse-movies?page=3">3</a></li><li><a href="/browse-movies?page=4">4</a></li><li><a href="/browse-movies?page=5">5</a></li><li><a href="/browse-movies?page=6">6</a></li><li><a href="/browse-movies?page=7">7</a></li><li><a href="/browse-movies?page=8">8</a></li><li class="unavailable">...</li><li><a href="/browse-movies?page=298">298</a></li><li><a href="/browse-movies?page=299">299</a></li><li><a href="/browse-movies?page=2">Next &raquo;</a></li><li><a href="/browse-movies?page=299">Last &raquo;</a></li>
+</ul>
+</div>
+<div class="hidden-md hidden-lg">
+<ul class="tsc_pagination tsc_paginationA tsc_paginationA06">
+<li class="pagination-bordered">1 of 299</li><li><a href="/browse-movies?page=2">Next &raquo;</a></li>
+</ul>
+</div>
+<section>
+<div class="row">
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/playing-for-time-1980" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/playing_for_time_1980/medium-cover.jpg" alt="Playing for Time (1980) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">8.1 / 10</h4>
+<h4>Drama</h4>
+<h4>Music</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/playing-for-time-1980" class="browse-movie-title">Playing for Time</a>
+<div class="browse-movie-year">1980</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/91AF7CB1C8958EABDE73AA847B69A8528522FC90" rel="nofollow" title="Download Playing for Time 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/55763A142CD5A09ACBCEFC96E10A035DA929281F" rel="nofollow" title="Download Playing for Time 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/breakout-1975" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/breakout_1975/medium-cover.jpg" alt="Breakout (1975) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.1 / 10</h4>
+<h4>Action</h4>
+<h4>Adventure</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/breakout-1975" class="browse-movie-title">Breakout</a>
+<div class="browse-movie-year">1975</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/22BE666474357AD2F88D6A622EE237ABF6E45983" rel="nofollow" title="Download Breakout 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/B12D8E9F190197679C275B07037876116C8FDB40" rel="nofollow" title="Download Breakout 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/death-machines-1976" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/death_machines_1976/medium-cover.jpg" alt="Death Machines (1976) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">3.5 / 10</h4>
+<h4>Action</h4>
+<h4>Thriller</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/death-machines-1976" class="browse-movie-title">Death Machines</a>
+<div class="browse-movie-year">1976</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/C3493D067378DCDCA738CFB199B235E9AEEC26FD" rel="nofollow" title="Download Death Machines 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/4AA24317649A80BF9EA9AB5543392F189482B097" rel="nofollow" title="Download Death Machines 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/the-edge-of-seventeen-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/the_edge_of_seventeen_2016/medium-cover.jpg" alt="The Edge of Seventeen (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">7.7 / 10</h4>
+<h4>Comedy</h4>
+<h4>Drama</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/the-edge-of-seventeen-2016" class="browse-movie-title">The Edge of Seventeen</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/5377C16E12F433E39183DE29EB56BA2A1C79D6C9" rel="nofollow" title="Download The Edge of Seventeen 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/A3A1299AD388D7DE11E0EC85AEA3B33BC0DD117C" rel="nofollow" title="Download The Edge of Seventeen 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/ozzy-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/ozzy_2016/medium-cover.jpg" alt="Ozzy (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">5.7 / 10</h4>
+<h4>Animation</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/ozzy-2016" class="browse-movie-title">Ozzy</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/2939FA0D8E87D833F2EA766E4A07248489FF3D48" rel="nofollow" title="Download Ozzy 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/BF436B2382DD6F48E30A5BC1D5A335A2CB4088C8" rel="nofollow" title="Download Ozzy 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/young-billy-young-1969" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/young_billy_young_1969/medium-cover.jpg" alt="Young Billy Young (1969) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">5.7 / 10</h4>
+<h4>Action</h4>
+<h4>Romance</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/young-billy-young-1969" class="browse-movie-title">Young Billy Young</a>
+<div class="browse-movie-year">1969</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/77B7372EEAC31BA67FDA94968734F0B7B51ED144" rel="nofollow" title="Download Young Billy Young 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/ED705BBCBF1FAEDA43F495ECDA59F4E4849A5585" rel="nofollow" title="Download Young Billy Young 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/girl-asleep-2015" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/girl_asleep_2015/medium-cover.jpg" alt="Girl Asleep (2015) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.6 / 10</h4>
+<h4>Comedy</h4>
+<h4>Family</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/girl-asleep-2015" class="browse-movie-title">Girl Asleep</a>
+<div class="browse-movie-year">2015</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/5259F74CC0F9F87DCA8A2AC861BB899F51ED2DAD" rel="nofollow" title="Download Girl Asleep 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/D6CE102FD38056ADFA9BF5B488ECDA60EEDDF43E" rel="nofollow" title="Download Girl Asleep 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/rivers-9-2015" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/rivers_9_2015/medium-cover.jpg" alt="Rivers 9 (2015) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">4 / 10</h4>
+<h4>Action</h4>
+<h4>Comedy</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/rivers-9-2015" class="browse-movie-title">Rivers 9</a>
+<div class="browse-movie-year">2015</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/E7C9D1E6CB96851C789D0935FBE59CACE8188F69" rel="nofollow" title="Download Rivers 9 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/3F31D2BF7185BAEA5125F68FEEDE78DDB0C333B7" rel="nofollow" title="Download Rivers 9 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/arrival-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/arrival_2016/medium-cover.jpg" alt="Arrival (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">8.2 / 10</h4>
+<h4>Drama</h4>
+<h4>Mystery</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/arrival-2016" class="browse-movie-title">Arrival</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/4F749B4CFA82BAA3363B4431B86BF808B581B1A2" rel="nofollow" title="Download Arrival 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/AB41076CAABD1A9EBEF25795F1CFCC6491553881" rel="nofollow" title="Download Arrival 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/joyeux-noel-2005" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/joyeux_noel_2005/medium-cover.jpg" alt="Joyeux Noel (2005) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">7.8 / 10</h4>
+<h4>Drama</h4>
+<h4>History</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/joyeux-noel-2005" class="browse-movie-title">Joyeux Noel</a>
+<div class="browse-movie-year">2005</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/F1A29B81EC91AA6E48A40DFDF52529942681DBE0" rel="nofollow" title="Download Joyeux Noel 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/EDE4DDFE030EBA9860F3068883586CACA8B9D09E" rel="nofollow" title="Download Joyeux Noel 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/stick-man-2015" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/stick_man_2015/medium-cover.jpg" alt="Stick Man (2015) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">7.2 / 10</h4>
+<h4>Animation</h4>
+<h4>Family</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/stick-man-2015" class="browse-movie-title">Stick Man</a>
+<div class="browse-movie-year">2015</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/4F799360FCE41AF7EC17D6CA1CCBB59533CFBE4F" rel="nofollow" title="Download Stick Man 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/693EB49211E75A2A6F3FBBBACEA637A19B7A488E" rel="nofollow" title="Download Stick Man 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/jokers-wild-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/jokers_wild_2016/medium-cover.jpg" alt="Joker's Wild (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">2.6 / 10</h4>
+<h4>Horror</h4>
+<h4>Thriller</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/jokers-wild-2016" class="browse-movie-title">Joker's Wild</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/F2106A5C160F1AD4E51325F387E4CDD545446706" rel="nofollow" title="Download Joker's Wild 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/694A30529C5FEDEE702053FA1E31291F54476387" rel="nofollow" title="Download Joker's Wild 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/billy-lynns-long-halftime-walk-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/billy_lynns_long_halftime_walk_2016/medium-cover.jpg" alt="Billy Lynn's Long Halftime Walk (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.6 / 10</h4>
+<h4>Drama</h4>
+<h4>War</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/billy-lynns-long-halftime-walk-2016" class="browse-movie-title">Billy Lynn's Long Halftime Walk</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/EB8724DD41839DA4D3E7A9D3191FD6443F34C6B1" rel="nofollow" title="Download Billy Lynn's Long Halftime Walk 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/51D634C2CF4AA5E1A232A511596C43B477425B07" rel="nofollow" title="Download Billy Lynn's Long Halftime Walk 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/war-on-everyone-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/war_on_everyone_2016/medium-cover.jpg" alt="War on Everyone (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6 / 10</h4>
+<h4>Comedy</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/war-on-everyone-2016" class="browse-movie-title">War on Everyone</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/29D225B5A155FBB4F27E6C489FD2C7EC3FCFCC8B" rel="nofollow" title="Download War on Everyone 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/F929F73CBD20D221781708FB75C3448A92FBD1C6" rel="nofollow" title="Download War on Everyone 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/the-high-schoolers-guide-to-college-parties-2015" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/the_high_schoolers_guide_to_college_parties_2015/medium-cover.jpg" alt="The High Schooler's Guide to College Parties (2015) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">3.9 / 10</h4>
+<h4>Comedy</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/the-high-schoolers-guide-to-college-parties-2015" class="browse-movie-title">The High Schooler's Guide to College Parties</a>
+<div class="browse-movie-year">2015</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/0AD53D8A9FBF900A7AF13A75B270EFC7887A6985" rel="nofollow" title="Download The High Schooler's Guide to College Parties 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/16D7AE986D9D65CB0BF1B296DA7315479378CA3E" rel="nofollow" title="Download The High Schooler's Guide to College Parties 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/the-9th-life-of-louis-drax-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/the_9th_life_of_louis_drax_2016/medium-cover.jpg" alt="The 9th Life of Louis Drax (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.3 / 10</h4>
+<h4>Mystery</h4>
+<h4>Thriller</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/the-9th-life-of-louis-drax-2016" class="browse-movie-title">The 9th Life of Louis Drax</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/9B123CDF3690090E165AED66D2CABD600855219C" rel="nofollow" title="Download The 9th Life of Louis Drax 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/5FED8E1FBF362F6D3CA250649DBC1F32054DE308" rel="nofollow" title="Download The 9th Life of Louis Drax 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/american-pastoral-2016" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/american_pastoral_2016/medium-cover.jpg" alt="American Pastoral (2016) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.1 / 10</h4>
+<h4>Crime</h4>
+<h4>Drama</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/american-pastoral-2016" class="browse-movie-title">American Pastoral</a>
+<div class="browse-movie-year">2016</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/1AD001509A762AD98DF9B4353EB5E4775E28F244" rel="nofollow" title="Download American Pastoral 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/398F7E0A3273170592F66064416A9D82CFCEF256" rel="nofollow" title="Download American Pastoral 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/justice-league-dark-2017" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/justice_league_dark_2017/medium-cover.jpg" alt="Justice League Dark (2017) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">7.2 / 10</h4>
+<h4>Action</h4>
+<h4>Animation</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/justice-league-dark-2017" class="browse-movie-title">Justice League Dark</a>
+<div class="browse-movie-year">2017</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/92B1CD3B2EF895ED3C1A29749A5B7654C5294537" rel="nofollow" title="Download Justice League Dark 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/0EEB7D86EE9544BCCAB15D18DF65144BB4D4FA20" rel="nofollow" title="Download Justice League Dark 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/phantasm-1979" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/phantasm_1979/medium-cover.jpg" alt="Phantasm (1979) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">6.9 / 10</h4>
+<h4>Fantasy</h4>
+<h4>Horror</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/phantasm-1979" class="browse-movie-title">Phantasm</a>
+<div class="browse-movie-year">1979</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/D14290172F7AFCA1A30D2B1269E2EF3D1F735FF3" rel="nofollow" title="Download Phantasm 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/1625EF57B4766C8E55CE8681FC70FE54B13438D7" rel="nofollow" title="Download Phantasm 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+<div class="browse-movie-wrap col-xs-10 col-sm-4 col-md-5 col-lg-4">
+<a href="https://yts.ag/movie/hands-of-steel-1986" class="browse-movie-link">
+<figure>
+<img class="img-responsive" src="https://yts.ag/assets/images/movies/hands_of_steel_1986/medium-cover.jpg" alt="Hands of Steel (1986) download" width="170" height="255">
+<figcaption class="hidden-xs hidden-sm">
+<span class="icon-star"></span>
+<h4 class="rating">5.4 / 10</h4>
+<h4>Action</h4>
+<h4>Sci-Fi</h4>
+<span class="button-green-download2-big">View Details</span>
+</figcaption>
+</figure>
+</a>
+<div class="browse-movie-bottom">
+<a href="https://yts.ag/movie/hands-of-steel-1986" class="browse-movie-title">Hands of Steel</a>
+<div class="browse-movie-year">1986</div>
+<div class="browse-movie-tags">
+<a href="https://yts.ag/torrent/download/76F2630B63B9497F25B436074133404350FD49FB" rel="nofollow" title="Download Hands of Steel 720p Torrent">720p</a>
+<a href="https://yts.ag/torrent/download/29FBAFF0A6CEA586FB593E13055181AF50CE60CB" rel="nofollow" title="Download Hands of Steel 1080p Torrent">1080p</a>
+</div>
+</div>
+</div>
+</div>
+</section>
+<div class="hidden-sm hidden-xs">
+<ul class="tsc_pagination tsc_paginationA tsc_paginationA06">
+<li class="hidden"><a href="">&laquo;</a></li><li><a href="javascript:void(0)" class="current">1</a></li><li><a href="/browse-movies?page=2">2</a></li><li><a href="/browse-movies?page=3">3</a></li><li><a href="/browse-movies?page=4">4</a></li><li><a href="/browse-movies?page=5">5</a></li><li><a href="/browse-movies?page=6">6</a></li><li><a href="/browse-movies?page=7">7</a></li><li><a href="/browse-movies?page=8">8</a></li><li class="unavailable">...</li><li><a href="/browse-movies?page=298">298</a></li><li><a href="/browse-movies?page=299">299</a></li><li><a href="/browse-movies?page=2">Next &raquo;</a></li><li><a href="/browse-movies?page=299">Last &raquo;</a></li>
+</ul>
+</div>
+<div class="hidden-md hidden-lg">
+<ul class="tsc_pagination tsc_paginationA tsc_paginationA06">
+<li class="pagination-bordered">1 of 299</li><li><a href="/browse-movies?page=2">Next &raquo;</a></li>
+</ul>
+</div>
+</div>
+</div>
+<div class="container hidden-md hidden-lg">
+<div class="row">
+<div class="mobile-footer">
+<div class="col-sm-20">
+<a href="https://yts.ag/"> <span class="glyphicon glyphicon-home"></span> <p>Home</p> </a>
+<a href="https://yts.ag/browse-movies"> <span class="glyphicon glyphicon-list-alt"></span> <p>Browse</p> </a>
+<a href="https://yts.ag/login"> <span class="glyphicon glyphicon-log-in"></span> <p>Login</p> </a>
+</div>
+<div class="col-sm-20">
+<a href="https://yts.ag/register"> <span class="glyphicon glyphicon-user"></span> <p>Register</p> </a>
+<a href="https://yts.ag/requests"> <span class="glyphicon glyphicon-asterisk"></span> <p>Requests</p> </a>
+<a href="https://yts.ag/suggestions"> <span class="glyphicon glyphicon-pushpin"></span> <p>Suggestions</p> </a>
+</div>
+</div>
+</div>
+</div>
+<footer>
+<div class="container">
+<div class="row">
+<div class="col-xs-20">
+<ul class="text-center">
+<li>YTS &copy; 2011 - 2016</li>
+<li>-</li>
+<li><a href="https://yts.ag/blog">Blog</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/dmca">DMCA</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/api">API</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/rss-guide">RSS</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/contact">Contact</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/browse-movies">Browse Movies</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/requests">Requests</a></li>
+<li>-</li>
+<li><a href="https://yts.ag/login">Login</a></li>
+</ul>
+</div>
+</div>
+<div class="row">
+<div class="col-xs-20">
+<ul class="text-center">
+</ul>
+</div>
+</div>
+</div>
+</footer>
+</div>
+<script type="text/javascript" src="/assets/minified/modded1.js"></script>
+<script type="text/javascript" src="//s7.addthis.com/js/300/addthis_widget.js#pubid=ra-56896aba6888ef3e" async="async"></script>
+<script type='text/javascript' src='//zjk24.com/15/29/d2/1529d2f756539e3b97b34f7e92b1f9c2.js'></script>
+</body>
+</html>
