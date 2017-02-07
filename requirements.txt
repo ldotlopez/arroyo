@@ -8,8 +8,9 @@ blinker
 humanfriendly
 guessit>=2.0.0
 sqlalchemy
+pyyaml
 
--e git+https://github.com/ldotlopez/ldotcommons.git@appkit#egg=appkit
+-e git+https://github.com/ldotlopez/appkit.git#egg=appkit=='0.9.0'
 
 #
 # Optional modules
