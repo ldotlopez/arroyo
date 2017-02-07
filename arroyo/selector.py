@@ -150,11 +150,11 @@ class Selector:
 
         guessed_info = guessit.guessit(string, options={'type': type_hint})
 
-        typ = guessed_info['type']
+        kind = guessed_info['type']
 
-        if typ == 'movie':
+        if kind == 'movie':
             confident, info = get_movie(guessed_info)
-        elif typ == 'episode':
+        elif kind == 'episode':
             confident, info = get_episode(guessed_info)
         else:
             confident, info = get_source(string)
@@ -163,12 +163,13 @@ class Selector:
             confident = True
 
         if not confident:
-            typ = None
+            kind = None
             dummy, info = get_source(string)
 
         info = {k: v for (k, v) in info.items() if v}
-        info['type'] = typ or 'source'
-        return Query(self.app, params=info)
+        info['kind'] = kind or 'source'
+
+        return self.get_query_from_params(params=info)
 
     def get_query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
@@ -350,6 +351,33 @@ class Selector:
                 raise arroyo.exc.FatalError(msg)
 
         return qs_filters, iter_filters, conflicts, missing
+
+    def group(self, matches):
+        def _entity_key_func(src):
+            if src.entity is None:
+                return ('', -sys.maxsize)
+            else:
+                return (src.entity.__class__.__name__, src.id)
+
+        # Sort matches by entity ID
+        matches = sorted(
+            matches,
+            key=lambda x: _entity_key_func(x))
+
+        # Group by entity
+        groups = itertools.groupby(
+            matches,
+            lambda x: x.entity)
+
+        # Unfold groups
+        groups = ((grp, list(srcs)) for (grp, srcs) in groups)
+
+        # Order by entity str
+        groups = sorted(
+            groups,
+            key=lambda x: str(x[0]).lower() if x[0] else '')
+
+        yield from groups
 
     def sort(self, matches):
         sorter = self.app.get_extension(

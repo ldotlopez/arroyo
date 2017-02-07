@@ -12,13 +12,6 @@ import humanfriendly
 from appkit import utils
 
 
-def entity_key_func(x):
-    if x.entity is None:
-        return ('', -sys.maxsize)
-    else:
-        return (x.entity.__class__.__name__, x.id)
-
-
 class SearchCommand(pluginlib.Command):
     __extension_name__ = 'search'
 
@@ -74,54 +67,41 @@ class SearchCommand(pluginlib.Command):
             extra_data=d)
 
     def execute(self, args):
-        all_states = args.all_states
-        filters = args.filters
-        keywords = args.keywords
-
-        params = {}
-
-        if filters:
-            params.update(filters.items())
-
-        if keywords:
-            params.update({'name-glob': '*' + '*'.join(keywords) + '*'})
-
-        if not params:
+        # Check for correct usage
+        if not args.filters and not args.keywords:
             msg = "Al least one filter or keyword must be specified"
             raise pluginlib.exc.ArgumentsError(msg)
 
-        query = self.app.selector.get_query_from_params(
-            params=params, display_name='command-line'
-        )
+        # Create query from keywords
+        if args.keywords:
+            query = self.app.selector.get_query_from_string(
+                ' '.join([x.strip() for x in args.keywords]),
+                type_hint=args.filters.pop('kind', None))
+
+            for (key, value) in args.filters:
+                query.params[key] = value
+
+        elif args.filters:
+            query = self.app.selector.get_query_from_params(
+                params=args.filters, display_name='command-line')
+
+        else:
+            raise SystemError('Should not reach.')
 
         # Get matches
         matches = self.app.selector.matches(query,
-                                            everything=all_states,
+                                            everything=args.all_states,
                                             auto_import=args.scan)
 
-        # Sort matches by entity ID
-        matches = sorted(
-            matches,
-            key=lambda x: entity_key_func(x))
-
-        # Group by entity
-        groups = itertools.groupby(
-            matches,
-            lambda x: x.entity)
-
-        # Unfold groups
-        groups = ((grp, list(srcs)) for (grp, srcs) in groups)
-
-        # Order by entity str
-        groups = sorted(
-            groups,
-            key=lambda x: str(x[0]).lower() if x[0] else '')
+        n_matches = len(matches)
+        groupping = self.app.selector.group(matches)
 
         # Finally print
         msg = "== Search '{label}: {n_results} result(s)'"
-        print(msg.format(label=str(query), n_results=len(matches)))
+        msg = msg.format(label=str(query), n_results=len(matches))
+        print(msg)
 
-        for (entity, group) in groups:
+        for (entity, group) in groupping:
             if not entity:
                 header = "Ungroupped"
             else:
