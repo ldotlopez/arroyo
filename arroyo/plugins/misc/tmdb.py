@@ -4,32 +4,100 @@
 from arroyo import pluginlib
 models = pluginlib.models
 
+
+from urllib import parse
+
+
 try:
-    import tvdb_api
+    import tmdbsimple as tmdb
 except ImportError as e:
     raise pluginlib.RequirementError(e.name) from e
 
 
-class API(pluginlib.Service):
-    __extension_name__ = 'tvdb'
+PLUGIN_NS = 'plugins.misc.tmdb'
 
-    @property
-    def tvdb(self):
-        return tvdb_api.Tvdb()
+
+class NoResultsError(Exception):
+    pass
+
+
+class MultipleResultsError(Exception):
+    pass
+
+
+class API(pluginlib.Service):
+    __extension_name__ = 'tmdb'
+
+    def __init__(self, app, *args, **kwargs):
+        super().__init__(app, *args, **kwargs)
+        self.logger = app.logger.getChild('tmdb')
+
+        try:
+            tmdb.API_KEY = self.app.settings.get(PLUGIN_NS+'.api-key')
+        except KeyError as e:
+            raise pluginlib.ConfigurationError() from e
+
+    def get_payload(self, movie):
+        params = {
+            'query': parse.quote(movie.title)
+        }
+        if movie.year:
+            params['year'] = int(movie.year)
+
+        search = tmdb.Search()
+
+        res = search.movie(**params).get('results', [])
+        if len(res) == 0:
+            raise NoResultsError()
+        if len(res) > 1:
+            raise MultipleResultsError()
+
+        res = res[0]
+
+        return {
+            'tmdb.id': res['id'],
+            'tmdb.score': res['vote_average'],
+            'tmdb.poster': res['poster_path'],
+            'tmdb.backdrop': res['backdrop_path']
+        }
 
     def scan(self):
         # Get 10 movies without score
         qs = self.app.db.session.query(models.Movie)\
-            .filter(~models.Movie.tags.any())\
+            .filter(~models.Movie.tags.any(
+                models.MovieTag.key.startswith('tmdb.')
+            ))\
             .limit(10)
+
+        for movie in qs:
+            try:
+                payload = self.get_payload(movie)
+
+            except NoResultsError:
+                msg = "No results found for {movie}"
+                msg = msg.format(movie=movie)
+                self.logger.error(msg)
+                continue
+
+            except MultipleResultsError:
+                msg = "Multiple results found for {movie}"
+                msg = msg.format(movie=movie)
+                self.logger.error(msg)
+                continue
+
+            tags = [models.MovieTag(key, value)
+                    for (key, value) in payload.items()]
+            movie.tags.extend(tags)
+
+        self.app.db.session.commit()
 
 
 class Task(pluginlib.Task):
-    __extension_name__ = 'tvdb'
-    INTERVAL = '1'
+    __extension_name__ = 'tmdb'
+    INTERVAL = '1H'
 
     def execute(self):
-        api = self.app.get_extension(pluginlib.Service, 'tvdb')
+        api = self.app.get_extension(pluginlib.Service, 'tmdb')
         api.scan()
 
 
