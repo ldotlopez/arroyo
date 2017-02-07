@@ -26,7 +26,7 @@ class API(pluginlib.Service):
 
 class Task(pluginlib.Task):
     __extension_name__ = 'tvdb'
-    INTERVAL = '1'
+    INTERVAL = '1H'
 
     def execute(self):
         api = self.app.get_extension(pluginlib.Service, 'tvdb')
