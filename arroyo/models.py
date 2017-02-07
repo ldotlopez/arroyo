@@ -27,26 +27,14 @@ from sqlalchemy.orm import (
 )
 
 
-Variable = keyvaluestore.keyvaluemodel('Variable', sautils.Base, dict({
-    '__doc__': "Define variables.",
-    '__table_args__': (schema.UniqueConstraint('key'),)
-    }))
-
-
-SourceTag = keyvaluestore.keyvaluemodel(
-    'SourceTag',
+Variable = keyvaluestore.keyvaluemodel(
+    'Variable',
     sautils.Base,
     dict({
-        '__doc__': "Define custom data attached to a source.",
-        '__tablename__': 'sourcetag',
-        '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
-        'source_id': Column(Integer, ForeignKey('source.id',
-                                                ondelete="CASCADE")),
-        'source': relationship("Source",
-                               backref=backref("tags",
-                                               lazy='dynamic',
-                                               cascade="all, delete, delete-orphan")),  # nopep8
-    }))
+        '__doc__': "Define variables.",
+        '__table_args__': (schema.UniqueConstraint('key'),)
+    })
+)
 
 
 class Source(sautils.Base):
@@ -273,8 +261,27 @@ class Source(sautils.Base):
         return self.format(self.Formats.DEFAULT)
 
 
+SourceTag = keyvaluestore.keyvaluemodel(
+    'sourcetag',
+    sautils.Base,
+    dict({
+        '__doc__': "Define custom data attached to an element.",
+        '__table_args__': (schema.UniqueConstraint('key', 'source_id'),),
+        'source_id': Column(Integer,
+                            ForeignKey('source.id', ondelete="CASCADE")),
+        'source': relationship("Source",
+                               backref=backref("tags",
+                                               lazy='dynamic',
+                                               cascade="all, delete, delete-orphan"))  # nopep8
+    })
+)
+
+
 class Selection(sautils.Base):
     __tablename__ = 'selection'
+    __mapper_args__ = {
+        'polymorphic_on': 'type'
+    }
 
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
@@ -282,10 +289,6 @@ class Selection(sautils.Base):
     source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
                        nullable=False)
     source = relationship("Source")
-
-    __mapper_args__ = {
-        'polymorphic_on': 'type'
-    }
 
 
 class EpisodeSelection(Selection):
@@ -381,6 +384,22 @@ class Episode(sautils.Base):
         return self.format()
 
 
+EpisodeTag = keyvaluestore.keyvaluemodel(
+    'episodetag',
+    sautils.Base,
+    dict({
+        '__doc__': "Define custom data attached to an element.",
+        '__table_args__': (schema.UniqueConstraint('key', 'episode_id'),),
+        'episode_id': Column(Integer,
+                             ForeignKey('episode.id', ondelete="CASCADE")),
+        'episode': relationship("Episode",
+                                backref=backref("tags",
+                                                lazy='dynamic',
+                                                cascade="all, delete, delete-orphan"))  # nopep8
+    })
+)
+
+
 class MovieSelection(Selection):
     movie_id = Column(Integer,
                       ForeignKey('movie.id', ondelete="CASCADE"),
@@ -464,6 +483,22 @@ class Movie(sautils.Base):
 
     def __unicode__(self):
         return self.format()
+
+
+MovieTag = keyvaluestore.keyvaluemodel(
+    'movietag',
+    sautils.Base,
+    dict({
+        '__doc__': "Define custom data attached to an element.",
+        '__table_args__': (schema.UniqueConstraint('key', 'movie_id'),),
+        'movie_id': Column(Integer,
+                             ForeignKey('movie.id', ondelete="CASCADE")),
+        'movie': relationship("Movie",
+                              backref=backref("tags",
+                                              lazy='dynamic',
+                                              cascade="all, delete, delete-orphan"))  # nopep8
+    })
+)
 
 
 def _check_language(lang):

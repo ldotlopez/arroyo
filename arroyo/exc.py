@@ -1,7 +1,12 @@
 # -*- coding: utf-8 -*-
 
-from appkit import application
-
+# Import exceptions from application
+from appkit.application import (
+    ArgumentsError,
+    ArgumentsError,
+    ConfigurationError,
+    RequirementError,
+)
 
 class _BaseException(Exception):
     def __init__(self, msg, **kwargs):
@@ -24,10 +29,6 @@ class OriginParseError(_BaseException):
 
 
 class SourceResolveError(_BaseException):
-    pass
-
-
-class ArgumentsError(application.ArgumentsError, _BaseException):
     pass
 
 

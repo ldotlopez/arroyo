@@ -1,6 +1,12 @@
 import abc
 
-from appkit.application import cliargument
+from appkit.application import (
+    cliargument,
+    RequirementError
+)
+from appkit.application.services import (
+    Service
+)
 from arroyo import (
     exc,
     models
@@ -23,7 +29,6 @@ from arroyo.selector import (
 __all__ = [
     # Other modules
     'exc',
-    'extension',
     'models',
 
     # Extensible classes

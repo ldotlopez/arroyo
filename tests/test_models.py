@@ -3,7 +3,7 @@ import os
 import sys
 
 from appkit import utils
-from appkit.db import sqlalchemyutils
+from appkit.db.sqlalchemyutils import create_session
 from sqlalchemy import exc
 import tempfile
 
@@ -14,7 +14,7 @@ from arroyo import models
 
 class SourceModelTest(unittest.TestCase):
     def setUp(self):
-        self.sess = sqlalchemyutils.create_session('sqlite:///:memory:')
+        self.sess = create_session('sqlite:///:memory:')
         self.srcquery = self.sess.query(models.Source)
 
     def tearDown(self):
@@ -338,10 +338,46 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
 
         src1.tags.append(tag1)
         src1.tags.append(tag2)
-
         self.sess.add(src1)
+
         with self.assertRaises(exc.IntegrityError):
             self.sess.commit()
+
+    def test_tag_filter(self):
+        # http://stackoverflow.com/questions/26142304/how-to-execute-left-outer-join-in-sqlalchemy
+        src1 = models.Source.from_data('src1')
+        src2 = models.Source.from_data('src2')
+
+        src1.tags.append(models.SourceTag('foo', '1'))
+        src2.tags.append(models.SourceTag('bar', '2'))
+
+        self.sess.add_all([src1, src2])
+        self.sess.commit()
+
+        res = self.sess.query(models.Source)\
+            .outerjoin(models.SourceTag)\
+            .filter(models.SourceTag.key == 'foo').all()
+        self.assertEqual(set([src1]), set(res))
+
+    def test_empty_tags(self):
+        # http://stackoverflow.com/questions/26142304/how-to-execute-left-outer-join-in-sqlalchemy
+        # http://stackoverflow.com/questions/8561470/sqlalchemy-filtering-by-relationship-attribute
+        src1 = models.Source.from_data('src1')
+        src2 = models.Source.from_data('src2')
+
+        src1.tags.append(models.SourceTag('foo', '1'))
+        self.sess.add_all([src1, src2])
+        self.sess.commit()
+
+        with_foo_tag = self.sess.query(models.Source)\
+            .filter(models.Source.tags.any(models.SourceTag.key=='foo'))\
+            .all()
+        without_tags = self.sess.query(models.Source)\
+            .filter(~models.Source.tags.any())\
+            .all()
+
+        self.assertEqual(set([src1]), set(with_foo_tag))
+        self.assertEqual(set([src2]), set(without_tags))
 
 if __name__ == '__main__':
     unittest.main()
