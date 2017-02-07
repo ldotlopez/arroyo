@@ -17,6 +17,8 @@ class EpisodeQuery(query.HighLevelQuery):
     @property
     def base_string(self):
         ret = self._get_base_string('series')
+        if not ret:
+            return super().base_string
 
         params = {}
         for key in ['year', 'season', 'episode']:

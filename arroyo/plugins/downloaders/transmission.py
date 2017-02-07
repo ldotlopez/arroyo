@@ -49,7 +49,7 @@ class TransmissionDownloader(pluginlib.Downloader):
         except transmissionrpc.error.TransmissionError as e:
             msg = "Unable to connect to transmission daemon: '{message}'"
             msg = msg.format(message=e.original.message)
-            raise plugin.exc.BackendError(msg)
+            raise pluginlib.exc.BackendError(msg)
 
     def add(self, source, **kwargs):
         sha1_urn = downloads.calculate_urns(source.urn)[0]
@@ -61,7 +61,7 @@ class TransmissionDownloader(pluginlib.Downloader):
         try:
             ret = self.api.add_torrent(source.uri)
         except transmissionrpc.error.TransmissionError as e:
-            raise plugin.exc.BackendError(e)
+            raise pluginlib.exc.BackendError(e)
 
         self.shield[sha1_urn] = ret
         return ret
@@ -90,7 +90,7 @@ class TransmissionDownloader(pluginlib.Downloader):
         if state in STATE_MAP:
             return STATE_MAP[state]
         else:
-            raise plugin.exc.NoMatchingState(state)
+            raise pluginlib.exc.NoMatchingState(state)
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(

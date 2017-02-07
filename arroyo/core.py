@@ -44,7 +44,7 @@ _defaults = {
     'async-max-concurrency': 5,
     'async-timeout': 10,
     'auto-cron': True,
-    'auto-import': True,
+    'auto-import': None,
     'db-uri': 'sqlite:///' +
               utils.user_path(utils.UserPathType.DATA, 'arroyo.db',
                               create=True),
@@ -66,7 +66,7 @@ _defaults_types = {
     'async-max-concurrency': int,
     'async-timeout': float,
     'auto-cron': bool,
-    'auto-import': bool,
+    'auto-import': lambda x: None if x is None else bool(x),
     'db-uri': str,
     'downloader': str,
     'fetcher': dict,
@@ -113,6 +113,7 @@ _plugins = [
     'providers.kickass',
     'providers.thepiratebay',
     'providers.torrentapi',
+    'providers.yts',
 
     # Sorters
     'sorters.basic',
@@ -157,7 +158,7 @@ def build_basic_settings(arguments=None):
 
     # a) Plugins must be merged
     for ext in args.plugins:
-        store.set('plugin.{}.enabled'.format(ext), True)
+        store.set('plugins.{}.enabled'.format(ext), True)
     delattr(args, 'plugins')
 
     # b) log level modifers must me handled and removed from args
@@ -177,7 +178,7 @@ def build_basic_settings(arguments=None):
 
     # Clean up args before merging with store
     delattr(args, 'help')
-    for attr in ['downloader', 'db-uri', 'auto-cron', 'auto-import']:
+    for attr in ['downloader', 'db-uri', 'auto-cron']:
         if getattr(args, attr, None) is None:
             delattr(args, attr)
 
@@ -257,12 +258,9 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load plugins
-        # FIXME: Search for enabled plugins thru the keys of settings is a
-        # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugins.') and x.endswith('.enabled'),
-                         self.settings.all_keys())
-        plugins = map(lambda x: x[len('plugins.'):-len('.enabled')],
-                      plugins)
+        plugins = [x[len('plugins.'):-len('.enabled')]
+                   for x in self.settings.all_keys()
+                   if x.startswith('plugins.') and x.endswith('.enabled')]
 
         for p in set(plugins):
             if self.settings.get('plugins.' + p + '.enabled', default=False):
@@ -308,36 +306,29 @@ class ArroyoStore(store.Store):
             items=items,
             validators=[store.TypeValidator(_defaults_types)]
         )
-        self._logger = logging.getLogger('arroyo.settings')
 
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
-
-        # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # formater = logging.Formatter(
-        #     self.get('log-format', default=r'%(message)s'))
-        # handler.setFormatter(formater)
-
-        # self._logger = logging.getLogger('arroyo.settings')
-        # self._logger.addHandler(handler)
 
     def set(self, key, value):
         parts = key.split('.')
 
         if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
-            msg = "[Configuration Error] Origins use 'provider' instead of 'backend'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         if key.startswith('plugin.'):
-            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         return super().set(key, value)
 
     def get(self, key, default=store.UNDEFINED):
         if key.startswith('plugin.'):
-            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         return super().get(key, default=default)

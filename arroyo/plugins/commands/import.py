@@ -48,7 +48,7 @@ class ImportCommand(pluginlib.Command):
         if arguments.from_config and arguments.provider:
             msg = ("Only one of --from-config or --provider options can be "
                    "specified. They are mutually exclusive.")
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
         if arguments.provider or arguments.uri:
             # Build origin data
@@ -85,7 +85,7 @@ class ImportCommand(pluginlib.Command):
             # This code should never be reached but keeping it here we will
             # prevent future mistakes
             msg = "Incorrect usage"
-            raise plugin.exc.ArgumentsError(msg)
+            raise pluginlib.exc.ArgumentsError(msg)
 
 
 __arroyo_extensions__ = [

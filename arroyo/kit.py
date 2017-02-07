@@ -18,14 +18,7 @@ from arroyo import models
 class Extension(application.Extension):
     def __init__(self, app, *args, **kwargs):
         super().__init__()
-        self._app = app
-
-    @property
-    def app(self):
-        msg = "Extension {} is using app property"
-        msg = msg.format(self)
-        warnings.warn(msg)
-        return self._app
+        self.app = app
 
 
 class Command(commands.Command, Extension):
@@ -43,7 +36,7 @@ class Task(cron.Task, Extension):
     pass
 
 
-class CommandManager(commands.CommandManager):
+class CommandManager(commands.Manager):
     """
     Custom CommandManager to alter:
     - Own Command extension (Different signature)
@@ -105,7 +98,7 @@ class CommandManager(commands.CommandManager):
         return command.execute(arguments)
 
 
-class CronManager(cron.CronManager):
+class CronManager(cron.Manager):
     TASK_EXTENSION_POINT = Task
 
     def load_checkpoint(self, task):
