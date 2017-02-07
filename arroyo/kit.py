@@ -43,7 +43,7 @@ class Task(cron.Task, Extension):
     pass
 
 
-class CommandManager(commands.CommandManager):
+class CommandManager(commands.Manager):
     """
     Custom CommandManager to alter:
     - Own Command extension (Different signature)
@@ -111,7 +111,7 @@ class CommandManager(commands.CommandManager):
         return command.execute(arguments)
 
 
-class CronManager(cron.CronManager):
+class CronManager(cron.Manager):
     TASK_EXTENSION_POINT = Task
 
     def load_checkpoint(self, task):
