@@ -12,6 +12,13 @@ import humanfriendly
 from appkit import utils
 
 
+def entity_key_func(x):
+    if x.entity is None:
+        return ('', -sys.maxsize)
+    else:
+        return (x.entity.__class__.__name__, x.id)
+
+
 class SearchCommand(pluginlib.Command):
     __extension_name__ = 'search'
 
@@ -94,8 +101,7 @@ class SearchCommand(pluginlib.Command):
         # Sort matches by entity ID
         matches = sorted(
             matches,
-            key=lambda x: -sys.maxsize
-            if x.entity is None else x.entity.id)
+            key=lambda x: entity_key_func(x))
 
         # Group by entity
         groups = itertools.groupby(
@@ -115,9 +121,17 @@ class SearchCommand(pluginlib.Command):
         print(msg.format(label=str(query), n_results=len(matches)))
 
         for (entity, group) in groups:
-            print('{}'.format(entity or 'Ungroupped'))
-            lines = [self.format_source(x) for x in group]
-            print("\n".join(lines) + "\n")
+            if not entity:
+                header = "Ungroupped"
+            else:
+                header = "[{type}] {entity}"
+                header = header.format(
+                    type=entity.__class__.__name__.capitalize(),
+                    entity=entity)
+
+            lines = "\n".join([self.format_source(x) for x in group])
+
+            print(header + "\n" + lines + "\n")
 
 
 __arroyo_extensions__ = [
