@@ -51,11 +51,11 @@ class Epublibre(pluginlib.Provider):
         return ret
 
     def parse_detailed(self, soup):
-        href = soup.select('a[href^=magnet:?]')
+        href = soup.select_one('a[href^=magnet:?]').attrs['href']
         title = soup.select_one('.det_titulo').text.strip()
         author = soup.select_one('.aut_sec').text.strip()
         return [{
-            'urn': href,
+            'uri': href,
             'name': '{author} {title}'.format(author=author, title=title)
         }]
 

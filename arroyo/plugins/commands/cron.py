@@ -15,7 +15,8 @@ class Command(cron.Command, pluginlib.Command):
         pluginlib.Command.execute(arguments)
         appkit.cron.Command.execute(application, arguments)
 
-        We need to pass correct arguments to base class in order to adapt it to our application model
+        We need to pass correct arguments to base class in order to adapt it to
+        our application model
         """
         return super().execute(self.app, arguments)
 

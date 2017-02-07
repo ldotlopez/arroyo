@@ -184,9 +184,11 @@ class Importer:
                     break
 
         if not extension:
-            msg = "No provider plugin is compatible with '{uri}'"
+            msg = ("No provider plugin is compatible with '{uri}'. "
+                   "Fallback to generic")
             msg = msg.format(uri=uri)
-            raise ValueError(msg)
+            self.logger.warning(msg)
+            extension = self.app.get_extension(Provider, 'generic')
 
         overrides = {}
         if language:
@@ -247,8 +249,19 @@ class Importer:
         g = origin.provider.paginate(origin.uri)
         iterations = max(1, origin.iterations)
 
-        tasks = [self.get_buffer_from_uri(origin, next(g))
-                 for dummy in range(iterations)]
+        # Generator can raise StopIteration before iterations is reached
+        # We use a for loop instead to catch gracefully this situation
+        tasks = []
+        for i in range(iterations):
+            try:
+                uri = next(g)
+                tasks.append(self.get_buffer_from_uri(origin, uri))
+            except StopIteration:
+                msg = ("{provider} has stopped the pagination after "
+                       "iteration #{index}")
+                msg = msg.format(provider=origin.provider, index=i)
+                self.logger.warning(msg)
+                break
 
         ret = yield from asyncio.gather(*tasks)
         return ret
@@ -469,7 +482,7 @@ class Importer:
         self._process_finalize(contexts)
 
         if not source.urn:
-            raise exc.SourceResolveError(source)
+            raise arroyo.exc.SourceResolveError(source)
 
         return source
 

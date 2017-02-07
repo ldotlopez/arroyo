@@ -113,6 +113,7 @@ _plugins = [
     'providers.kickass',
     'providers.thepiratebay',
     'providers.torrentapi',
+    'providers.yts',
 
     # Sorters
     'sorters.basic',
@@ -257,12 +258,9 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         self.mediainfo = mediainfo.Mediainfo(self)
 
         # Load plugins
-        # FIXME: Search for enabled plugins thru the keys of settings is a
-        # temporal solution.
-        plugins = filter(lambda x: x.startswith('plugins.') and x.endswith('.enabled'),
-                         self.settings.all_keys())
-        plugins = map(lambda x: x[len('plugins.'):-len('.enabled')],
-                      plugins)
+        plugins = [x[len('plugins.'):-len('.enabled')]
+                   for x in self.settings.all_keys()
+                   if x.startswith('plugins.') and x.endswith('.enabled')]
 
         for p in set(plugins):
             if self.settings.get('plugins.' + p + '.enabled', default=False):
@@ -308,19 +306,9 @@ class ArroyoStore(store.Store):
             items=items,
             validators=[store.TypeValidator(_defaults_types)]
         )
-        self._logger = logging.getLogger('arroyo.settings')
 
         # if 'validator' not in kwargs:
         #     kwargs['validator'] = _get_validator()
-
-        # Build and configure logger
-        # handler = EncodedStreamHandler()
-        # formater = logging.Formatter(
-        #     self.get('log-format', default=r'%(message)s'))
-        # handler.setFormatter(formater)
-
-        # self._logger = logging.getLogger('arroyo.settings')
-        # self._logger.addHandler(handler)
 
     def set(self, key, value):
         parts = key.split('.')

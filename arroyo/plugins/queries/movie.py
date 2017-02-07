@@ -16,6 +16,8 @@ class MovieQuery(query.HighLevelQuery):
     @property
     def base_string(self):
         ret = self._get_base_string('title')
+        if not ret:
+            return super().base_string
 
         if 'year' in self.params:
             try:

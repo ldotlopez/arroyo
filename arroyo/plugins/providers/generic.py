@@ -42,7 +42,7 @@ class Provider(pluginlib.Provider):
         return ret
 
     def compatible_uri(self, uri):
-        return FALSE
+        return False
 
 __arroyo_extensions__ = [
     Provider
