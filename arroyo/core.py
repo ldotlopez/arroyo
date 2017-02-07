@@ -157,7 +157,7 @@ def build_basic_settings(arguments=None):
 
     # a) Plugins must be merged
     for ext in args.plugins:
-        store.set('plugin.{}.enabled'.format(ext), True)
+        store.set('plugins.{}.enabled'.format(ext), True)
     delattr(args, 'plugins')
 
     # b) log level modifers must me handled and removed from args
@@ -178,10 +178,8 @@ def build_basic_settings(arguments=None):
     # Clean up args before merging with store
     delattr(args, 'help')
     for attr in ['downloader', 'db-uri', 'auto-cron']:
-        try:
+        if getattr(args, attr, None) is None:
             delattr(args, attr)
-        except AttributeError:
-            pass
 
     store.load_arguments(args)
 
