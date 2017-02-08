@@ -14,7 +14,7 @@ class Command(pluginlib.Command):
             dest='shell',
             action='store_true',
             help=('Start an interactive python interpreter with database '
-                  'access to the database')),
+                  'access')),
 
         pluginlib.cliargument(
             '--reset-db',
