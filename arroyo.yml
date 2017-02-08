@@ -92,8 +92,8 @@ origin: {}
     #     # Check plugins folder for available analizers
     #     provider: foo
     #     # URL to analize
-    #     url: http://example.com/latest
-    #     # Iterations: some analizers can iterate over the given url parameter
+    #     uri: http://example.com/latest
+    #     # Iterations: some analizers can iterate over the given uri parameter
     #     # Think about iterations as how many 'pages' the backend has to parser
     #     iterations: 1
     #     # Type and language of media found in this origin.
@@ -113,19 +113,19 @@ origin: {}
     #     provider: kickass
     #     iterations: 3
     #     type: episode
-    #     url: https://kat.am/user/EZTV/uploads/?field=time_add&sorder=desc
+    #     uri: https://kat.am/user/EZTV/uploads/?field=time_add&sorder=desc
 
     # ka-episodes:
     #     provider: kickass
     #     iterations: 1
     #     type: movie
-    #     url: https://kat.am/tv/
+    #     uri: https://kat.am/tv/
 
     # ka-episodes:
     #     provider: kickass
     #     iterations: 1
     #     type: episode
-    #     url: https://kat.am/movies/
+    #     uri: https://kat.am/movies/
 
 # Queries are the way to download sources.
 # Using a query you are filtering sources from the database
