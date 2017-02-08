@@ -313,6 +313,18 @@ class ArroyoStore(store.Store):
     def set(self, key, value):
         parts = key.split('.')
 
+        if parts[0] == 'origin':
+            if len(parts) != 3:
+                msg = "Invalid configuration for origin section, check docs"
+                raise ValueError(msg)
+
+            dummy, name, key = parts
+            if key not in ['provider', 'uri', 'type', 'language',
+                           'iterations']:
+                msg = "Invalid key '{key}' for origin '{name}'"
+                msg = msg.format(key=key, name=name)
+                raise ValueError(msg)
+
         if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
             msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
                    "use 'plugins.'")
