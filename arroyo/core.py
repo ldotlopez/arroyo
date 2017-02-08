@@ -361,7 +361,7 @@ class ArroyoAsyncFetcher(network.AsyncFetcher):
         self._timeout = timeout
 
         if enable_cache:
-            fetcher_cache = cache.DiskCache(
+            fetcher_cache = cache.Disk(
                 basedir=utils.user_path(utils.UserPathType.CACHE, 'network',
                                         create=True, is_folder=True),
                 delta=cache_delta)
