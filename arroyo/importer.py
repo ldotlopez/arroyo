@@ -206,12 +206,8 @@ class Importer:
             self.app.logger.warning(msg)
             return []
 
-        return [
-            self.origin_from_params(
-                display_name=name,
-                **params)
-            for (name, params) in specs.items()
-        ]
+        return [self.origin_from_params(display_name=name, **params)
+                for (name, params) in specs.items()]
 
     @asyncio.coroutine
     def get_buffer_from_uri(self, origin, uri):
@@ -487,7 +483,8 @@ class Importer:
         return source
 
     def run(self):
-        return self.process(*self.get_configured_origins())
+        origins = self.get_configured_origins()
+        return self.process(*origins)
 
     def _process_remove_duplicates(self, psources):
         ret = dict()

@@ -270,10 +270,6 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         if self.settings.get('auto-cron'):
             self.cron.execute_all()
 
-    # @classmethod
-    # def build_argument_parser(cls):
-    #     return build_argument_parser()
-
     def execute(self, *args):
         try:
             return self.commands.execute(*args)

@@ -7,6 +7,7 @@ import sys
 import types
 
 
+import appkit.extensionmanager
 import guessit
 
 
@@ -186,11 +187,16 @@ class Selector:
         params_.update(kind_defaults)
         params_.update(params)
 
-        return self.app.get_extension(  # FIX: Handle exceptions
-            Query, impl_name,
-            params=params_,
-            display_name=display_name
-        )
+        try:
+            return self.app.get_extension(
+                Query, impl_name,
+                params=params_,
+                display_name=display_name
+            )
+        except appkit.extensionmanager.ExtensionNotFoundError as e:
+            msg = "Invalid query kind: {kind}"
+            msg = msg.format(kind=impl_name)
+            raise ValueError(msg) from e  # FIXME: Use custom exception
 
     def get_configured_queries(self):
         specs = self.app.settings.get('query', default={})
