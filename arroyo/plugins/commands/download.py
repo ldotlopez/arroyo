@@ -14,56 +14,60 @@ import humanfriendly
 class DownloadCommand(pluginlib.Command):
     __extension_name__ = 'download'
 
-    HELP = 'manage downloads'
+    HELP = 'Manage downloads'
     ARGUMENTS = (
         pluginlib.cliargument(
             '--import',
             dest='scan',
             action='store_true',
             default=None,
-            help=('Force auto import')),
+            help=('Import data from enabled providers before downloading '
+                  'anything')),
 
         pluginlib.cliargument(
             '--no-import',
             dest='scan',
             action='store_false',
             default=None,
-            help=('Disable auto import')),
+            help=('Disable automatic import process')),
 
         pluginlib.cliargument(
             '-l', '--list',
             dest='show',
             action='store_true',
-            help='show current downloads'),
+            help='Show current downloads'),
 
         pluginlib.cliargument(
             '-a', '--add',
             dest='add',
-            help='download a source ID'),
+            help='Download a source from its identifier'),
 
         pluginlib.cliargument(
             '-r', '--remove',
             dest='remove',
-            help='cancel (and/or remove) a source ID'),
+            help='Cancel a source downloading from its identifier'),
 
         pluginlib.cliargument(
             '-f', '--filter',
             dest='query',
             type=str,
             action=utils.DictAction,
-            help='filters to apply in key_mod=value form'),
+            help=('Select and download sources using filters. See search '
+                  'command for more help')),
 
         pluginlib.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
-            help="Download matching sources from queries defined in config"),
+            help=("Download sources from queries defined in the configuration "
+                  "file")),
 
         pluginlib.cliargument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
-            help='don\'t download matching sources, just show them')
+            help=("Dry run mode. Don't download anything, just show will be "
+                  "downloaded"))
     )
 
     SOURCE_FMT = "'{name}'"

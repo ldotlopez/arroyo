@@ -7,18 +7,19 @@ models = pluginlib.models
 class MediainfoCommand(pluginlib.Command):
     __extension_name__ = 'mediainfo'
 
-    HELP = 'guess mediainfo for sources.'
+    HELP = 'Extract media info from sources (for advanced users)'
     ARGUMENTS = (
         pluginlib.cliargument(
             '-i', '--item',
             dest='item',
-            help='run mediainfo process on selected item'
+            help='Extract (and override) media info from the selected source'
         ),
         pluginlib.cliargument(
             '-a', '--all',
             action='store_true',
             dest='all',
-            help='run mediainfo process on all items'
+            help=('Extract (and override) media info from all sources in the '
+                  'database')
         ),
     )
 

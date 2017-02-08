@@ -7,42 +7,42 @@ models = pluginlib.models
 class Command(pluginlib.Command):
     __extension_name__ = 'db'
 
-    HELP = 'manage database'
+    HELP = 'Manage database (for advanced users)'
     ARGUMENTS = (
         pluginlib.cliargument(
             '--shell',
             dest='shell',
             action='store_true',
-            help=('start a interactive python interpreter in the db '
-                  'environment')),
+            help=('Start an interactive python interpreter with database '
+                  'access to the database')),
 
         pluginlib.cliargument(
             '--reset-db',
             dest='reset',
             action='store_true',
-            help='empty db'),
+            help='Empty database'),
 
         pluginlib.cliargument(
             '--reset-states',
             dest='reset_states',
             action='store_true',
-            help='sets state to NONE on all sources'),
+            help='Sets downloading state to NONE on all sources'),
 
         pluginlib.cliargument(
             '--archive-all',
             dest='archive_all',
             action='store_true',
-            help='sets state to ARCHIVED on all sources'),
+            help='Sets downloading state to ARCHIVED on all sources'),
 
         pluginlib.cliargument(
             '--reset',
             dest='reset_source_id',
-            help='reset state of a source'),
+            help='Sets downloading state to NONE on a source'),
 
         pluginlib.cliargument(
             '--archive',
             dest='archive_source_id',
-            help='archive a source')
+            help='Sets downloading state to ARCHIVED on a sources'),
         )
 
     def execute(self, args):

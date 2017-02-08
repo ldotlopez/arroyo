@@ -15,7 +15,7 @@ from appkit import utils
 class SearchCommand(pluginlib.Command):
     __extension_name__ = 'search'
 
-    HELP = 'Search sources'
+    HELP = 'Search for sources'
     ARGUMENTS = (
         pluginlib.cliargument(
             '--import',
