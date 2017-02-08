@@ -314,18 +314,21 @@ class ArroyoStore(store.Store):
         parts = key.split('.')
 
         if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
-            msg = "[Configuration Error] Origins use 'provider' instead of 'backend'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         if key.startswith('plugin.'):
-            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         return super().set(key, value)
 
     def get(self, key, default=store.UNDEFINED):
         if key.startswith('plugin.'):
-            msg = "[Configuration Error] 'plugin.' namespace is deprecated, use 'plugins.'"
+            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
+                   "use 'plugins.'")
             raise ValueError(msg)
 
         return super().get(key, default=default)

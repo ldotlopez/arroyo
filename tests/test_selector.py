@@ -11,6 +11,58 @@ from arroyo import (
 import testapp
 
 
+class QueryBuilderTest(unittest.TestCase):
+    def test_episode_search(self):
+        app = testapp.TestApp()
+        q1 = app.selector.get_query_from_string('the oa 3x02')
+        q2 = app.selector.get_query_from_string('the oa s03e02')
+        q3 = app.selector.get_query_from_string('the oa s03 e02')
+
+        self.assertEqual(q1.asdict(), dict(
+            type='episode',
+            series='the oa',
+            season=3,
+            episode=2
+        ))
+        self.assertEqual(q1, q2)
+        self.assertEqual(q1, q3)
+
+        q_as_source = app.selector.get_query_from_string('the oa   3x02  ', type_hint='source')
+        self.assertEqual(
+            q_as_source.asdict(),
+            {'name-glob': '*the*oa*3x02*', 'type': 'source'}
+        )
+
+    def test_movie(self):
+        app = testapp.TestApp()
+
+        q1 = app.selector.get_query_from_string('Flash Gordon 1980')
+        q2 = app.selector.get_query_from_string('Flash Gordon (1980)')
+
+        self.assertEqual(q1.asdict(), dict(
+            type='movie',
+            title='Flash Gordon',
+            year=1980
+        ))
+        self.assertEqual(q1, q2)
+
+        q = app.selector.get_query_from_string('Flash gordon')
+        self.assertEqual(
+            q.asdict(),
+            {'name-glob': '*flash*gordon*', 'type': 'source'}
+        )
+
+    def test_mediainfo(self):
+        app = testapp.TestApp()
+        q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
+        self.assertEqual(
+            q.params['quality'], '720p'
+        )
+        self.assertEqual(
+            q.params['codec'], 'h264'  # x264 is detected as h264
+        )
+
+
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
         app = testapp.TestApp({
