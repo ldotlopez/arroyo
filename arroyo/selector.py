@@ -280,6 +280,33 @@ class Selector:
 
         return qs_filters, iter_filters, conflicts, missing
 
+    def group(self, matches):
+        def _entity_key_func(src):
+            if src.entity is None:
+                return ('', -sys.maxsize)
+            else:
+                return (src.entity.__class__.__name__, src.entity.id)
+
+        # Sort matches by entity ID
+        matches = sorted(
+            matches,
+            key=lambda x: _entity_key_func(x))
+
+        # Group by entity
+        groups = itertools.groupby(
+            matches,
+            lambda x: x.entity)
+
+        # Unfold groups
+        groups = ((grp, list(srcs)) for (grp, srcs) in groups)
+
+        # Order by entity str
+        groups = sorted(
+            groups,
+            key=lambda x: str(x[0]).lower() if x[0] else '')
+
+        yield from groups
+
     def sort(self, matches):
         sorter = self.app.get_extension(
             Sorter,
