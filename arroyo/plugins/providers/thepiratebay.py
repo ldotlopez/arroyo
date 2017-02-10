@@ -204,7 +204,7 @@ class ThePirateBay(pluginlib.Provider):
 
             p = '{Y:04d} {m:02d} {d:02d} {H:02d} {M:02d} {S:02d}'
             p = p.format(**keys)
-            p = datetime.strptime(p, '%Y %d %m %H %M %S')
+            p = datetime.strptime(p, '%Y %m %d %H %M %S')
 
             return int(time.mktime(p.timetuple()))
 
