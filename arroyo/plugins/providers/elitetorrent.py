@@ -21,7 +21,8 @@ class EliteTorrent(pluginlib.Provider):
     __extension_name__ = 'elitetorrent'
 
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
-    SEARCH_URI = 'http://www.elitetorrent.net/resultados/{query}/orden:fecha'
+    SEARCH_URI = ('http://www.elitetorrent.net/resultados/{query}'
+                  '/orden:fecha')
     URI_PATTERNS = [
         r'^http(s)?://([^.]+\.)?elitetorrent.net/'
     ]
@@ -171,8 +172,9 @@ class EliteTorrent(pluginlib.Provider):
             if not torrent_href_re.search(href):
                 return None
 
+            import ipdb; ipdb.set_trace(); pass
             parent = x
-            while parent != soup and parent.name != 'tr':
+            while parent != soup and parent.name.lower() not in ('tr', 'li'):
                 parent = parent.parent
 
             if parent == soup:
