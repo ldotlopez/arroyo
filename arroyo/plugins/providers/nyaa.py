@@ -35,18 +35,28 @@ class Nyaa(pluginlib.Provider):
         return uri.format(q=parse.quote(query.base_string))
 
     def parse(self, buff, parser):
+        try:
+            header = buff[0:11].decode('utf-8')
+        except UnicodeError:
+            header = None
+
+        # Input is torrent file
+        if header == 'd8:announce':
+            return self.parse_torrent_file(buff)
+
         soup = bs4.BeautifulSoup(buff, parser)
         table = soup.select_one('table.tlist')
-
         if table:
+            # Input is listing
             return self.parse_listing(table)
         else:
+            # Input is detail
             return self.parse_detail(soup)
 
     def parse_listing(self, block):
         def _parse(row):
             name = row.select_one('.tlistname a').text
-            uri = self.normalize_uri(
+            uri = uritools.normalize(
                 row.select_one('.tlistdownload a').attrs.get('href'))
 
             size = humanfriendly.parse_size(
@@ -74,19 +84,6 @@ class Nyaa(pluginlib.Provider):
         ret = [x for x in ret if x]
         return ret
 
-    def get_torrent_file(self, uri):
-        res = None
-
-        @asyncio.coroutine
-        def _task():
-            nonlocal res
-            res = yield from self.app.fetcher.fetch(uri)
-
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(_task())
-
-        return downloads.magnet_from_torrent_data(res)
-
     def parse_detail(self, block):
         name = block.select_one('.content .container .viewtorrentname').text
         seeds = block.select_one('.content .container .viewsn').text
@@ -96,8 +93,8 @@ class Nyaa(pluginlib.Provider):
         links = [x for x in links if 'page=download' in x and 'txt=1' not in x]
         assert len(links) == 1
 
-        uri = self.normalize_uri(links[0])
-        uri = self.get_torrent_file(uri)
+        uri = uritools.normalize(links[0])
+        # uri = self.get_torrent_file(uri)
         return [{
             'name': name,
             'seeds': seeds,
@@ -105,48 +102,43 @@ class Nyaa(pluginlib.Provider):
             'uri': uri
         }]
 
-    def build_payload(self, uri, title, year, quality=None):
-        meta = {
-            'movie.title': title,
-            'movie.year': year
-        }
-        name = '{title} ({year})'.format(
-            title=title,
-            year=year)
+    def parse_torrent_file(self, buff):
+        magnet = downloads.magnet_from_torrent_data(buff)
+        parsed = parse.urlparse(magnet)
+        qs = parse.parse_qs(parsed.query)
 
-        if quality:
-            name += " {quality}".format(quality=quality)
-            meta['mediainfo.quality'] = quality
+        return [{
+            'name': qs['dn'][-1],
+            'uri': magnet
+        }]
 
-        if not uri.startswith('magnet:?'):
-            uri = self.convert_torrent_file_uri(uri)
+    # def get_torrent_file(self, uri):
+    #     res = None
 
-        return {
-            'language': 'eng-us',
-            'type': 'movie',
-            'name': name,
-            'uri': uri,
-            'meta': meta
-        }
+    #     @asyncio.coroutine
+    #     def _task():
+    #         nonlocal res
+    #         res = yield from self.app.fetcher.fetch(uri)
 
-    def convert_torrent_file_uri(self, uri):
-        m = re.search('/torrent/download/([0-9a-f]{40})$', uri, re.IGNORECASE)
-        if m:
-            magnet = 'magnet:?xt=urn:btih:{id}'.format(
-                id=m.group(1).upper())
+    #     loop = asyncio.get_event_loop()
+    #     loop.run_until_complete(_task())
 
-            for tr in self._TRACKERS:
-                magnet = magnet + '&tr=' + parse.quote_plus(tr)
+    #     return downloads.magnet_from_torrent_data(res)
 
-            return magnet
+    # def convert_torrent_file_uri(self, uri):
+    #     m = re.search('/torrent/download/([0-9a-f]{40})$', uri, re.IGNORECASE)
+    #     if m:
+    #         magnet = 'magnet:?xt=urn:btih:{id}'.format(
+    #             id=m.group(1).upper())
 
-        else:
-            raise ValueError(uri)
+    #         for tr in self._TRACKERS:
+    #             magnet = magnet + '&tr=' + parse.quote_plus(tr)
 
-    def normalize_uri(self, uri):
-        if uri.startswith('//'):
-            uri = 'http:' + uri
-        return uri
+    #         return magnet
+
+    #     else:
+    #         raise ValueError(uri)
+
 
 __arroyo_extensions__ = [
     Nyaa
