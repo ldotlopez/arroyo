@@ -31,51 +31,12 @@ def format_source(src, fmt=SOURCE_FMT):
 class SourceNotFoundError(Exception):
     pass
 
+
 class FooCommand(pluginlib.Command):
     __extension_name__ = 'foo'
 
     HELP = 'Foo things'
     ARGUMENTS = (
-        # Downloads management
-        pluginlib.cliargument(
-            '-a', '--add',
-            dest='add',
-            default=[],
-            type=int,
-            action='append',
-            help='Download a source from its identifier'),
-
-        pluginlib.cliargument(
-            '-r', '--remove',
-            dest='remove',
-            default=[],
-            type=int,
-            action='append',
-            help='Cancel a source downloading from its identifier'),
-
-        pluginlib.cliargument(
-            '-l', '--list',
-            dest='list',
-            action='store_true',
-            help='Show current downloads'),
-
-        pluginlib.cliargument(
-            '--from-config',
-            dest='from_config',
-            action='store_true',
-            help=("Download sources from queries defined in the configuration "
-                  "file")),
-
-        # Selecting
-        pluginlib.cliargument(
-            '-f', '--filter',
-            dest='filters',
-            type=str,
-            default={},
-            action=utils.DictAction,
-            help=('Select and download sources using filters. See search '
-                  'command for more help')),
-
         # Behaviour control
         pluginlib.cliargument(
             '--import',
@@ -105,12 +66,52 @@ class FooCommand(pluginlib.Command):
             action='store_true',
             help=("Dry run mode. Don't download anything, just show will be "
                   "downloaded")),
-        
+
         pluginlib.cliargument(
             '--explain',
             dest='explain',
             action='store_true',
             help=("Explain")),
+
+        # Downloads management
+        pluginlib.cliargument(
+            '-a', '--add',
+            dest='add',
+            default=[],
+            type=int,
+            action='append',
+            help='Download a source from its identifier'),
+
+        pluginlib.cliargument(
+            '-r', '--remove',
+            dest='remove',
+            default=[],
+            type=int,
+            action='append',
+            help='Cancel a source downloading from its identifier'),
+
+        pluginlib.cliargument(
+            '-l', '--list',
+            dest='list',
+            action='store_true',
+            help='Show current downloads'),
+
+        # Selecting
+        pluginlib.cliargument(
+            '--from-config',
+            dest='from_config',
+            action='store_true',
+            help=("Download sources from queries defined in the configuration "
+                  "file")),
+
+        pluginlib.cliargument(
+            '-f', '--filter',
+            dest='filters',
+            type=str,
+            default={},
+            action=utils.DictAction,
+            help=('Select and download sources using filters. See search '
+                  'command for more help')),
 
         pluginlib.cliargument(
             'keywords',
@@ -139,13 +140,15 @@ class FooCommand(pluginlib.Command):
         if args.filters or args.keywords:
             if args.keywords:
                 # Check for missuse of keywords
-                if any([re.search(r'^([a-z]+)=(.+)$', x) for x in args.keywords]):
-                    msg = "Found a filter=value argument without -f/--filter flag"
+                if any([re.search(r'^([a-z]+)=(.+)$', x)
+                        for x in args.keywords]):
+                    msg = ("Found a filter=value argument without -f/--filter "
+                           "flag")
                     self.app.logger.warning(msg)
 
                 # Check for dangling filters
-                if '-f' in args.keywords or '--filter' in  args.keywords:
-                    msg = "-f/--filter must be used *before* keywords"                    
+                if '-f' in args.keywords or '--filter' in args.keywords:
+                    msg = "-f/--filter must be used *before* keywords"
                     self.app.logger.warning(msg)
 
                 # Transform keywords into a usable query
@@ -202,7 +205,7 @@ class FooCommand(pluginlib.Command):
             srcs = self.app.selector.matches(query,
                                              auto_import=args.scan,
                                              everything=args.everything)
-            
+
             # Build selections
             selections = []
             row_data = []
@@ -223,7 +226,8 @@ class FooCommand(pluginlib.Command):
                         '→' if src == selected else '',
                         '[{}]'.format(src.state_symbol),
                         src.name,
-                        humanfriendly.format_size(src.size) if src.size else '',
+                        humanfriendly.format_size(src.size)
+                        if src.size else '',
                         src.language or '',
                         '{}/{}'.format(src.seeds or '-', src.leechers or '-'),
                     )))
@@ -233,12 +237,15 @@ class FooCommand(pluginlib.Command):
                     #     'selected': '→' if src == selected else '',
                     #     'state': '[{}]'.format(src.state_symbol),
                     #     'name': src.name,
-                    #     'size': humanfriendly.format_size(src.size) if src.size else '',
+                    #     'size': humanfriendly.format_size(src.size)
+                    #             if src.size else '',
                     #     'language': src.language or '',
-                    #     'ratio': '{}/{}'.format(src.seeds or '-', src.leechers or '-'),
+                    #     'ratio': '{}/{}'.format(src.seeds or '-',
+                    #                             src.leechers or '-'),
                     # }))
 
-            # headers = ['ID', 'selected', 'state', 'name', 'size', 'language', 'ratio']
+            # headers = ['ID', 'selected', 'state', 'name', 'size', 'language',
+            #            'ratio']
             groupped_rows = tabulate_groups(rows)
             for (entity, rows) in groupped_rows:
                 header = "[{type}] {entity}"
@@ -248,6 +255,7 @@ class FooCommand(pluginlib.Command):
 
                 print("{header}\n{rows}\n".format(header=header,
                                                   rows="\n".join(rows)))
+
 
 def tabulate_groups(groups, *args, headers=None, **kwargs):
     if headers is None:
