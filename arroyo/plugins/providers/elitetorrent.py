@@ -172,7 +172,6 @@ class EliteTorrent(pluginlib.Provider):
             if not torrent_href_re.search(href):
                 return None
 
-            import ipdb; ipdb.set_trace(); pass
             parent = x
             while parent != soup and parent.name.lower() not in ('tr', 'li'):
                 parent = parent.parent
