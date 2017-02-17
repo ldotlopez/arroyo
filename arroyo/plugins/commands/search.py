@@ -74,7 +74,7 @@ class SearchCommand(pluginlib.Command):
                 ' '.join([x.strip() for x in args.keywords]),
                 type_hint=args.filters.pop('kind', None))
 
-            for (key, value) in args.filters:
+            for (key, value) in args.filters.items():
                 query.params[key] = value
 
         elif args.filters:
