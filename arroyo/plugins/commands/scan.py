@@ -5,9 +5,9 @@ from arroyo import pluginlib
 
 
 class ImportCommand(pluginlib.Command):
-    __extension_name__ = 'import'
+    __extension_name__ = 'scan'
 
-    HELP = 'Import sources (scan websites, etc…)'
+    HELP = 'Scan sources (i.e. websites)'
     ARGUMENTS = (
         pluginlib.cliargument(
             '--provider',
@@ -19,7 +19,7 @@ class ImportCommand(pluginlib.Command):
             dest='uri',
             type=str,
             default=None,
-            help='Base URI to import'),
+            help='Base URI to scan'),
         pluginlib.cliargument(
             '-i', '--iterations',
             dest='iterations',
