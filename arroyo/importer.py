@@ -628,7 +628,8 @@ class Importer:
                    ctx.source.created < ctx.data['created']:
                     continue
 
-                if getattr(ctx.source, key) != ctx.data[key]:
+                value = getattr(ctx.source, key)
+                if value and value != ctx.data[key]:
                     updated = True
                     setattr(ctx.source, key, ctx.data[key])
 
