@@ -19,7 +19,6 @@ from sqlalchemy import (
 )
 
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     backref,
     relationship,

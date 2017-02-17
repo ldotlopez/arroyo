@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 
 import abc
+import collections
 import functools
 import itertools
 import sys

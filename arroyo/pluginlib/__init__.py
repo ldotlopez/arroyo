@@ -1,4 +1,3 @@
-import abc
 
 from appkit.application import cliargument
 from arroyo import (
@@ -12,7 +11,6 @@ from arroyo.kit import (
 from arroyo.downloads import Downloader
 from arroyo.importer import Provider
 from arroyo.selector import (
-    Filter,
     IterableFilter,
     Query,
     QuerySetFilter,

@@ -166,6 +166,9 @@ class Mediainfo:
             else:
                 src, meta = x[0], x[1]
 
+            # FIXME: meta is not yet used
+            del meta
+
             # if meta:
             #     msg = "Source {source} has metadata: {meta}"
             #     msg = msg.format(source=src, meta=meta)

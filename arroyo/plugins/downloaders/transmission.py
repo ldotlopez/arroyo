@@ -14,8 +14,6 @@ from sqlalchemy import orm
 import transmissionrpc
 
 
-
-
 SETTINGS_NS = 'plugins.downloaders.transmission'
 STATE_MAP = {
     'download pending': models.Source.State.QUEUED,

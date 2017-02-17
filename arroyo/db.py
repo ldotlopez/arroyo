@@ -74,7 +74,7 @@ class Db:
         self._sess.commit()
 
     def search(self, all_states=False, **kwargs):
-        query = ldotsa.query_from_params(self._sess, models.Source, **kwargs)
+        query = sautils.query_from_params(self._sess, models.Source, **kwargs)
         if not all_states:
             query = query.filter(
                 models.Source.state == models.Source.State.NONE)

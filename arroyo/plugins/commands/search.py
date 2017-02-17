@@ -4,10 +4,6 @@ from arroyo import pluginlib
 models = pluginlib.models
 
 
-import itertools
-import sys
-
-
 import humanfriendly
 from appkit import utils
 
@@ -93,7 +89,6 @@ class SearchCommand(pluginlib.Command):
                                             everything=args.all_states,
                                             auto_import=args.scan)
 
-        n_matches = len(matches)
         groupping = self.app.selector.group(matches)
 
         # Finally print

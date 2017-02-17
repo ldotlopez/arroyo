@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 
+
 from arroyo import pluginlib
 models = pluginlib.models
 
 
 VARIABLES_NS = 'downloader.mock.states'
+
 
 class MockDownloader(pluginlib.Downloader):
     __extension_name__ = 'mock'

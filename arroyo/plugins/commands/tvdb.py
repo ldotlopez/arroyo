@@ -2,7 +2,7 @@
 
 
 from arroyo import pluginlib
-pluginlib.models
+models = pluginlib.models
 
 
 import json
@@ -11,14 +11,11 @@ import json
 import tvdb_api
 from appkit import utils
 from appkit.db import sqlalchemyutils as sautils
-from sqlalchemy import and_
 from sqlalchemy import (
     Column,
-    ForeignKey
     Integer,
     String,
-    and_,
-    schema
+    and_
 )
 
 
@@ -90,10 +87,10 @@ class TVDB:
 
     def process(self, *src_ids):
         srcs = self.app.db.session.query(
-            plugin.models.Source
+            models.Source
         ).filter(and_(
-            plugin.models.Source.episode != None,  # nopep8
-            plugin.models.Source.id.in_(src_ids)
+            models.Source.episode != None,  # nopep8
+            models.Source.id.in_(src_ids)
         ))
 
         eps = set(map(lambda src: src.episode, srcs))

@@ -143,10 +143,10 @@ class EliteTorrent(pluginlib.Provider):
         if _is_redirect(content):
             # Get Cookies
             resp, content = yield from fetcher.fetch_full(
-                url, skip_cache=True)
+                uri, skip_cache=True)
             # Get URL with cookies
             resp, content = yield from fetcher.fetch_full(
-                url, skip_cache=True)
+                uri, skip_cache=True)
 
         return content
 

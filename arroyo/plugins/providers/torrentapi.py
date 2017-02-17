@@ -3,7 +3,7 @@
 # json_extended format:
 #
 # {'category': 'TV Episodes',
-#  'download': 'magnet:?xt=urn:btih:000000000000000000000000000000000000000000000000&dn=Westworld.S01E10.iNTERNAL.HDTV.x264-TURBO%5Brartv%5D&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2710&tr=udp%3A%2F%2F9.rarbg.to%3A2710&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',
+#  'download': 'magnet:?xt=urn:btih:000000000000000000000000000000000000000000000000&dn=Westworld.S01E10.iNTERNAL.HDTV.x264-TURBO%5Brartv%5D&tr=http%3A%2F%2Ftracker.trackerfix.com%3A80%2Fannounce&tr=udp%3A%2F%2F9.rarbg.me%3A2710&tr=udp%3A%2F%2F9.rarbg.to%3A2710&tr=udp%3A%2F%2Fopen.demonii.com%3A1337%2Fannounce',  # nopep8
 #  'episode_info': {'airdate': '2016-12-04',
 #                   'epnum': '10',
 #                   'imdb': 'tt0475784',
@@ -12,7 +12,7 @@
 #                   'title': 'The Bicameral Mind',
 #                   'tvdb': '296762',
 #                   'tvrage': '37537'},
-#  'info_page': 'https://torrentapi.org/redirect_to_info.php?token=xxxxxxxxxx&p=x_x_x_x_x_x_x__xxxxxxxxxx',
+#  'info_page': 'https://torrentapi.org/redirect_to_info.php?token=xxxxxxxxxx&p=x_x_x_x_x_x_x__xxxxxxxxxx',  # nopep8
 #  'leechers': 6,
 #  'pubdate': '2016-12-06 10:13:24 +0000',
 #  'ranked': 1,
@@ -111,7 +111,7 @@ class TorrentAPI(pluginlib.Provider):
         data = json.loads(buff.decode('utf-8'))
         try:
             psrcs = data['torrent_results']
-        except KeyError as e:
+        except KeyError:
             return []
 
         ret = [convert_data(x) for x in psrcs]
@@ -123,15 +123,12 @@ class TorrentAPI(pluginlib.Provider):
             'movie': 'movies'
         }
 
-        kind = query.kind
-        params = query.params
-
         q = {
             'search_string': query.base_string
         }
 
-        if kind in _category_table:
-            q['category'] = _category_table[kind]
+        if query.kind in _category_table:
+            q['category'] = _category_table[query.kind]
 
         q['search_string'] = query.base_string
         return self.SEARCH_URL + "&" + parse.urlencode(q)

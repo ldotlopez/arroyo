@@ -2,7 +2,6 @@
 
 import abc
 import argparse
-import warnings
 
 
 from appkit import application
@@ -10,9 +9,6 @@ from appkit.application import (
     commands,
     cron
 )
-
-
-from arroyo import models
 
 
 class Extension(application.Extension):

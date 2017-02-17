@@ -1,10 +1,6 @@
 # -*- coding: utf-8 -*-
 
-
-import argparse
 import asyncio
-import importlib
-import sys
 import warnings
 
 
@@ -18,11 +14,7 @@ from appkit import (
     store,
     utils
 )
-from appkit.application import (
-    commands,
-    cron,
-    services
-)
+from appkit.application import services
 
 import arroyo.exc
 from arroyo import (

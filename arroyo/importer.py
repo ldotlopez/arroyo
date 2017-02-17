@@ -4,7 +4,6 @@ import abc
 import aiohttp
 import asyncio
 import enum
-import itertools
 import re
 import sys
 import traceback
@@ -78,8 +77,8 @@ class Origin:
                  overrides={}, logger=None):
 
         if not isinstance(provider, Provider):
-            msg = "Invalid provider"
-            msg = msg.format(name=nme, value=var)
+            msg = "Invalid provider: {provider}"
+            msg = msg.format(repr(provider))
             raise TypeError(msg)
 
         uri = uri or provider.DEFAULT_URI
@@ -589,8 +588,6 @@ class Importer:
 
             if ProcessingTag.UPDATED in ctx.tags:
                 updated.append(ctx.source)
-
-        mediainfo_sources = added + name_updated
 
         sources_and_metas = [(ctx.source, ctx.meta) for ctx in contexts]
         self.app.mediainfo.process(*sources_and_metas)

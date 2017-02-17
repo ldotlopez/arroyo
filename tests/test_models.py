@@ -3,7 +3,7 @@ import os
 import sys
 
 from appkit import utils
-from appkit.db import sqlalchemyutils
+from appkit.db import sqlalchemyutils as sautils
 from sqlalchemy import exc
 import tempfile
 
@@ -14,7 +14,7 @@ from arroyo import models
 
 class SourceModelTest(unittest.TestCase):
     def setUp(self):
-        self.sess = sqlalchemyutils.create_session('sqlite:///:memory:')
+        self.sess = sautils.create_session('sqlite:///:memory:')
         self.srcquery = self.sess.query(models.Source)
 
     def tearDown(self):
