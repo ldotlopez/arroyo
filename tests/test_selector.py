@@ -3,12 +3,10 @@
 # vim: set fileencoding=utf-8 :
 
 import unittest
-
-from arroyo import (
-    models,
-    selector
-)
 import testapp
+
+
+from arroyo import models
 
 
 class QueryBuilderTest(unittest.TestCase):
@@ -66,8 +64,8 @@ class QueryBuilderTest(unittest.TestCase):
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
         app = testapp.TestApp({
-            'plugin.sourcequery.enabled': True,
-            'plugin.moviequery.enabled': True,
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.movie.enabled': True,
 
             'query.test1.name-glob': '*x*',
             'query.test2.kind': 'movie',
@@ -82,8 +80,8 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_queries_with_defaults(self):
         app = testapp.TestApp({
-            'plugin.sourcequery.enabled': True,
-            'plugin.moviequery.enabled': True,
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.movie.enabled': True,
 
             'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.language': 'eng-us',
@@ -109,7 +107,7 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_include_defaults_in_query(self):
         app = testapp.TestApp({
-            'plugin.sourcequery.enabled': True,
+            'plugins.queries.source.enabled': True,
 
             'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.since': 1234567890,
@@ -135,8 +133,8 @@ class SelectorTestCase(unittest.TestCase):
 class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugin.sourcequery.enabled': True,
-            'plugin.sourcefilters.enabled': True
+            'plugins.queries.source.enabled': True,
+            'plugins.filters.source.enabled': True,
         })
 
     def test_not_everything(self):
@@ -203,9 +201,9 @@ class SourceSelectorTest(SelectorTestCase):
 class MediainfoFiltersTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugin.sourcequery.enabled': True,
-            'plugin.episodequery.enabled': True,
-            'plugin.mediainfofilters.enabled': True
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.mediainfo.enabled': True
         })
 
     def test_quality(self):
@@ -252,6 +250,43 @@ class MediainfoFiltersTest(SelectorTestCase):
         self.assertQuery(
             x264,
             codec='h264')
+
+    def test_release_group(self):
+        dimension = testapp.mock_source('2.Broke.Girls.S06E16.720p.HDTV.X264-DIMENSION.mkv')
+        norg = testapp.mock_source('2.Broke.Girls.S06E16.720p.HDTV.mkv')
+        self.app.insert_sources(dimension, norg)
+        self.app.mediainfo.process(dimension, norg)
+
+        self.assertQuery(
+            [dimension],
+            release_group_in=['dimension', 'eztv'])
+
+        self.assertQuery(
+            [],
+            release_group_in=['eztv'])
+
+        self.assertQuery(
+            [dimension],
+            release_group='dImEnSiOn')
+
+    def test_container(self):
+        mkv = testapp.mock_source('2.Broke.Girls.S06E16.720p.HDTV.X264-DIMENSION.mkv')
+        mp4 = testapp.mock_source('2.Broke.Girls.S06E16.720p.HDTV.mp4')
+        mixed = testapp.mock_source('2.Broke.Girls.S06E16.720p.HDTV.X264-DIMENSION.mkv[eztv].avi')
+        self.app.insert_sources(mkv, mp4, mixed)
+        self.app.mediainfo.process(mkv, mp4, mixed)
+
+        self.assertQuery(
+            [mkv, mixed],
+            container='mkv')
+
+        self.assertQuery(
+            [mkv, mp4, mixed],
+            container_in=['mkv', 'mp4'])
+
+        self.assertQuery(
+            [],
+            container='avi')  # Container for mixed is mkv NOT avi. Check dock for ContainerFilter
 
 
 class EpisodeSelectorTest(SelectorTestCase):
@@ -424,7 +459,6 @@ class EpisodeSelectorTest(SelectorTestCase):
 
         candidates = list(app.selector.select(matches))
         self.assertEqual(len(candidates), 3)
-
 
 
 if __name__ == '__main__':
