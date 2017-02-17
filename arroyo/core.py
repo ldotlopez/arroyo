@@ -91,9 +91,8 @@ _plugins = [
     'commands.cron',
     'commands.db',
     'commands.download',
-    'commands.import',
     'commands.mediainfo',
-    'commands.search',
+    'commands.scan',
 
     # Downloaders
     'downloaders.mock',
