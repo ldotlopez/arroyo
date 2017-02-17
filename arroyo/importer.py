@@ -167,7 +167,15 @@ class Importer:
         if provider:
             # Get extension from provider
             extension = self.app.get_extension(Provider, provider)
-            uri = uritools.normalize(uri or extension.DEFAULT_URI)
+            uri = uri or extension.DEFAULT_URI
+
+            # Neither uri or extension.DEFAULT_URI is available
+            if uri is None:
+                msg = "Provider {name} needs and URI"
+                msg = msg.format(name=extension.__extension_name__)
+                raise exc.ArgumentError(msg)
+
+            uri = uritools.normalize(uri)
 
         else:
             # Get extension from uri
