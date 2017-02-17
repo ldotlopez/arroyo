@@ -44,7 +44,25 @@ class Mediainfo:
         #     )
         # }
 
-        info = guessit.guessit(source.name, options={'type': source.type})
+        # Release teams ofter are shadowed by 'distributors' (eztv, rartv,
+        # etc...) because guessit doesn't do a perfect job.
+        # In order to fix this we made a "preprocessing" to extract (and
+        # remove) known distributors from source's name and add distribution
+        # field into info after processing source's name with guessit.
+
+        known_distributors = ['eztv', 'rartv']
+        source_distributors = set()
+        name = source.name
+        for dist in known_distributors:
+            tag = '[' + dist + ']'
+            if tag in name:
+                source_distributors.add(dist)
+                name = name.replace(tag, '')
+
+        info = guessit.guessit(name, options={'type': source.type})
+
+        if source_distributors:
+            info['distributors'] = list(source_distributors)
 
         # FIXME: Why are we doing this?
         # Do a second guess with fake name
