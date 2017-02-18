@@ -628,10 +628,11 @@ class Importer:
                    ctx.source.created < ctx.data['created']:
                     continue
 
-                value = getattr(ctx.source, key)
-                if value and value != ctx.data[key]:
+                old_value = getattr(ctx.source, key, None)
+                new_value = ctx.data.get(key, None)
+                if new_value and new_value != old_value:
                     updated = True
-                    setattr(ctx.source, key, ctx.data[key])
+                    setattr(ctx.source, key, new_value)
 
             if updated:
                 ctx.tags.append(_ProcessingTag.UPDATED)
