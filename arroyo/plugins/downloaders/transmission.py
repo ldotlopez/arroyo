@@ -16,11 +16,20 @@ import transmissionrpc
 
 SETTINGS_NS = 'plugins.downloaders.transmission'
 STATE_MAP = {
+    'checking': models.Source.State.INITIALIZING,
+    'check pending': models.Source.State.INITIALIZING,
     'download pending': models.Source.State.QUEUED,
     'downloading': models.Source.State.DOWNLOADING,
     'seeding': models.Source.State.SHARING,
     # other states need more logic
 }
+
+
+def torrent_str(torrent):
+    root = [x['name'].split('/')[0] for x in torrent.files().values()][0]
+    return root
+
+transmissionrpc.torrent.Torrent.__str__ = torrent_str
 
 
 class TransmissionDownloader(pluginlib.Downloader):

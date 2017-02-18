@@ -201,21 +201,26 @@ class Importer:
     def get_configured_origins(self):
         specs = self.app.settings.get('origin', default={})
         if not specs:
-            msg = "No origins defined"
-            self.app.logger.warning(msg)
             return []
 
-        return [
-            self.origin_from_params(
-                display_name=name,
-                **params)
-            for (name, params) in specs.items()
-        ]
+        return [self.origin_from_params(display_name=name, **params)
+                for (name, params) in specs.items()]
 
     @asyncio.coroutine
     def get_buffer_from_uri(self, origin, uri):
+        """ Get buffer (read) from URI using origin.
+
+        In the 99% of the cases this means fetch some data from network
+
+        Return:
+          A tuple (origin, uri, result) where:
+          - origin is the original origin argument
+          - uri is the original uri argument
+          - result is a bytes object with the content from uri or an Exception
+            if something goes wrong
+        """
         try:
-            res = yield from origin.provider.fetch(self.app.fetcher, uri)
+            result = yield from origin.provider.fetch(self.app.fetcher, uri)
 
         except (asyncio.CancelledError,
                 asyncio.TimeoutError,
@@ -227,29 +232,43 @@ class Importer:
                 uri=uri, type=e.__class__.__name__,
                 msg=str(e) or 'no reason')
             self.logger.error(msg)
-            res = e
+            result = e
 
         except Exception as e:
             print(traceback.format_exc(), file=sys.stderr)
             msg = "Unhandled exception {type}: {e}"
             msg = msg.format(type=type(e), e=e)
             self.logger.critical(msg)
-            res = e
+            result = e
 
-        if not isinstance(res, Exception) and (res is None or res == ''):
+        if (not isinstance(result, Exception) and
+                (result is None or result == '')):
             msg = "Empty or None buffer for «{uri}»"
             msg = msg.format(uri=uri)
             self.logger.error(msg)
 
-        return (origin, uri, res)
+        return (origin, uri, result)
 
     @asyncio.coroutine
     def get_buffers_from_origin(self, origin):
+        """ Get all buffers from origin.
+
+        An Origin can have several 'pages' or iterations.
+        This methods is responsable to generate all URIs needed from origin
+        and Importer.get_buffer_from_uri from each of them.
+
+        Arguments:
+          origin - The origin to process.
+        Return:
+          A list of tuples for each URI, see Importer.get_buffer_from_uri for
+          information about those tuples.
+        """
         g = origin.provider.paginate(origin.uri)
         iterations = max(1, origin.iterations)
 
-        # Generator can raise StopIteration before iterations is reached
-        # We use a for loop instead to catch gracefully this situation
+        # Generator can raise StopIteration before iterations is reached.
+        # We use a for loop instead of a comprehension expression to catch
+        # gracefully this situation.
         tasks = []
         for i in range(iterations):
             try:
@@ -319,7 +338,7 @@ class Importer:
                 self.logger.warning(msg)
                 continue
 
-            res = self.normalize_source_data(origin, *res)
+            res = self._normalize_source_data(origin, *res)
             data.extend(res)
 
             msg = "{n} sources found at {uri}"
@@ -332,7 +351,67 @@ class Importer:
         data = self.get_data_from_origin(*origins)
         return self.process_source_data(*data)
 
-    def normalize_source_data(self, origin, *psrcs):
+    def process_source_data(self, *data):
+        psources_data = self._process_remove_duplicates(data)
+        contexts = self._process_create_contexts(psources_data)
+        self._process_insert_existing_sources(contexts)
+        self._process_update_existing_sources(contexts)
+        self._process_insert_new_sources(contexts)
+
+        return self._process_finalize(contexts)
+
+    def resolve_source(self, source):
+        def _update_source(data):
+            keys = 'language leechers seeds size type uri urn'.split()
+            for k in keys:
+                if k in data:
+                    setattr(source, k, data[k])
+
+        origin = Origin(
+            provider=self.app.get_extension(Provider, source.provider),
+            uri=source.uri)
+
+        data = self.get_data_from_origin(origin)
+        data = self._process_remove_duplicates(data)
+        contexts = self._process_create_contexts(data)
+        self._process_insert_existing_sources(contexts)
+
+        # Insert original source into context
+        for ctx in contexts:
+            if ctx.data['name'] == source.name:
+                ctx.source = source
+                continue
+
+        self._process_update_existing_sources(contexts)
+        self._process_insert_new_sources(contexts)
+        self._process_finalize(contexts)
+
+        if not source.urn:
+            raise arroyo.exc.SourceResolveError(source)
+
+        return source
+
+    def run(self):
+        origins = self.get_configured_origins()
+        if not origins:
+            msg = "No origins defined"
+            self.app.logger.warning(msg)
+            return []
+
+        return self.process(*origins)
+
+    def _normalize_source_data(self, origin, *psrcs):
+        """ Normalize input data for given origin.
+
+        Args:
+          origin - An Origin object. All psrcs should be the result of this
+                   origin.
+          psrcs - List of psources (raw dicts) to be normalized.
+
+        Returns:
+          A list of normalized psources (dicts).
+        """
+
         required_keys = set([
             'name',
             'provider',
@@ -445,50 +524,17 @@ class Importer:
 
         return ret
 
-    def process_source_data(self, *data):
-        psources_data = self._process_remove_duplicates(data)
-        contexts = self._process_create_contexts(psources_data)
-        self._process_insert_existing_sources(contexts)
-        self._process_update_existing_sources(contexts)
-        self._process_insert_new_sources(contexts)
-
-        return self._process_finalize(contexts)
-
-    def resolve_source(self, source):
-        def _update_source(data):
-            keys = 'language leechers seeds size type uri urn'.split()
-            for k in keys:
-                if k in data:
-                    setattr(source, k, data[k])
-
-        origin = Origin(
-            provider=self.app.get_extension(Provider, source.provider),
-            uri=source.uri)
-
-        data = self.get_data_from_origin(origin)
-        data = self._process_remove_duplicates(data)
-        contexts = self._process_create_contexts(data)
-        self._process_insert_existing_sources(contexts)
-
-        # Insert original source into context
-        for ctx in contexts:
-            if ctx.data['name'] == source.name:
-                ctx.source = source
-                continue
-
-        self._process_update_existing_sources(contexts)
-        self._process_insert_new_sources(contexts)
-        self._process_finalize(contexts)
-
-        if not source.urn:
-            raise arroyo.exc.SourceResolveError(source)
-
-        return source
-
-    def run(self):
-        return self.process(*self.get_configured_origins())
-
     def _process_remove_duplicates(self, psources):
+        """ Remove duplicated sources.
+
+        Filter psource list to exclude duplicates.
+        The duplicated with the newest stamp (the 'created' key) is keeped.
+
+        Args:
+          psource - List of dicts representing proto-sources.
+        Returns:
+          A list of dicts without duplicates.
+        """
         ret = dict()
 
         for psrc in psources:
@@ -502,13 +548,20 @@ class Importer:
         return list(ret.values())
 
     def _process_create_contexts(self, psources):
+        """ Initialize contexts for the subsequent process.
+
+        A new context is created for each psource.
+
+        Args:
+          psources - List of data (or pseudo-sources).
+        """
         ret = []
         for psrc in psources:
             discriminator = psrc.pop('_discriminator')
             assert discriminator is not None
 
             meta = psrc.pop('meta', {})
-            ret.append(ProcessingState(
+            ret.append(_ProcessingContext(
                 data=psrc,
                 discriminator=discriminator,
                 meta=meta,
@@ -519,6 +572,14 @@ class Importer:
         return ret
 
     def _process_insert_existing_sources(self, contexts):
+        """ Search for existings sources.
+
+        Exisisting sources are added to contexts based on the  discriminators.
+
+        Args:
+          contexts - List of contexts
+        """
+
         # Check there is any context because the in_ below
         # warns about empty 'in' clauses
         if not contexts:
@@ -533,6 +594,14 @@ class Importer:
             table[src._discriminator].source = src
 
     def _process_update_existing_sources(self, contexts):
+        """ Update existing sources with data from context.
+
+        Update sources from matching data.
+        Those sources are updated and relevant tags added.
+
+        Args:
+          contexts - List of contexts.
+        """
         for ctx in contexts:
             updated = False
 
@@ -541,7 +610,7 @@ class Importer:
 
             if ctx.source.name != ctx.data['name']:
                 updated = True
-                ctx.tags.append(ProcessingTag.NAME_UPDATED)
+                ctx.tags.append(_ProcessingTag.NAME_UPDATED)
 
             # Override srcs's properties with src_data properties
             for key in ctx.data:
@@ -558,35 +627,54 @@ class Importer:
                    ctx.source.created < ctx.data['created']:
                     continue
 
-                if getattr(ctx.source, key) != ctx.data[key]:
+                old_value = getattr(ctx.source, key, None)
+                new_value = ctx.data.get(key, None)
+                if new_value and new_value != old_value:
                     updated = True
-                    setattr(ctx.source, key, ctx.data[key])
+                    setattr(ctx.source, key, new_value)
 
             if updated:
-                ctx.tags.append(ProcessingTag.UPDATED)
+                ctx.tags.append(_ProcessingTag.UPDATED)
 
     def _process_insert_new_sources(self, contexts):
+        """ Create new source from contexts if necessary.
+
+        Creates new sources for each context with source.
+        _ProcessingTag.ADDED is added for each of them.
+
+        Args:
+          contexts - List of contexts
+        """
         for ctx in contexts:
             if ctx.source is not None:
                 continue
 
             ctx.source = models.Source.from_data(**ctx.data)
-            ctx.tags.append(ProcessingTag.ADDED)
+            ctx.tags.append(_ProcessingTag.ADDED)
 
-    # With all data prepared we can process it
     def _process_finalize(self, contexts):
+        """ Final stage of processing.
+
+        - Sources are processed in the mediainfo engine based on tags from
+          contexts.
+        - 'sources-added-batch' and 'sources-updated-batch' signals are send
+        - Some statistics are printed.
+
+        Args:
+          contexts - List of sources from contexts.
+        """
         added = []
         updated = []
         name_updated = []
 
         for ctx in contexts:
-            if ProcessingTag.ADDED in ctx.tags:
+            if _ProcessingTag.ADDED in ctx.tags:
                 added.append(ctx.source)
 
-            if ProcessingTag.NAME_UPDATED in ctx.tags:
+            if _ProcessingTag.NAME_UPDATED in ctx.tags:
                 name_updated.append(ctx.source)
 
-            if ProcessingTag.UPDATED in ctx.tags:
+            if _ProcessingTag.UPDATED in ctx.tags:
                 updated.append(ctx.source)
 
         sources_and_metas = [(ctx.source, ctx.meta) for ctx in contexts]
@@ -611,7 +699,7 @@ class Importer:
         return ret
 
 
-class ProcessingState:
+class _ProcessingContext:
     def __init__(self, data=None, discriminator=None, meta=None, source=None,
                  tags=None):
         self.data = data or {}
@@ -630,11 +718,12 @@ class ProcessingState:
             tags=repr(self.tags)
         )
 
-        base = "<arroyo.importer.ProcessingState({internals}) object at {id}>"
+        base = ("<arroyo.importer._ProcessingContext({internals}) object at "
+                " {id}>")
         return base.format(internals=internals, id=hex(id(self)))
 
 
-class ProcessingTag(enum.Enum):
+class _ProcessingTag(enum.Enum):
     ADDED = 1
     UPDATED = 2
     NAME_UPDATED = 3

@@ -126,7 +126,7 @@ class Downloads:
             # with nothing in common with us!
             if not source:
                 msg = "Unrelated item found: '{item}'"
-                msg = msg.format(item=dler_item)
+                msg = msg.format(item=str(dler_item))
                 self.logger.debug(msg)
                 continue
 

@@ -7,41 +7,42 @@ from arroyo import pluginlib
 class ImportCommand(pluginlib.Command):
     __extension_name__ = 'import'
 
-    HELP = 'Import an origin.'
+    HELP = 'Import sources (scan websites, etc…)'
     ARGUMENTS = (
         pluginlib.cliargument(
             '--provider',
             dest='provider',
             type=str,
-            help='provider to use'),
+            help='Provider to use'),
         pluginlib.cliargument(
             '-u', '--uri',
             dest='uri',
             type=str,
             default=None,
-            help='Seed URI'),
+            help='Base URI to import'),
         pluginlib.cliargument(
             '-i', '--iterations',
             dest='iterations',
             type=int,
-            help='iterations to run',
-            default=1),
+            default=1,
+            help=('Iterations to run over base URI (Think about pages in a '
+                  'website)')),
         pluginlib.cliargument(
             '-t', '--type',
             dest='type',
             type=str,
-            help='force type of found sources'),
+            help='Override type (kind) of found sources'),
         pluginlib.cliargument(
             '-l', '--language',
             dest='language',
             type=str,
-            help='force language of found sources'),
+            help='Override language (kind) of found sources'),
         pluginlib.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
             default=False,
-            help='Use origin definitions from configuration')
+            help='Import from the origins defined in the configuration file')
     )
 
     def execute(self, arguments):
