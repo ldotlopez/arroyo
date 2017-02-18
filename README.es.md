@@ -29,9 +29,9 @@ En este caso estamos importando enlances usando el backend 'kickass' el cual ana
 
 El comando 'import' acepta las siguientes opciones:
 
-  * **--backend <backend>** Especifica el backend a utilizar.
+  * **--provider <provider>** Especifica el backend a utilizar.
   
-  * **-u <url>, --url <url>** Especifica la URL a analizar. Sirve para especificar analizar URLs especificas como las que se obtienen para realizar búsquedas o determinados listados especificos.
+  * **-u <uri>, --uri <uri>** Especifica la URI a analizar. Sirve para especificar analizar URLs especificas como las que se obtienen para realizar búsquedas o determinados listados especificos.
 
   * **-i <entero>, --iterations <entero>** Muchas de las páginas que Arroyo analiza usan paginación, es decir, un listado se extiende a lo largo de varios enlaces o páginas. Usando este parametro Arroyo recorrerá automáticamente el número de páginas que se le indique
 
@@ -44,7 +44,7 @@ El comando 'import' puede usar el archivo de configuracion para obtener los par�
 ```
 origin:
   nombre:
-    backend: kickass
+    provider: kickass
     uri: https://kickass.cd/usearch/category:tv
     type: episode
 ```

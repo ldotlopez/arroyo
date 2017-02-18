@@ -21,7 +21,8 @@ class EliteTorrent(pluginlib.Provider):
     __extension_name__ = 'elitetorrent'
 
     DEFAULT_URI = 'http://www.elitetorrent.net/descargas/'
-    SEARCH_URI = 'http://www.elitetorrent.net/resultados/{query}/orden:fecha'
+    SEARCH_URI = ('http://www.elitetorrent.net/resultados/{query}'
+                  '/orden:fecha')
     URI_PATTERNS = [
         r'^http(s)?://([^.]+\.)?elitetorrent.net/'
     ]
@@ -171,10 +172,17 @@ class EliteTorrent(pluginlib.Provider):
             if not torrent_href_re.search(href):
                 return None
 
+            parent = x
+            while parent != soup and parent.name.lower() not in ('tr', 'li'):
+                parent = parent.parent
+
+            if parent == soup:
+                return None
+
             if href[0] == '/':
                 href = 'http://www.elitetorrent.net' + href
 
-            return dict(node=x.parent, name=text, uri=href)
+            return dict(node=parent, name=text, uri=href)
 
         # Filter and torrent links that point to this site.
         links = [parse_link(x) for x in soup.select('a')]

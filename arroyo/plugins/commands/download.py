@@ -2,7 +2,8 @@
 
 from arroyo import pluginlib
 models = pluginlib.models
-
+import re
+import tabulate
 
 from appkit import (
     logging,
@@ -10,175 +11,280 @@ from appkit import (
 )
 import humanfriendly
 
+import pprint
+import itertools
 
-class DownloadCommand(pluginlib.Command):
+SOURCE_FMT = "'{name}'"
+LIST_FMT = ("[{state_symbol}] {id:5} '{name}' " +
+            "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
+
+
+def format_source(src, fmt=SOURCE_FMT):
+    d = {}
+
+    if src.size:
+        d['size'] = humanfriendly.format_size(src.size)
+
+    return src.format(fmt, extra_data=d)
+
+
+class SourceNotFoundError(Exception):
+    pass
+
+
+class FooCommand(pluginlib.Command):
     __extension_name__ = 'download'
 
-    HELP = 'manage downloads'
+    HELP = 'Download stuff'
     ARGUMENTS = (
+        # Downloads management
         pluginlib.cliargument(
-            '--import',
-            dest='scan',
-            action='store_true',
-            default=None,
-            help=('Force auto import')),
+            '-a', '--add-id',
+            dest='add',
+            default=[],
+            type=int,
+            action='append',
+            help='Download from a source ID'),
 
         pluginlib.cliargument(
-            '--no-import',
-            dest='scan',
-            action='store_false',
-            default=None,
-            help=('Disable auto import')),
+            '-r', '--remove-id',
+            dest='remove',
+            default=[],
+            type=int,
+            action='append',
+            help='Cancel a download from its source ID'),
 
         pluginlib.cliargument(
             '-l', '--list',
-            dest='show',
+            dest='list',
             action='store_true',
-            help='show current downloads'),
+            help='Show current downloads'),
 
-        pluginlib.cliargument(
-            '-a', '--add',
-            dest='add',
-            help='download a source ID'),
-
-        pluginlib.cliargument(
-            '-r', '--remove',
-            dest='remove',
-            help='cancel (and/or remove) a source ID'),
-
-        pluginlib.cliargument(
-            '-f', '--filter',
-            dest='query',
-            type=str,
-            action=utils.DictAction,
-            help='filters to apply in key_mod=value form'),
-
+        # Selecting
         pluginlib.cliargument(
             '--from-config',
             dest='from_config',
             action='store_true',
-            help="Download matching sources from queries defined in config"),
+            help=("Download sources from queries defined in the configuration "
+                  "file")),
+
+        pluginlib.cliargument(
+            '-f', '--filter',
+            dest='filters',
+            type=str,
+            default={},
+            action=utils.DictAction,
+            help=('Select and download sources using filters. See search '
+                  'command for more help')),
+
+        # Behaviour control
+        pluginlib.cliargument(
+            '--force-scan',
+            dest='scan',
+            action='store_true',
+            default=None,
+            help=('Scan sources from enabled providers before downloading '
+                  'anything')),
+
+        pluginlib.cliargument(
+            '--disable-scan',
+            dest='scan',
+            action='store_false',
+            default=None,
+            help=('Disable automatic scan process')),
+
+        pluginlib.cliargument(
+            '--all',
+            dest='everything',
+            action='store_true',
+            help=("Include all results. (including already downloader "
+                  "sources, by default only sources with NONE state "
+                  "are displayed).")),
 
         pluginlib.cliargument(
             '-n', '--dry-run',
             dest='dry_run',
             action='store_true',
-            help='don\'t download matching sources, just show them')
+            help=("Dry run mode. Don't download anything, just show what "
+                  "will be downloaded.")),
+
+        pluginlib.cliargument(
+            '--explain',
+            dest='explain',
+            action='store_true',
+            help=("Explain. Its encourage to use this option with --dry-run")),
+
+        pluginlib.cliargument(
+            'keywords',
+            nargs='*',
+            help='keywords')
     )
 
-    SOURCE_FMT = "'{name}'"
-    LIST_FMT = ("[{state_symbol}] {id:5} '{name}' " +
-                "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})")
+    def source_from_id(self, id_):
+        src = self.app.db.get(models.Source, id=id_)
+        if not src:
+            raise SourceNotFoundError(id_)
 
-    @staticmethod
-    def format_source(src, fmt):
-        d = {}
-
-        if src.size:
-            d['size'] = humanfriendly.format_size(src.size)
-
-        return src.format(fmt, extra_data=d)
+        return src
 
     def execute(self, args):
-        def conditional_logger(level, msg):
-            if not dry_run:
-                self.app.logger.log(level.value, msg)
-            else:
-                print(msg)
+        # Direct download management:
+        # --add / --remove / --list
+        # Conflicts with:
+        # --filter / keywords
 
-        show = args.show
-        source_id_add = args.add
-        source_id_remove = args.remove
-        query = args.query
-        from_config = args.from_config
-        dry_run = args.dry_run
+        #
+        # Build queries from configuration, filter arguments or keywords
+        #
+        queries = []
 
-        add, remove, source_id = False, False, False
-        if source_id_add:
-            add, source_id = True, source_id_add
+        if args.filters or args.keywords:
+            if args.keywords:
+                # Check for missuse of keywords
+                if any([re.search(r'^([a-z]+)=(.+)$', x)
+                        for x in args.keywords]):
+                    msg = ("Found a filter=value argument without -f/--filter "
+                           "flag")
+                    self.app.logger.warning(msg)
 
-        if source_id_remove:
-            remove, source_id = True, source_id_remove
+                # Check for dangling filters
+                if '-f' in args.keywords or '--filter' in args.keywords:
+                    msg = "-f/--filter must be used *before* keywords"
+                    self.app.logger.warning(msg)
 
-        test = sum([1 for x in (show, add, remove, query, from_config) if x])
+                # Transform keywords into a usable query
+                query = self.app.selector.get_query_from_string(
+                    ' '.join([x.strip() for x in args.keywords]),
+                    type_hint=args.filters.pop('kind', None))
 
-        if test == 0:
-            msg = "No action specified"
-            raise pluginlib.exc.ArgumentsError(msg)
+                # ...and update it with supplied filters
+                for (key, value) in args.filters.items():
+                    query.params[key] = value
 
-        elif test > 1:
-            msg = "Only one action at time is supported"
-            raise pluginlib.exc.ArgumentsError(msg)
+            elif args.filters:
+                # Build the query from filters
+                query = self.app.selector.get_query_from_params(
+                    params=args.filters, display_name='command-line')
 
-        if show:
-            for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
-                print(self.format_source(src, self.LIST_FMT))
+            queries = [query]
 
-            return
-
-        elif source_id_add:
-            src = self.app.db.get(models.Source, id=source_id)
-            if src:
-                msg = "Download added: " + self.format_source(
-                    src, self.SOURCE_FMT)
-
-                if not dry_run:
-                    self.app.downloads.add(src)
-                conditional_logger(logging.Level.INFO, msg)
-
-            else:
-                msg = "Source with id {id} not found"
-                msg = msg.format(id=source_id)
-                self.app.logger.error(msg)
-
-            return
-
-        elif source_id_remove:
-            src = self.app.db.get(models.Source, id=source_id)
-            if src:
-                msg = "Download removed: " + self.format_source(
-                    src, self.SOURCE_FMT)
-                if not dry_run:
-                    self.app.downloads.remove(src)
-                conditional_logger(logging.Level.INFO, msg)
-
-            else:
-                msg = "Source with id {id} not found"
-                msg = msg.format(id=source_id)
-                self.app.logger.error(msg)
-
-            return
-
-        if query:
-            queries = [self.app.selector.get_query_from_params(
-                params=query, display_name='command-line'
-            )]
-
-        elif from_config:
+        if args.from_config:
             queries = self.app.selector.get_configured_queries()
+            if not queries:
+                msg = "No configured queries"
+                self.app.logger.error(msg)
+                raise pluginlib.ConfigurationError(msg)
 
-        if not queries:
-            msg = "No queries specified"
-            raise pluginlib.exc.ArgumentsError(msg)
+        #
+        # Handle user will
+        #
+
+        if args.add:
+            for id_ in args.add:
+                try:
+                    self.app.downloads.add(self.source_from_id(id_))
+                except SourceNotFoundError:
+                    msg = "Source with ID={id} not found"
+                    msg = msg.format(id=id_)
+                    self.app.logger.error(msg)
+
+        if args.remove:
+            for id_ in args.remove:
+                try:
+                    self.app.downloads.remove(self.source_from_id(id_))
+                except SourceNotFoundError:
+                    msg = "Source with ID={id} not found"
+                    msg = msg.format(id=id_)
+                    self.app.logger.error(msg)
+
+        if args.list:
+            self.app.downloads.sync()
+            for src in sorted(self.app.downloads.list(), key=lambda x: x.name):
+                print(format_source(src, LIST_FMT))
 
         for query in queries:
-            matches = self.app.selector.matches(query, auto_import=args.scan)
+            srcs = self.app.selector.matches(query,
+                                             auto_import=args.scan,
+                                             everything=args.everything)
 
-            srcs = list(self.app.selector.select(matches))
-            if not srcs:
-                msg = "No results for {name}"
-                msg = msg.format(name=str(query))
-                self.app.logger.error(msg)
-                continue
+            # Build selections
+            selections = []
+            for (entity, sources) in self.app.selector.group(srcs):
+                if len(sources) > 1:
+                    selected = self.app.selector.select(sources)
+                else:
+                    selected = sources[0]
 
-            for src in srcs:
-                msg = "Download added: " + self.format_source(
-                    src, self.SOURCE_FMT)
+                selections.append((entity, sources, selected))
 
-                if not dry_run:
-                    self.app.downloads.add(src)
-                conditional_logger(logging.Level.INFO, msg)
+
+            if args.explain:
+                explain(selections)
+
+            if not args.dry_run:
+                for (entity, sources, selected) in selections:
+                    msg = "Download added: #{id} {name}"
+                    msg = msg.format(id=selected.id, name=selected.name)
+                    self.app.downloads.add(selected)
+
+
+def tabulate_groups(groups, *args, headers=None, **kwargs):
+    if headers is None:
+        headers = []
+
+    data_rows = [x[1] for x in groups]
+
+    table_str = tabulate.tabulate(data_rows)
+    formated_rows = table_str.split("\n")
+
+    pre = formated_rows[0]
+    post = formated_rows[-1]
+    formated_rows = formated_rows[1:-1]
+
+    idx = 0
+    for (entity, group) in itertools.groupby(groups, lambda x: x[0]):
+        data = list([x[1] for x in group])
+
+        yield (entity, formated_rows[idx:idx+len(data)])
+        idx = idx + len(data)
+
+
+def explain(selections):
+    # Generate data for tabulate
+    rows = []
+    for (entity, sources, selected) in selections:
+        for src in sources:
+            rows.append((entity, (
+                # Source ID
+                src.id,
+                # This this source the selected one?
+                '→' if src == selected else '',
+                # Source state 
+                '[{}]'.format(src.state_symbol),
+                # Source name
+                src.name,
+                # Souce size
+                humanfriendly.format_size(src.size)
+                    if src.size else '',
+                # Source language if applicable
+                src.language or '',
+                # s/l ratio
+                '{}/{}'.format(src.seeds or '-', src.leechers or '-'),
+            )))
+
+    # headers = ['ID', 'selected', 'state', 'name', 'size', 'language',
+    #            'ratio']
+    groupped_rows = tabulate_groups(rows)
+    for (entity, rows) in groupped_rows:
+        header = "[{type}] {entity}"
+        header = header.format(
+            type=entity.__class__.__name__.capitalize(),
+            entity=entity)
+
+        print("{header}\n{rows}\n".format(header=header,
+                                          rows="\n".join(rows)))
+
 
 __arroyo_extensions__ = [
-    DownloadCommand
+    FooCommand
 ]

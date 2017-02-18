@@ -16,6 +16,8 @@ import transmissionrpc
 
 SETTINGS_NS = 'plugins.downloaders.transmission'
 STATE_MAP = {
+    'checking': models.Source.State.INITIALIZING,
+    'check pending': models.Source.State.INITIALIZING,
     'download pending': models.Source.State.QUEUED,
     'downloading': models.Source.State.DOWNLOADING,
     'seeding': models.Source.State.SHARING,

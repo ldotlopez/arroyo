@@ -30,11 +30,11 @@ Basic usage
 
 Search:
 
-```$ ./arroyo.sh --auto-import search game of thrones s01e01```
+```$ ./arroyo.sh search game of thrones s01e01```
 
 Download:
 
-```$ ./arroyo.sh --auto-import download game of thrones s01e01```
+```$ ./arroyo.sh download game of thrones s01e01```
 
 
 
