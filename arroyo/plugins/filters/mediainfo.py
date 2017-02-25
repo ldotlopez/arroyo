@@ -35,7 +35,7 @@ class Container(pluginlib.IterableFilter):
     def filter(self, key, value, item):
         if key.endswith('-in'):
             if not isinstance(value, list):
-                value = [value]
+                value = [x.strip() for x in value.split(',')]
 
             key = key[:-3]  # Strip -in suffix
 
@@ -111,7 +111,7 @@ class ReleaseGroupFilter(pluginlib.IterableFilter):
 
         if key == 'release-group-in':
             if not isinstance(value, list):
-                value = [value]
+                value = [x.strip() for x in value.split(',')]
 
         groups = [x.lower() for x in value]
         if not groups:
