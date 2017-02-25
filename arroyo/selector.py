@@ -292,7 +292,7 @@ class Selector:
                 isinstance(ext, IterableFilter) and
                 not isinstance(ret, collections.Iterable))
             if need_unroll:
-                ret = (x for x in qs)
+                ret = (x for x in ret)
                 unrolled = True
 
             ret = func(ret)
