@@ -50,14 +50,25 @@ class Mediainfo:
         # remove) known distributors from source's name and add distribution
         # field into info after processing source's name with guessit.
 
-        known_distributors = ['eztv', 'rartv']
+        known_distributors = ['eztv', 'rartv', 'ethd']  # keep lower case!!
         source_distributors = set()
         name = source.name
+
         for dist in known_distributors:
             tag = '[' + dist + ']'
-            if tag in name:
-                source_distributors.add(dist)
-                name = name.replace(tag, '')
+            idx = name.lower().find(tag)
+            if idx == -1:
+                continue
+
+            name = (name[:idx] + name[idx+len(tag):]).strip()
+            source_distributors.add(dist)
+
+            # Regular expression based code:
+            # tag = r'\[' + dist + r'\]'
+            # name, count = re.subn(tag, '', name, count=0,
+            #                       flags=re.IGNORECASE)
+            # if count:
+            #     source_distributors.add(dist)
 
         info = guessit.guessit(name, options={'type': source.type})
 
