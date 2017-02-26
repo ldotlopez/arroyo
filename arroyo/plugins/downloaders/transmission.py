@@ -26,7 +26,11 @@ STATE_MAP = {
 
 
 def torrent_str(torrent):
-    root = [x['name'].split('/')[0] for x in torrent.files().values()][0]
+    files = list(torrent.files().values())
+    if not files:
+        return repr(torrent)
+
+    root = [x['name'].split('/')[0] for x in files][0]
     return root
 
 transmissionrpc.torrent.Torrent.__str__ = torrent_str
