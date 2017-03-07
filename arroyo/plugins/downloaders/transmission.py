@@ -1,6 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
+# Docs:
+# https://pythonhosted.org/transmissionrpc/reference/transmissionrpc.html
+
+
 from arroyo import pluginlib
 from arroyo.pluginlib import downloads
 models = pluginlib.models
@@ -25,11 +29,23 @@ STATE_MAP = {
 }
 
 
-def torrent_str(torrent):
-    root = [x['name'].split('/')[0] for x in torrent.files().values()][0]
+def torrent_files(torrent):
+    files = torrent.files().values()
+    if not files:
+        return []
+
+    return [x['name'] for x in files]
+
+
+def __torrent_str__(torrent):
+    files = torrent_files(torrent)
+    if not files:
+        return repr(torrent)
+
+    root = [x.split('/')[0] for x in files][0]
     return root
 
-transmissionrpc.torrent.Torrent.__str__ = torrent_str
+transmissionrpc.torrent.Torrent.__str__ = __torrent_str__
 
 
 class TransmissionDownloader(pluginlib.Downloader):
@@ -98,6 +114,24 @@ class TransmissionDownloader(pluginlib.Downloader):
             return STATE_MAP[state]
         else:
             raise pluginlib.exc.NoMatchingState(state)
+
+    def get_info(self, tr_obj):
+        ret = {
+            'files': torrent_files(tr_obj)
+        }
+        if ret['files']:
+            ret['location'] = tr_obj.downloadDir + \
+                ret['files'][0].split('/')[0]
+
+        for attr in ['eta', 'progress']:
+            try:
+                value = getattr(tr_obj, attr)
+            except ValueError:
+                value = None
+
+            ret[attr] = value
+
+        return ret
 
     def translate_item(self, tr_obj):
         urn = parse.parse_qs(
@@ -187,6 +221,7 @@ class TransmissionDownloader(pluginlib.Downloader):
 
         else:
             raise store.ValidationError(key, value, 'Unknow property')
+
 
 __arroyo_extensions__ = [
     TransmissionDownloader

@@ -3,6 +3,7 @@
 
 import base64
 import binascii
+import collections
 import hashlib
 import re
 from urllib import parse
@@ -179,6 +180,28 @@ class Downloads:
             'downloads': active_downloads,
         }
 
+    def get_info(self, source=None):
+        table = {}
+
+        for backend_item in self.backend.list():
+            matching_source = self.backend.translate_item(backend_item)
+            if not matching_source:
+                continue
+
+            table[matching_source] = backend_item
+            if source and source == matching_source:
+                break
+
+        info_table = {}
+        for (source, item) in table.items():
+            info = self.backend.get_info(item)
+            info_table[source] = DownloaderInfo(**info)
+
+        if source:
+            return info_table[source]
+        else:
+            return info_table
+
 
 class Downloader(kit.Extension):
     def add(self, source, **kwargs):
@@ -195,6 +218,13 @@ class Downloader(kit.Extension):
 
     def translate_item(self, backend_obj):
         raise NotImplementedError()
+
+    def get_info(self, backend_obj):
+        raise NotImplementedError()
+
+
+DownloaderInfo = collections.namedtuple('DownloaderInfo', [
+    'files', 'progress', 'eta'])
 
 
 class DownloadSyncCronTask(kit.Task):

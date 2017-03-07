@@ -133,6 +133,12 @@ class BaseTest:
             src2.state,
             models.Source.State.ARCHIVED)
 
+    def test_info(self):
+        src = mock_source('foo')
+        self.app.insert_sources(src)
+        self.app.downloads.add(src)
+        self.app.downloads.get_info(src)
+
 
 class MockTest(BaseTest, unittest.TestCase):
     plugins = ['downloaders.mock']
