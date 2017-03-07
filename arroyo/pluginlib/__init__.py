@@ -1,5 +1,6 @@
-
 from appkit.application import cliargument
+from appkit.application.services import Service
+
 from arroyo import (
     exc,
     models
