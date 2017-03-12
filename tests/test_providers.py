@@ -82,7 +82,7 @@ class TestProvider:
                 words = [x for x in query.split(' ') if x]
                 query = {'name-glob': '*' + '*'.join(words) + '*'}
 
-            query = self.app.selector.get_query_from_params(query)
+            query = self.app.selector.query_from_params(query)
 
             self.assertEqual(
                 uri,

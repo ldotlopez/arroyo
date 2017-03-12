@@ -113,7 +113,7 @@ class Selector:
         self.app.register_extension_point(Query)
         self.app.register_extension_point(Sorter)
 
-    def get_query_from_string(self, string, type_hint=None):
+    def query_from_string(self, string, type_hint=None):
         def get_episode(info):
             assert info['type'] == 'episode'
 
@@ -174,9 +174,9 @@ class Selector:
         info = {k: v for (k, v) in info.items() if v}
         info['kind'] = kind or 'source'
 
-        return self.get_query_from_params(params=info)
+        return self.query_from_params(params=info)
 
-    def get_query_from_params(self, params={}, display_name=None):
+    def query_from_params(self, params={}, display_name=None):
         impl_name = params.pop('kind', 'source')
 
         query_defalts = self.app.settings.get(
@@ -202,7 +202,7 @@ class Selector:
             msg = msg.format(kind=impl_name)
             raise ValueError(msg) from e  # FIXME: Use custom exception
 
-    def get_configured_queries(self):
+    def queries_from_config(self):
         specs = self.app.settings.get('query', default={})
         if not specs:
             msg = "No queries defined"
@@ -210,7 +210,7 @@ class Selector:
             return []
 
         ret = [
-            self.get_query_from_params(
+            self.query_from_params(
                 params=params, display_name=name
             )
             for (name, params) in specs.items()

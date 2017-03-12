@@ -240,7 +240,7 @@ class DownloadQueriesCronTask(kit.Task):
     INTERVAL = '3H'
 
     def execute(self, app):
-        queries = app.selector.get_configured_queries()
+        queries = app.selector.queries_from_config()
         for q in queries:
             matches = app.selector.matches(q)
             srcs = app.selector.select(matches)

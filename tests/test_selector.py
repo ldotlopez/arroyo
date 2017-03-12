@@ -12,9 +12,9 @@ from arroyo import models
 class QueryBuilderTest(unittest.TestCase):
     def test_episode_search(self):
         app = testapp.TestApp()
-        q1 = app.selector.get_query_from_string('the oa 3x02')
-        q2 = app.selector.get_query_from_string('the oa s03e02')
-        q3 = app.selector.get_query_from_string('the oa s03 e02')
+        q1 = app.selector.query_from_string('the oa 3x02')
+        q2 = app.selector.query_from_string('the oa s03e02')
+        q3 = app.selector.query_from_string('the oa s03 e02')
 
         self.assertEqual(q1.asdict(), dict(
             type='episode',
@@ -25,7 +25,7 @@ class QueryBuilderTest(unittest.TestCase):
         self.assertEqual(q1, q2)
         self.assertEqual(q1, q3)
 
-        q_as_source = app.selector.get_query_from_string('the oa   3x02  ', type_hint='source')
+        q_as_source = app.selector.query_from_string('the oa   3x02  ', type_hint='source')
         self.assertEqual(
             q_as_source.asdict(),
             {'name-glob': '*the*oa*3x02*', 'type': 'source'}
@@ -34,8 +34,8 @@ class QueryBuilderTest(unittest.TestCase):
     def test_movie(self):
         app = testapp.TestApp()
 
-        q1 = app.selector.get_query_from_string('Flash Gordon 1980')
-        q2 = app.selector.get_query_from_string('Flash Gordon (1980)')
+        q1 = app.selector.query_from_string('Flash Gordon 1980')
+        q2 = app.selector.query_from_string('Flash Gordon (1980)')
 
         self.assertEqual(q1.asdict(), dict(
             type='movie',
@@ -44,7 +44,7 @@ class QueryBuilderTest(unittest.TestCase):
         ))
         self.assertEqual(q1, q2)
 
-        q = app.selector.get_query_from_string('Flash gordon')
+        q = app.selector.query_from_string('Flash gordon')
         self.assertEqual(
             q.asdict(),
             {'name-glob': '*flash*gordon*', 'type': 'source'}
@@ -52,7 +52,7 @@ class QueryBuilderTest(unittest.TestCase):
 
     def test_mediainfo(self):
         app = testapp.TestApp()
-        q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
+        q = app.selector.query_from_string('series s01e01 720p x264 FuM[ettv]')
         self.assertEqual(
             q.params['quality'], '720p'
         )
@@ -72,7 +72,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'foo',
             })
 
-        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
+        queries = {q.display_name: q for q in app.selector.queries_from_config()}
 
         self.assertTrue('test1' in queries)
         self.assertTrue('test2' in queries)
@@ -93,7 +93,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'bar'
         })
 
-        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
+        queries = {q.display_name: q for q in app.selector.queries_from_config()}
         self.assertEqual(
             queries['test1'].params.get('language', None),
             'eng-us')
@@ -113,7 +113,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'selector.query-defaults.since': 1234567890,
         })
 
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
             params=dict(name_glob='*foo*'))
 
@@ -122,7 +122,7 @@ class SelectorInterfaceTest(unittest.TestCase):
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
-        spec = self.app.selector.get_query_from_params(display_name='test', params=dict(**params))
+        spec = self.app.selector.query_from_params(display_name='test', params=dict(**params))
         res = self.app.selector.matches(spec, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
@@ -366,7 +366,7 @@ class EpisodeSelectorTest(SelectorTestCase):
         # Revert src states and link episodes with sources
         for src in srcs:
             src.state = models.Source.State.NONE
-        spec = self.app.selector.get_query_from_params(
+        spec = self.app.selector.query_from_params(
             display_name='test',
             params=dict(kind='episode', series='game of thrones', quality='hdtv'))
         matches = self.app.selector.matches(spec)
@@ -412,7 +412,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
             params=dict(kind='episode', series='true detective', quality='720p', language='eng-us'))
 
@@ -450,7 +450,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugin.basicsorter.enabled': True,
         })
         app.insert_sources(*srcs)
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
             params=dict(kind='episode', series='the last man on earth'))
 

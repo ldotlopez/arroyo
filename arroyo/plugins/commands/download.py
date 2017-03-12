@@ -132,9 +132,7 @@ class DownloadCommand(pluginlib.Command):
             queries = [query]
 
         if arguments.from_config:
-            # FIXME: rename method
-            # get_configured_queries -> queries_from_config
-            queries = selector.get_configured_queries()
+            queries = selector.queries_from_config()
             if not queries:
                 msg = "No configured queries"
                 self.logger.error(msg)
@@ -255,8 +253,7 @@ class DownloadCommand(pluginlib.Command):
                 self.logger.warning(msg)
 
             # Transform keywords into a usable query
-            # FIXME: rename method get_query_from_string to query_from_string
-            query = selector.get_query_from_string(
+            query = selector.query_from_string(
                 ' '.join([x.strip() for x in keywords]),
                 type_hint=filters.pop('kind', None))
 
@@ -266,8 +263,8 @@ class DownloadCommand(pluginlib.Command):
 
         elif filters:
             # Build the query from filters
-            query = selector.get_query_from_params(params=filters,
-                                                   display_name='command-line')
+            query = selector.query_from_params(params=filters,
+                                               display_name='command-line')
 
         return query
 
