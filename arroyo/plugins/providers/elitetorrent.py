@@ -13,7 +13,6 @@ from datetime import datetime
 from urllib import parse
 
 
-import bs4
 from appkit import utils
 
 
@@ -125,9 +124,7 @@ class EliteTorrent(pluginlib.Provider):
     @asyncio.coroutine
     def fetch(self, fetcher, uri):
         def _is_redirect(content):
-            soup = bs4.BeautifulSoup(
-                content,
-                self.app.settings.get('importer.parser'))
+            soup = self.parse_buffer(content)
 
             for meta in soup.select('meta'):
                 attrs = {k.lower(): v.lower() for (k, v) in meta.attrs.items()}
@@ -151,8 +148,8 @@ class EliteTorrent(pluginlib.Provider):
 
         return content
 
-    def parse(self, buff, parser):
-        soup = bs4.BeautifulSoup(buff, parser)
+    def parse(self, buff):
+        soup = self.parse_buffer(buff)
         info = soup.select_one('.info-tecnica')
         if info:
             return self.parse_detailed(soup)

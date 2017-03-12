@@ -60,13 +60,12 @@ class TestProvider:
 
     def test_parse(self):
         for (sample, n_expected) in self.PARSE_TESTS:
-            origin = self.app.get_extension(
+            provider = self.app.get_extension(
                 pluginlib.Provider,
                 self.PROVIDER_NAME)
 
             with open(testapp.www_sample_path(sample), 'rb') as fh:
-                results = list(origin.parse(
-                    fh.read(), 'html.parser'))
+                results = list(provider.parse(fh.read()))
 
             self.assertEqual(
                 n_expected, len(results),
@@ -74,7 +73,7 @@ class TestProvider:
             )
 
     def test_query_uri(self):
-        origin = self.app.get_extension(
+        provider = self.app.get_extension(
             pluginlib.Provider, self.PROVIDER_NAME
         )
 
@@ -87,7 +86,7 @@ class TestProvider:
 
             self.assertEqual(
                 uri,
-                origin.get_query_uri(query),
+                provider.get_query_uri(query),
                 msg='Failed query for {}'.format(repr(query)))
 
 

@@ -96,7 +96,7 @@ class TorrentAPI(pluginlib.Provider):
         if since_last_use < 2:
             yield from asyncio.sleep(2 - since_last_use)
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         def convert_data(e):
             return {
                 'name': e.get('title') or e.get('filename'),

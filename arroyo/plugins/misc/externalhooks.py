@@ -6,7 +6,10 @@ import os
 import subprocess
 
 
-from appkit import store
+from appkit import (
+    logging,
+    store
+)
 
 
 SETTINGS_NS = 'plugins.misc.externalhooks'
@@ -25,14 +28,31 @@ STATES = {
 class ExternalHooks(pluginlib.Service):
     __extension_name__ = 'externalhooks'
 
-    def __init__(self, app):
-        app.signals.connect('source-state-change', self.on_source_state_change)
-        super().__init__(app)
+    def __init__(self, app, *args, **kwargs):
+        super().__init__(app, *args, **kwargs)
+        signals = app.signals
+        settings = app.settings
+
+        self.logger = logging.getLogger('externalhooks')
+        self.settings = settings
+
+        signals.connect('source-state-change', self.on_source_state_change)
+
+    def hooks_for_state(self, name):
+        assert isinstance(name, str)
+        assert name in STATES.values()
+
+        key = SETTINGS_NS + '.on-' + name
+        hooks = self.settings.get(key, [])
+
+        if not isinstance(hooks, list):
+            hooks = [hooks]
+
+        return hooks
 
     def on_source_state_change(self, *args, **kwargs):
         source = kwargs.pop('source')
-        state = source.state
-        state_name = STATES[state]
+        state_name = STATES[source.state]
 
         data = {
             'source': source.as_dict(),
@@ -46,24 +66,20 @@ class ExternalHooks(pluginlib.Service):
             env_value = str(v) if v else ''
             env[env_key] = env_value
 
-        hooks = self.app.settings.get(SETTINGS_NS + '.on-' + state_name, [])
-        if not isinstance(hooks, list):
-            hooks = [hooks]
-
-        for hook in hooks:
+        for hook in self.hooks_for_state(state_name):
             proc = subprocess.Popen(
                 hook, stdout=subprocess.PIPE, stderr=subprocess.PIPE, env=env)
             out, err = proc.communicate()
 
             lines = (
-                [(self.app.logger.info, x)
+                [(self.logger.info, x)
                  for x in out.decode('utf-8').split('\n')] +
-                [(self.app.logger.error, x)
+                [(self.logger.error, x)
                  for x in err.decode('utf-8').split('\n')])
 
             lines = [(f, line.strip()) for (f, line) in lines if line]
             for (f, line) in lines:
-                msg = "on-{} {}: {}".format(STATES[state], hook, line)
+                msg = "on-{} {}: {}".format(state_name, hook, line)
                 f(msg)
 
 __arroyo_extensions__ = [

@@ -10,6 +10,7 @@ import traceback
 from urllib import parse
 
 
+import bs4
 from appkit import (
     logging,
     uritools,
@@ -26,12 +27,6 @@ from arroyo import (
 
 
 class Provider(kit.Extension):
-    def __unicode__(self):
-        return "Provider({name})".format(
-            name=self.__extension_name__)
-
-    __str__ = __unicode__
-
     @abc.abstractmethod
     def compatible_uri(self, uri):
         attr_name = 'URI_PATTERNS'
@@ -53,6 +48,10 @@ class Provider(kit.Extension):
 
         return False
 
+    def __init__(self, app, *args, **kwargs):
+        super().__init__(app, *args, **kwargs)
+        self.settings = app.settings
+
     @abc.abstractmethod
     def paginate(self, uri):
         yield uri
@@ -65,16 +64,26 @@ class Provider(kit.Extension):
     def fetch(self, fetcher, uri):
         return (yield from fetcher.fetch(uri))
 
+    def parse_buffer(self, buffer):
+        parser = self.settings.get('importer.parser')
+        return bs4.BeautifulSoup(buffer, parser)
+
     @abc.abstractmethod
-    def parse(self, buffer, parser):
+    def parse(self, buffer):
         msg = "Provider {name} doesn't implement parse method"
         msg = msg.format(name=self.__extension_name__)
         raise NotImplementedError(msg)
 
+    def __unicode__(self):
+        return "Provider({name})".format(
+            name=self.__extension_name__)
+
+    __str__ = __unicode__
+
 
 class Origin:
     def __init__(self, provider, display_name=None, uri=None, iterations=1,
-                 overrides={}, logger=None):
+                 overrides={}):
 
         if not isinstance(provider, Provider):
             msg = "Invalid provider: {provider}"
@@ -124,8 +133,8 @@ class Origin:
         self.uri = uritools.normalize(uri)
         self.iterations = iterations
         self.overrides = overrides.copy()
-        self.logger = logger or logging.getLogger('{}-origin'.format(
-            provider.__extension_name__))
+        self.logger = logging.getLogger(
+            '{}-origin'.format(provider.__extension_name__))
 
     def __unicode__(self):
         return 'Origin({provider})'.format(
@@ -141,9 +150,9 @@ class Origin:
 
 
 class Importer:
-    def __init__(self, app, logger=None):
+    def __init__(self, app):
         self.app = app
-        self.logger = logger or logging.getLogger('importer')
+        self.logger = logging.getLogger('importer')
 
         app.signals.register('source-added')
         app.signals.register('source-updated')
@@ -187,7 +196,7 @@ class Importer:
                     msg = msg.format(
                         uri=uri,
                         provider=extension.__extension_name__)
-                    self.app.logger.debug(msg)
+                    self.logger.debug(msg)
                     break
 
         if not extension:
@@ -304,14 +313,13 @@ class Importer:
         loop = asyncio.get_event_loop()
         loop.run_until_complete(asyncio.gather(*tasks))
 
-        parser = self.app.settings.get('importer.parser')
         data = []
         for (origin, uri, res) in results:
             if isinstance(res, Exception) or res is None or res == '':
                 continue
 
             try:
-                res = origin.provider.parse(res, parser=parser)
+                res = origin.provider.parse(res)
 
             except arroyo.exc.OriginParseError as e:
                 msg = "Error parsing «{uri}»: {e}"
@@ -375,9 +383,8 @@ class Importer:
                 if k in data:
                     setattr(source, k, data[k])
 
-        origin = Origin(
-            provider=self.app.get_extension(Provider, source.provider),
-            uri=source.uri)
+        origin = self.origin_from_params(provider=source.provider,
+                                         uri=source.uri)
 
         data = self.get_data_from_origin(origin)
         data = self._process_remove_duplicates(data)
@@ -403,7 +410,7 @@ class Importer:
         origins = self.get_configured_origins()
         if not origins:
             msg = "No origins defined"
-            self.app.logger.warning(msg)
+            self.logger.warning(msg)
             return []
 
         return self.process(*origins)
@@ -696,11 +703,11 @@ class Importer:
                               sources=name_updated + updated)
 
         msg = '{n} sources {action}'
-        self.app.logger.info(msg.format(n=len(added),
+        self.logger.info(msg.format(n=len(added),
                                         action='added'))
-        self.app.logger.info(msg.format(n=len(updated),
+        self.logger.info(msg.format(n=len(updated),
                                         action='updated'))
-        self.app.logger.info(msg.format(n=len(set(added+name_updated)),
+        self.logger.info(msg.format(n=len(set(added+name_updated)),
                                         action='parsed'))
 
         ret = [ctx.source for ctx in contexts]
@@ -741,5 +748,5 @@ class ImporterCronTask(kit.Task):
     __extension_name__ = 'importer'
     INTERVAL = '3H'
 
-    def execute(self):
-        self.app.importer.run()
+    def execute(self, app):
+        app.importer.run()

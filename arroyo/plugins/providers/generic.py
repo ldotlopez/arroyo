@@ -1,7 +1,11 @@
 from arroyo import pluginlib
 
+
 import re
 from urllib import parse
+
+
+from appkit import logging
 
 
 class Provider(pluginlib.Provider):
@@ -12,9 +16,9 @@ class Provider(pluginlib.Provider):
     # URI_PATTERNS is not defined because we implement Provider.compatible_uri
     # method
 
-    def __init__(self, app, *args, **kwargs):
-        super().__init__(app, *args, **kwargs)
-        self.logger = app.logger
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger(self.__extension_name__)
 
     def parse(self, buff, parser):
         buff = buff.decode('utf-8')

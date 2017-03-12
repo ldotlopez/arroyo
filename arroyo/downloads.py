@@ -3,13 +3,14 @@
 
 import base64
 import binascii
-import collections
 import hashlib
 import re
 from urllib import parse
 
 
 import bencodepy
+from appkit import logging
+
 
 import arroyo.exc
 from arroyo import (
@@ -32,24 +33,18 @@ class Downloads:
     Handles operations between core.Arroyo and the different downloaders.
     """
 
-    def __init__(self, app, logger=None):
+    def __init__(self, app):
         app.register_extension_point(Downloader)
         app.register_extension_class(DownloadSyncCronTask)
         app.register_extension_class(DownloadQueriesCronTask)
         app.signals.register('source-state-change')
 
         self.app = app
-        self.logger = logger or app.logger.getChild('downloads')
-        self._backend = None
+        self.logger = logging.getLogger('downloads')
 
     @property
     def backend(self):
-        if self._backend is None:
-            self._backend = self.app.get_extension(
-                Downloader, self.backend_name
-            )
-
-        return self._backend
+        return self.app.get_extension(Downloader, self.backend_name)
 
     @property
     def backend_name(self):
@@ -121,7 +116,7 @@ class Downloads:
         table = {}
 
         for dler_item in self.backend.list():
-            source = self.backend.translate_item(dler_item)
+            source = self.backend.translate_item(dler_item, self.app.db)
 
             # The downloader backend can have unrelated items
             # with nothing in common with us!
@@ -184,7 +179,8 @@ class Downloads:
         table = {}
 
         for backend_item in self.backend.list():
-            matching_source = self.backend.translate_item(backend_item)
+            matching_source = self.backend.translate_item(backend_item,
+                                                          self.app.db)
             if not matching_source:
                 continue
 
@@ -195,7 +191,7 @@ class Downloads:
         info_table = {}
         for (source, item) in table.items():
             info = self.backend.get_info(item)
-            info_table[source] = DownloaderInfo(**info)
+            info_table[source] = DownloadInfo(**info)
 
         if source:
             return info_table[source]
@@ -216,43 +212,47 @@ class Downloader(kit.Extension):
     def get_state(self, source, **kwargs):
         raise NotImplementedError()
 
-    def translate_item(self, backend_obj):
+    def translate_item(self, backend_obj, database_interface):
         raise NotImplementedError()
 
     def get_info(self, backend_obj):
         raise NotImplementedError()
 
 
-DownloaderInfo = collections.namedtuple('DownloaderInfo', [
-    'files', 'progress', 'eta'])
+class DownloadInfo:
+    def __init__(self, eta=None, files=None, location=None, progress=None):
+        self.eta = eta
+        self.files = files
+        self.location = location
+        self.progress = progress or 0.0
 
 
 class DownloadSyncCronTask(kit.Task):
     __extension_name__ = 'download-sync'
     INTERVAL = '5M'
 
-    def execute(self):
-        self.app.downloads.sync()
+    def execute(self, app):
+        app.downloads.sync()
 
 
 class DownloadQueriesCronTask(kit.Task):
     __extension_name__ = 'download-queries'
     INTERVAL = '3H'
 
-    def execute(self):
-        queries = self.app.selector.get_configured_queries()
+    def execute(self, app):
+        queries = app.selector.get_configured_queries()
         for q in queries:
-            matches = self.app.selector.matches(q)
-            srcs = self.app.selector.select(matches)
+            matches = app.selector.matches(q)
+            srcs = app.selector.select(matches)
 
             if srcs is None:
                 continue
 
             for src in srcs:
                 try:
-                    self.app.downloads.add(src)
+                    app.downloads.add(src)
                 except Exception as e:
-                    self.app.logger.error(str(e))
+                    app.logger.error(str(e))
 
 
 def calculate_urns(urn):

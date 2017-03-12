@@ -10,10 +10,11 @@ from datetime import datetime
 from urllib import parse
 
 
-import bs4
-# import feedparser
 import humanfriendly
-from appkit import utils
+from appkit import (
+    logging,
+    utils
+)
 
 
 class _CategoryUnknowError(Exception):
@@ -122,6 +123,10 @@ class ThePirateBay(pluginlib.Provider):
         }
     }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('thepiratebay')
+
     def paginate(self, uri):
         # Add leading '/'
         if not uri.endswith('/'):
@@ -140,7 +145,7 @@ class ThePirateBay(pluginlib.Provider):
             yield pre + '/' + str(page) + '/' + post
             page += 1
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         def parse_row(row):
             details = row.select('font.detDesc')[0].text
 
@@ -151,7 +156,7 @@ class ThePirateBay(pluginlib.Provider):
                 typ = 'other'
                 msg = "Unknow category: '{category}'"
                 msg = msg.format(category=e.args[0])
-                self.app.logger.warning(msg)
+                self.logger.warning(msg)
 
             # Parse size
             size = re.findall(r'([0-9\.]+\s*[GMK]i?B)',
@@ -179,9 +184,10 @@ class ThePirateBay(pluginlib.Provider):
             return any((link.attrs.get('href', '').startswith('magnet')
                         for link in row.select('a')))
 
-        soup = bs4.BeautifulSoup(buff, parser)
+        soup = self.parse_buffer(buff)
         rows = soup.select('tr')
         rows = filter(filter_row, rows)
+
         return list(map(parse_row, rows))
 
     @classmethod
@@ -262,34 +268,6 @@ class ThePirateBay(pluginlib.Provider):
         return self.SEARCH_URL_PATTERN.format(q=q)
 
 
-# class ThePirateBayRSS(pluginlib.Provider):
-#     __extension_name__ = 'thepiratebayrss'
-#
-#     _TLD = 'cr'
-#     _BASE_URL = "https://thepiratebay.{tld}/rss/".format(tld=_TLD)
-
-#     DEFAULT_URI = _BASE_URL + "/top100/0"
-#     URI_PATTERNS = [
-#         r'^http(s)?://([^.]\.)?thepiratebay\.[^.]{2,3}/rss/'
-#     ]
-#
-#     def paginate(self, uri):
-#         yield uri
-#
-#     def parse(self, buff, parser):
-#         def _build_source(entry):
-#             return {
-#                 'uri': entry['link'],
-#                 'name': entry['title'],
-#                 'created': int(time.mktime(entry['published_parsed'])),
-#                 'size': int(entry['contentlength'])
-#             }
-#
-#         ret = [_build_source(x) for x in feedparser.parse(buff)['entries']]
-#         return ret
-
-
 __arroyo_extensions__ = [
-    ThePirateBay,
-    # ThePirateBayRSS
+    ThePirateBay
 ]

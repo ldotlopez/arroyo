@@ -4,11 +4,13 @@ import abc
 import collections
 import functools
 import itertools
-import sys
 import types
 
 
-import appkit.extensionmanager
+from appkit import (
+    extensionmanager,
+    logging
+)
 import guessit
 
 
@@ -23,7 +25,7 @@ from arroyo import (
 class Query(kit.Extension):
     KIND = None
 
-    def __init__(self, app, params={}, display_name=None):
+    def __init__(self, *args, params={}, display_name=None, **kwargs):
 
         def _normalize_key(key):
             for x in [' ', '_']:
@@ -43,7 +45,7 @@ class Query(kit.Extension):
         if 'type' in params:
             params['type'] = params['type'].lower()
 
-        super().__init__(app)
+        super().__init__(*args, **kwargs)
 
         self.params = params
         self.display_name = display_name
@@ -106,6 +108,7 @@ class Query(kit.Extension):
 class Selector:
     def __init__(self, app):
         self.app = app
+        self.logger = logging.getLogger('selector')
         self.app.register_extension_point(Filter)
         self.app.register_extension_point(Query)
         self.app.register_extension_point(Sorter)
@@ -194,7 +197,7 @@ class Selector:
                 params=params_,
                 display_name=display_name
             )
-        except appkit.extensionmanager.ExtensionNotFoundError as e:
+        except extensionmanager.ExtensionNotFoundError as e:
             msg = "Invalid query kind: {kind}"
             msg = msg.format(kind=impl_name)
             raise ValueError(msg) from e  # FIXME: Use custom exception
@@ -203,7 +206,7 @@ class Selector:
         specs = self.app.settings.get('query', default={})
         if not specs:
             msg = "No queries defined"
-            self.app.logger.warning(msg)
+            self.logger.warning(msg)
             return []
 
         ret = [
@@ -237,7 +240,7 @@ class Selector:
                     model=repr(ext.APPLIES_TO),
                     conflicts=','.join(list(ext_conflicts)))
 
-                self.app.logger.warning(msg)
+                self.logger.warning(msg)
                 continue
 
             # Update registry with impl
@@ -262,7 +265,7 @@ class Selector:
 
         msg = "Search matches for query: {query}"
         msg = msg.format(query=str(query.params))
-        self.app.logger.debug(msg)
+        self.logger.debug(msg)
 
         # Get base query set from query
         qs = query.get_query_set(self.app.db.session, everything)
@@ -309,7 +312,7 @@ class Selector:
                     value=value,
                     precount=precount,
                     postcount=_count(ret))
-                self.app.logger.debug(msg)
+                self.logger.debug(msg)
 
         if not unrolled:
             ret = list(ret)
@@ -425,14 +428,14 @@ class Selector:
 
         msg = "Discovering origins for {query}"
         msg = msg.format(query=query)
-        self.app.logger.info(msg)
+        self.logger.info(msg)
 
         exts = list(self.app.get_extensions_for(importer.Provider))
 
         if not exts:
             msg = ("There are no origin implementations available or none of "
                    "them is enabled, check your configuration")
-            self.app.logger.warning(msg)
+            self.logger.warning(msg)
             return []
 
         exts_and_uris = []
@@ -441,13 +444,13 @@ class Selector:
             if uri:
                 msg = " Found compatible origin '{name}'"
                 msg = msg.format(name=name)
-                self.app.logger.info(msg)
+                self.logger.info(msg)
                 exts_and_uris.append((ext, uri))
 
         if not exts_and_uris:
             msg = "No compatible origins found for {query}"
             msg = msg.format(query=query)
-            self.app.logger.warning(msg)
+            self.logger.warning(msg)
             return []
 
         origins = [importer.Origin(p, uri=uri) for (p, uri) in exts_and_uris]

@@ -1,21 +1,25 @@
 # -*- coding: utf-8 -*-
 
-
 # Docs:
 # https://pythonhosted.org/transmissionrpc/reference/transmissionrpc.html
 
 
 from arroyo import pluginlib
 from arroyo.pluginlib import downloads
-models = pluginlib.models
 
 
 from urllib import parse
 
 
-from appkit import store
+from appkit import (
+    logging,
+    store
+)
 from sqlalchemy import orm
 import transmissionrpc
+
+
+models = pluginlib.models
 
 
 SETTINGS_NS = 'plugins.downloaders.transmission'
@@ -51,14 +55,15 @@ transmissionrpc.torrent.Torrent.__str__ = __torrent_str__
 class TransmissionDownloader(pluginlib.Downloader):
     __extension_name__ = 'transmission'
 
-    def __init__(self, app):
-        super().__init__(app)
+    def __init__(self, app, *args, **kwargs):
+        super().__init__(app, *args, **kwargs)
+        settings = app.settings
 
-        self.logger = self.app.logger.getChild('transmission')
-        self.app.settings.add_validator(self.settings_validator)
+        self.logger = logging.getLogger('transmission')
+        settings.add_validator(self.settings_validator)
 
         try:
-            s = app.settings.get(SETTINGS_NS, default={})
+            s = settings.get(SETTINGS_NS, default={})
             self.api = transmissionrpc.Client(
                 address=s.get('address', 'localhost'),
                 port=s.get('port', 9091),
@@ -133,7 +138,7 @@ class TransmissionDownloader(pluginlib.Downloader):
 
         return ret
 
-    def translate_item(self, tr_obj):
+    def translate_item(self, tr_obj, db):
         urn = parse.parse_qs(
             parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
         urns = downloads.calculate_urns(urn)
@@ -143,7 +148,7 @@ class TransmissionDownloader(pluginlib.Downloader):
         for u in urns:
             try:
                 # Use like here for case-insensitive filter
-                q = self.app.db.session.query(models.Source)
+                q = db.session.query(models.Source)
                 q = q.filter(models.Source.urn.like(u))
                 ret = q.one()
                 break

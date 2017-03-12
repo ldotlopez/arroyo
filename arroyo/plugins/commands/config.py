@@ -8,6 +8,9 @@ import sys
 import yaml
 
 
+from appkit import logging
+
+
 class ConfigCommand(pluginlib.Command):
     __extension_name__ = 'config'
 
@@ -29,7 +32,11 @@ class ConfigCommand(pluginlib.Command):
 
         cls.dumpparser = cls.opparser.add_parser('dump')
 
-    def execute(self, args):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('config')
+
+    def execute(self, app, arguments):
         types_map = {
             None: yaml.load,
             'int': int,
@@ -40,26 +47,28 @@ class ConfigCommand(pluginlib.Command):
             'list': yaml.load
         }
 
-        if args.operation == 'dump':
-            self.app.settings.dump(sys.stdout)
+        settings = app.settings
 
-        elif args.operation == 'set':
-            if args.type not in types_map:
+        if arguments.operation == 'dump':
+            settings.dump(sys.stdout)
+
+        elif arguments.operation == 'set':
+            if arguments.type not in types_map:
                 msg = "Unknow type '{type}'"
-                msg = msg.format(type=args.type)
-                self.app.logger.error(msg)
+                msg = msg.format(type=arguments.type)
+                self.logger.error(msg)
                 return
 
-            self.app.settings.set(
-                args.key[0],
-                types_map[args.type](args.value[0]))
+            settings.set(
+                arguments.key[0],
+                types_map[arguments.type](arguments.value[0]))
 
-            cfgfile = vars(args)['config-files'][-1]
+            cfgfile = vars(arguments)['config-files'][-1]
             with open(cfgfile, 'w') as fh:
-                self.app.settings.write(fh)
+                settings.write(fh)
 
-        elif args.operation == 'get':
-            print(yaml.dump(self.app.settings.get(args.key[0])))
+        elif arguments.operation == 'get':
+            print(yaml.dump(settings.get(arguments.key[0])))
 
 __arroyo_extensions__ = [
     ConfigCommand
