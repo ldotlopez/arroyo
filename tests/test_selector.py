@@ -134,7 +134,7 @@ class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
             'plugins.queries.source.enabled': True,
-            'plugins.filters.source.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
         })
 
     def test_not_everything(self):
@@ -292,11 +292,11 @@ class MediainfoFiltersTest(SelectorTestCase):
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True
         })
 
     def test_series(self):
@@ -405,11 +405,11 @@ class EpisodeSelectorTest(SelectorTestCase):
             s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
         ]
         app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True,
         })
         app.insert_sources(*srcs)
         query = app.selector.query_from_params(
@@ -443,11 +443,11 @@ class EpisodeSelectorTest(SelectorTestCase):
         ]
 
         app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True,
         })
         app.insert_sources(*srcs)
         query = app.selector.query_from_params(
