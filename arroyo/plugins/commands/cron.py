@@ -7,7 +7,7 @@ from appkit.application import cron
 
 
 class Command(cron.Command, pluginlib.Command):
-    def execute(self, arguments):
+    def execute(self, app, arguments):
         """
         Override execute method.
 
@@ -18,7 +18,7 @@ class Command(cron.Command, pluginlib.Command):
         We need to pass correct arguments to base class in order to adapt it to
         our application model
         """
-        return super().execute(self.app, arguments)
+        return super().execute(app, arguments)
 
 
 __arroyo_extensions__ = [

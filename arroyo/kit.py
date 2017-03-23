@@ -1,34 +1,46 @@
 # -*- coding: utf-8 -*-
 
-import abc
+
 import argparse
+import enum
 
 
 from appkit import application
 from appkit.application import (
     commands,
-    cron
+    cron,
+    services
 )
+
+
+# class Requirements(enum.Enum):
+#     APPLICATION = 'application'
+#     # DATABASE = 'database'
+#     # NETWORK = 'network'
+#     SETTINGS = 'settings'
+#     VARIABLES = 'variables'
 
 
 class Extension(application.Extension):
     def __init__(self, app, *args, **kwargs):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self.app = app
 
-
-class Command(commands.Command, Extension):
-    """
-    Custom Command to alter:
-    - Custom execute method (bypasses application argument since it's in base
-      Extension)
-    """
-    @abc.abstractmethod
-    def execute(self, arguments):
-        raise NotImplementedError()
+    # def __init__(self, settings, variables, *args, **kwargs):
+    #     super().__init__(*args, **kwargs)
+    #     self.settings = settings
+    #     self.variables = variables
+    #
+    # @classmethod
+    # def requirements(cls):
+    #     return [Requirements.SETTINGS, Requirements.VARIABLES]
 
 
 class Task(cron.Task, Extension):
+    pass
+
+
+class Command(commands.Command, Extension):
     pass
 
 
@@ -90,9 +102,6 @@ class CommandManager(commands.Manager):
 
         return parser
 
-    def call_execute_method(self, command, arguments):
-        return command.execute(arguments)
-
 
 class CronManager(cron.Manager):
     TASK_EXTENSION_POINT = Task
@@ -107,11 +116,44 @@ class CronManager(cron.Manager):
             'cron.states.{name}'.format(name=task.__extension_name__),
             checkpoint)
 
-    def call_execute_method(self, task, app):
-        return task.execute()
+
+class Service(services.Service, Extension):
+    pass
 
 
 class Application(application.BaseApplication):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._extension_deps_registry = {}
+
+    # def register_extension_point(self, extension_point):
+    #     ret = super().register_extension_point(extension_point)
+
+    #     meth = getattr(extension_point, 'requirements', None)
+    #     if meth and callable(meth):
+    #         self._extension_deps_registry[extension_point] = meth()
+
+    #     return ret
+
     def get_extension(self, extension_point, name, *args, **kwargs):
-        return super().get_extension(extension_point, name, self,
-                                     *args, **kwargs)
+        # reqs = self._extension_deps_registry.get(extension_point, [])
+
+        # ifaces = []
+        # for req in reqs:
+        #     if req == Requirements.APPLICATION:
+        #         ifaces.append(self)
+
+        #     elif req == Requirements.SETTINGS:
+        #         ifaces.append(self.settings)
+
+        #     elif req == Requirements.VARIABLES:
+        #         ifaces.append(self.variables)
+
+        #     else:
+        #         raise NotImplementedError(req)
+
+        # args = ifaces + list(args)
+
+        # print(extension_point, name)
+        return super().get_extension(extension_point, name,
+                                     self, *args, **kwargs)

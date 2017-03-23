@@ -5,12 +5,9 @@ from arroyo import pluginlib
 from arroyo.pluginlib import downloads
 
 
-import asyncio
-import re
 from urllib import parse
 
 
-import bs4
 import humanfriendly
 from appkit import uritools
 
@@ -34,7 +31,7 @@ class Nyaa(pluginlib.Provider):
         uri = 'https://www.nyaa.se/?page=search&cats=0_0&filter=0&term={q}'
         return uri.format(q=parse.quote(query.base_string))
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         try:
             header = buff[0:11].decode('utf-8')
         except UnicodeError:
@@ -44,7 +41,7 @@ class Nyaa(pluginlib.Provider):
         if header == 'd8:announce':
             return self.parse_torrent_file(buff)
 
-        soup = bs4.BeautifulSoup(buff, parser)
+        soup = self.parse_buffer(buff)
         table = soup.select_one('table.tlist')
         if table:
             # Input is listing
@@ -111,33 +108,6 @@ class Nyaa(pluginlib.Provider):
             'name': qs['dn'][-1],
             'uri': magnet
         }]
-
-    # def get_torrent_file(self, uri):
-    #     res = None
-
-    #     @asyncio.coroutine
-    #     def _task():
-    #         nonlocal res
-    #         res = yield from self.app.fetcher.fetch(uri)
-
-    #     loop = asyncio.get_event_loop()
-    #     loop.run_until_complete(_task())
-
-    #     return downloads.magnet_from_torrent_data(res)
-
-    # def convert_torrent_file_uri(self, uri):
-    #     m = re.search('/torrent/download/([0-9a-f]{40})$', uri, re.IGNORECASE)
-    #     if m:
-    #         magnet = 'magnet:?xt=urn:btih:{id}'.format(
-    #             id=m.group(1).upper())
-
-    #         for tr in self._TRACKERS:
-    #             magnet = magnet + '&tr=' + parse.quote_plus(tr)
-
-    #         return magnet
-
-    #     else:
-    #         raise ValueError(uri)
 
 
 __arroyo_extensions__ = [

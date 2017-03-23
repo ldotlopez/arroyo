@@ -1,6 +1,8 @@
 import contextlib
+import hashlib
 import os
 import sys
+from urllib import parse
 
 
 from arroyo import core, models
@@ -14,7 +16,7 @@ class TestApp(core.Arroyo):
             'auto-cron': False,
             'auto-import': False,
             'db-uri': 'sqlite:///:memory:',
-            'downloader.backend': 'mock',
+            'downloader': 'mock',
             'fetcher.cache-delta': 0,
             'fetcher.enable-cache': False,
             'fetcher.headers': {
@@ -58,8 +60,16 @@ class TestApp(core.Arroyo):
         setattr(obj, attr, orig)
 
 
-def mock_source(name, **kwsrc):
-    return models.Source.from_data(name, **kwsrc)
+def mock_source(name, **kwargs):
+    if 'urn' not in kwargs:
+        kwargs['urn'] = 'urn:btih:'+hashlib.sha1(name.encode('utf-8')).hexdigest()
+
+    if 'uri' not in kwargs:
+        kwargs['uri'] = 'magnet:?xt={urn}&dn={dn}'.format(
+            urn=kwargs['urn'],
+            dn=parse.quote_plus(name))
+
+    return models.Source.from_data(name, **kwargs)
 
 
 def www_sample_path(sample):

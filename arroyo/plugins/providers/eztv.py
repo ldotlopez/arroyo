@@ -7,7 +7,6 @@ import re
 from urllib import parse
 
 
-import bs4
 import humanfriendly
 from appkit import utils
 
@@ -68,12 +67,12 @@ class Eztv(pluginlib.Provider):
 
         return '{base}/search/{q}'.format(base=self._BASE_DOMAIN, q=q)
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
         """
-        soup = bs4.BeautifulSoup(buff, parser)
+        soup = self.parse_buffer(buff)
         rows = soup.select('tr')
         rows = [x for x in rows
                 if self.pseudocount_magnet_links(x) == Eztv.Count.ONE]

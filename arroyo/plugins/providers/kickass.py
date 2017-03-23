@@ -9,9 +9,11 @@ import time
 from urllib import parse
 
 
-import bs4
 import humanfriendly
-from appkit import utils
+from appkit import (
+    logging,
+    utils
+)
 
 
 class KickAss(pluginlib.Provider):
@@ -38,6 +40,10 @@ class KickAss(pluginlib.Provider):
         'video': None,  # Try to auto detect
         'xxx': 'xxx'
     }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('kickass')
 
     def paginate(self, uri):
         parsed = parse.urlparse(uri)
@@ -77,7 +83,7 @@ class KickAss(pluginlib.Provider):
                     domain=self._BASE_URI,
                     q=q)
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         """
         Finds referentes to sources in buffer.
         Returns a list with source infos
@@ -110,7 +116,7 @@ class KickAss(pluginlib.Provider):
                 pass
 
             idx = post
-            rows.append(bs4.BeautifulSoup(buff[pre:post], parser))
+            rows.append(self.parse_buffer(buff[pre:post]))
 
         ret = [self._process_row(x) for x in rows]
         ret = [x for x in ret if x]
@@ -131,6 +137,14 @@ class KickAss(pluginlib.Provider):
             return None
         uri = list(magnets)[0]
 
+        try:
+            typ = self._parse_type(row)
+        except ValueError as e:
+            msg = "Unknow category: {category}"
+            msg = msg.format(category=e.args[0])
+            self.logger.warning(msg)
+            typ = None
+
         # Check for size
         try:
             size = row.select('td')[1].text.replace(' ', '')
@@ -150,24 +164,30 @@ class KickAss(pluginlib.Provider):
         except (IndexError, ValueError):
             leechers = None
 
+        try:
+            raw_created = row.select('td')[2]
+            created = self._parse_created(raw_created)
+        except ValueError as e:
+            msg = "Invalid created format: {value}"
+            msg = msg.format(value=raw_created)
+            self.logger.error(msg)
+            created = None
+
         return {
             'name': name,
             'uri': uri,
-            'type': self._parse_type(row),
+            'type': typ,
             'size': size,
             'seeds': seeds,
             'leechers': leechers,
-            'created': self._parse_created(row.select('td')[2]),
+            'created': created,
         }
 
     def _parse_type(self, typ):
         m = re.search(r'posted by .+ in (.+)(\n+)?', typ.text.lower())
 
         if not m:
-            msg = "Error parsing category: {category}"
-            msg = msg.format(category=typ.text.replace('\n', ''))
-            self._logger.error(msg)
-            return None
+            raise ValueError(typ.text.replace('\n', ''))
 
         category = m.group(1).strip()
         idx = category.find(' > ')
@@ -177,10 +197,8 @@ class KickAss(pluginlib.Provider):
 
         try:
             return self._TYPES[category]
-        except KeyError:
-            msg = "Unknow category: {category}"
-            msg = msg.format(category=category)
-            self._logger.warning(msg)
+        except KeyError as e:
+            raise ValueError(category) from e
 
     def _parse_created(self, created):
         _table = {
@@ -256,11 +274,8 @@ class KickAss(pluginlib.Provider):
             created = int(x)
             return created
 
-        msg = "Invalid created format: {value}"
-        msg = msg.format(value=created)
-        self.app.logger.error(msg)
+        raise ValueError(created)
 
-        return None
 
 __arroyo_extensions__ = [
     KickAss

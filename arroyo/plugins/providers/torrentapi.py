@@ -22,11 +22,12 @@
 
 
 from arroyo import pluginlib
-from arroyo.pluginlib import downloads
+# from arroyo.pluginlib import downloads
 
 import asyncio
 import json
 import time
+from appkit import uritools
 from urllib import parse
 
 
@@ -61,7 +62,7 @@ class TorrentAPI(pluginlib.Provider):
     def fetch(self, fetcher, uri):
         yield from self.refresh_token()
 
-        uri = downloads.set_query_params(
+        uri = uritools.alter_query_params(
             uri,
             format='json_extended',
             limit=100,
@@ -96,7 +97,7 @@ class TorrentAPI(pluginlib.Provider):
         if since_last_use < 2:
             yield from asyncio.sleep(2 - since_last_use)
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         def convert_data(e):
             return {
                 'name': e.get('title') or e.get('filename'),

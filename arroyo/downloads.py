@@ -9,6 +9,8 @@ from urllib import parse
 
 
 import bencodepy
+from appkit import logging
+
 
 import arroyo.exc
 from arroyo import (
@@ -31,24 +33,18 @@ class Downloads:
     Handles operations between core.Arroyo and the different downloaders.
     """
 
-    def __init__(self, app, logger=None):
+    def __init__(self, app):
         app.register_extension_point(Downloader)
         app.register_extension_class(DownloadSyncCronTask)
         app.register_extension_class(DownloadQueriesCronTask)
         app.signals.register('source-state-change')
 
         self.app = app
-        self.logger = logger or app.logger.getChild('downloads')
-        self._backend = None
+        self.logger = logging.getLogger('downloads')
 
     @property
     def backend(self):
-        if self._backend is None:
-            self._backend = self.app.get_extension(
-                Downloader, self.backend_name
-            )
-
-        return self._backend
+        return self.app.get_extension(Downloader, self.backend_name)
 
     @property
     def backend_name(self):
@@ -120,7 +116,7 @@ class Downloads:
         table = {}
 
         for dler_item in self.backend.list():
-            source = self.backend.translate_item(dler_item)
+            source = self.backend.translate_item(dler_item, self.app.db)
 
             # The downloader backend can have unrelated items
             # with nothing in common with us!
@@ -179,6 +175,29 @@ class Downloads:
             'downloads': active_downloads,
         }
 
+    def get_info(self, source=None):
+        table = {}
+
+        for backend_item in self.backend.list():
+            matching_source = self.backend.translate_item(backend_item,
+                                                          self.app.db)
+            if not matching_source:
+                continue
+
+            table[matching_source] = backend_item
+            if source and source == matching_source:
+                break
+
+        info_table = {}
+        for (source, item) in table.items():
+            info = self.backend.get_info(item)
+            info_table[source] = DownloadInfo(**info)
+
+        if source:
+            return info_table[source]
+        else:
+            return info_table
+
 
 class Downloader(kit.Extension):
     def add(self, source, **kwargs):
@@ -193,165 +212,44 @@ class Downloader(kit.Extension):
     def get_state(self, source, **kwargs):
         raise NotImplementedError()
 
-    def translate_item(self, backend_obj):
+    def translate_item(self, backend_obj, database_interface):
         raise NotImplementedError()
+
+    def get_info(self, backend_obj):
+        raise NotImplementedError()
+
+
+class DownloadInfo:
+    def __init__(self, eta=None, files=None, location=None, progress=None):
+        self.eta = eta
+        self.files = files
+        self.location = location
+        self.progress = progress or 0.0
 
 
 class DownloadSyncCronTask(kit.Task):
     __extension_name__ = 'download-sync'
     INTERVAL = '5M'
 
-    def execute(self):
-        self.app.downloads.sync()
+    def execute(self, app):
+        app.downloads.sync()
 
 
 class DownloadQueriesCronTask(kit.Task):
     __extension_name__ = 'download-queries'
     INTERVAL = '3H'
 
-    def execute(self):
-        queries = self.app.selector.get_configured_queries()
+    def execute(self, app):
+        queries = app.selector.queries_from_config()
         for q in queries:
-            matches = self.app.selector.matches(q)
-            srcs = self.app.selector.select(matches)
+            matches = app.selector.matches(q)
+            srcs = app.selector.select(matches)
 
             if srcs is None:
                 continue
 
             for src in srcs:
                 try:
-                    self.app.downloads.add(src)
+                    app.downloads.add(src)
                 except Exception as e:
-                    self.app.logger.error(str(e))
-
-
-def calculate_urns(urn):
-    """Returns all equivalent urns in different encodings
-
-    Returns (sha1 urn, base32 urn)
-    """
-
-    (urn_sha1, urn_base32) = (None, None)
-
-    prefix, algo, id_ = urn.split(':', 3)
-
-    if is_sha1_urn(urn):
-        urn_sha1 = id_.lower()
-        urn_base32 = base64.b32encode(
-            binascii.unhexlify(urn_sha1)).decode('ascii')
-
-    elif is_base32_urn(urn):
-        urn_base32 = id_.upper()
-        urn_sha1 = binascii.hexlify(
-            base64.b32decode(urn_base32)).decode('ascii')
-
-    else:
-        msg = "Unknow enconding for '{urn}'"
-        msg = msg.format(urn=urn)
-        raise ValueError(msg)
-
-    return (
-        ':'.join([prefix, algo, urn_sha1]),
-        ':'.join([prefix, algo, urn_base32])
-    )
-
-
-def is_sha1_urn(urn):
-    """Check if urn matches sha1 urn: scheme
-    """
-
-    return re.match('^urn:(.+?):[A-F0-9]{40}$', urn, re.IGNORECASE) is not None
-
-
-def is_base32_urn(urn):
-    """Check if urn matches base32 urn: scheme
-    """
-
-    return re.match('^urn:(.+?):[A-Z2-7]{32}$', urn, re.IGNORECASE) is not None
-
-
-def magnet_from_torrent_data(torrent_data):
-
-    def flatten(x):
-        if isinstance(x, list):
-            for y in x:
-                yield from flatten(y)
-        else:
-            yield x
-
-    metadata = bencodepy.decode(torrent_data)
-
-    hash_contents = bencodepy.encode(metadata[b'info'])
-    digest = hashlib.sha1(hash_contents).digest()
-    b32hash = base64.b32encode(digest)
-
-    info = {
-        'b32hash':  b32hash.decode('utf-8'),
-        'tr': [x.decode('utf-8') for x in
-               flatten(metadata.get(b'announce-list', []) or
-                       [metadata[b'announce']])],
-        'dn': metadata.get(b'info', {}).get(b'name', b'').decode('utf-8'),
-        'xl': metadata.get(b'info', {}).get(b'length')
-    }
-    try:
-        info['xl'] = int(info['xl'])
-    except ValueError:
-        del info['xl']
-
-    magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(
-        b32hash=info.pop('b32hash'),
-        params=parse.urlencode(info)
-    )
-
-    return magnet
-
-
-def magnet_from_torrent_file(torrent_file):
-    with open(torrent_file, 'rb') as fh:
-        return magnet_from_torrent_data(fh.read())
-
-
-def parse_magnet(magnet_url):
-    """Parse magnet link
-    """
-
-    p = parse.urlparse(magnet_url)
-    if p.scheme != 'magnet':
-        msg = "Invalid magnet link: '{magnet}'"
-        msg = msg.format(magnet=magnet_url)
-        raise ValueError(msg)
-
-    qs = parse.parse_qs(p.query)
-    return qs
-
-
-def rewrite_uri(uri):
-    """Rewrites URI (magnet) using sha1sum ID
-    """
-
-    def _rewrite_pair(x):
-        (k, v) = x
-        if k == 'xt':
-            return (k, calculate_urns(v)[0])
-        else:
-            return (k, parse.quote_plus(v))
-
-    parsed = parse.parse_qsl(parse.urlparse(uri).query)
-    parsed_map = map(_rewrite_pair, parsed)
-    query = '&'.join(['{}={}'.format(k, v) for (k, v) in parsed_map])
-
-    return 'magnet:?' + query
-
-
-def set_query_params(uri, overwrite=False, **params):
-    parsed = parse.urlparse(uri)
-    qs = parse.parse_qs(parsed.query)
-
-    for (key, val) in params.items():
-        if overwrite or (key not in qs):
-            qs[key] = [val]
-
-    qs = {k: v[-1] for (k, v) in qs.items()}
-    qs = parse.urlencode(qs)
-    parsed = parsed._replace(query=qs)
-    return parse.urlunparse(parsed)
+                    app.logger.error(str(e))

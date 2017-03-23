@@ -2,7 +2,6 @@
 
 
 from arroyo import pluginlib
-models = pluginlib.models
 
 
 import json
@@ -17,6 +16,9 @@ from sqlalchemy import (
     String,
     and_
 )
+
+
+models = pluginlib.models
 
 
 class TVDBInfo(sautils.Base):
@@ -38,10 +40,11 @@ class TVDBInfo(sautils.Base):
 
 
 class TVDB:
-    def __init__(self, app):
+    def __init__(self, db):
         # Create model
-        models.Base.metadata.create_all(app.db.session.connection())
-        self.app = app
+        # FIXME: define a method to install models into db
+        models.Base.metadata.create_all(db.session.connection())
+        self.db = db
         self.api = tvdb_api.Tvdb()
 
     def series_id(self, ep):
@@ -66,7 +69,7 @@ class TVDB:
             self.series_id(ep).replace('.', '-')
         )
 
-        info = self.app.db.session.query(
+        info = self.db.session.query(
             TVDBInfo
         ).filter(and_(
             TVDBInfo.id == id_,
@@ -83,18 +86,18 @@ class TVDB:
             self.series_id(ep).replace('.', '-')
         )
         obj = TVDBInfo(id=id_, data=json.dumps(info))
-        self.app.db.session.add(obj)
+        self.db.session.add(obj)
 
     def process(self, *src_ids):
-        srcs = self.app.db.session.query(
+        srcs = self.db.session.query(
             models.Source
         ).filter(and_(
-            models.Source.episode != None,  # nopep8
-            models.Source.id.in_(src_ids)
+            pluginlib.Source.episode != None,  # nopep8
+            pluginlib.Source.id.in_(src_ids)
         ))
 
         eps = set(map(lambda src: src.episode, srcs))
-        sess = self.app.db.session
+        sess = self.db.session
         for ep in eps:
             # Check series info
             series_info = self.load_series_info(ep)
@@ -113,8 +116,10 @@ class TVDBCommand(pluginlib.Command):
         ),
     )
 
-    def run(self, arguments):
-        tvdb = TVDB(self.app)
+    def run(self, app, arguments):
+        db = app.db
+
+        tvdb = TVDB(db)
         tvdb.process(arguments.item)
 
 __arroyo_extensions__ = [

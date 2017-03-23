@@ -4,7 +4,6 @@
 from arroyo import pluginlib
 
 
-import bs4
 from urllib import parse
 
 
@@ -24,8 +23,8 @@ class Epublibre(pluginlib.Provider):
         return 'https://www.epublibre.org/catalogo/index/0/nuevo/todos/sin/todos/{q}'.format(  # nopep8
             q=parse.quote(q))
 
-    def parse(self, buff, parser):
-        soup = bs4.BeautifulSoup(buff, parser)
+    def parse(self, buff):
+        soup = self.parse_buffer(buff)
 
         if soup.select('#titulo_libro'):
             return self.parse_detailed(soup)

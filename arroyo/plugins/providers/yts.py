@@ -8,7 +8,6 @@ import re
 from urllib import parse
 
 
-import bs4
 from appkit import uritools
 
 
@@ -49,8 +48,8 @@ class Yts(pluginlib.Provider):
         return 'https://yts.ag/browse-movies/{q}/all/all/0/latest'.format(
             q=parse.quote(q))
 
-    def parse(self, buff, parser):
-        soup = bs4.BeautifulSoup(buff, parser)
+    def parse(self, buff):
+        soup = self.parse_buffer(buff)
         detail_block = soup.select_one('#movie-content')
 
         if detail_block:

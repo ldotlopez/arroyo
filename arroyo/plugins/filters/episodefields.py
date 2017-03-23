@@ -2,10 +2,12 @@
 
 from arroyo import pluginlib
 from arroyo.pluginlib import filter
-models = pluginlib.models
 
 
 import functools
+
+
+models = pluginlib.models
 
 
 class Filter(pluginlib.QuerySetFilter):

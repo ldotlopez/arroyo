@@ -17,9 +17,9 @@ class BaseTest:
             time.sleep(self.slowdown)
 
     def setUp(self):
-        settings = {'plugin.' + k + '.enabled': True for k in self.plugins}
+        settings = {'plugins.' + k + '.enabled': True for k in self.plugins}
         # settings['log-level'] = 'CRITICAL'
-        settings['downloader.backend'] = self.downloader
+        settings['downloader'] = self.downloader
         self.app = TestApp(settings)
 
     def tearDown(self):
@@ -133,14 +133,20 @@ class BaseTest:
             src2.state,
             models.Source.State.ARCHIVED)
 
+    def test_info(self):
+        src = mock_source('foo')
+        self.app.insert_sources(src)
+        self.app.downloads.add(src)
+        self.app.downloads.get_info(src)
 
-class MockDownloaderTest(BaseTest, unittest.TestCase):
-    plugins = ['mockdownloader']
+
+class MockTest(BaseTest, unittest.TestCase):
+    plugins = ['downloaders.mock']
     downloader = 'mock'
 
 
-class TransmissionDownloaderTest(BaseTest, unittest.TestCase):
-    plugins = ['transmission']
+class TransmissionTest(BaseTest, unittest.TestCase):
+    plugins = ['downloaders.transmission']
     downloader = 'transmission'
     slowdown = 0.5
 
