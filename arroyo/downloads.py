@@ -63,7 +63,7 @@ class Downloads:
             msg = msg.format(name=self.backend_name, e=e)
             raise BackendError(msg, original_exception=e) from e
 
-        source.state = models.Source.State.INITIALIZING
+        source.state = models.State.INITIALIZING
 
         if source.entity:
             if source.entity.selection:
@@ -164,7 +164,7 @@ class Downloads:
 
         # Check for missing sources
         for src in set(active_sources) - set(active_downloads):
-            src.state = models.Source.State.ARCHIVED
+            src.state = models.State.ARCHIVED
             self.app.signals.send('source-state-change', source=src)
             changes.append(src)
 

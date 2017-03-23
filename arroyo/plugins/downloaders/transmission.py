@@ -26,14 +26,13 @@ models = pluginlib.models
 
 SETTINGS_NS = 'plugins.downloaders.transmission'
 STATE_MAP = {
-    'checking': models.Source.State.INITIALIZING,
-    'check pending': models.Source.State.INITIALIZING,
-    'download pending': models.Source.State.QUEUED,
-    'downloading': models.Source.State.DOWNLOADING,
-    'seeding': models.Source.State.SHARING,
+    'checking': models.State.INITIALIZING,
+    'check pending': models.State.INITIALIZING,
+    'download pending': models.State.QUEUED,
+    'downloading': models.State.DOWNLOADING,
+    'seeding': models.State.SHARING,
     # other states need more logic
 }
-
 
 
 def tranmissionrpc_torrent_files(torrent):
@@ -86,7 +85,6 @@ class TransmissionDownloader(pluginlib.Downloader):
             raise pluginlib.exc.BackendError(msg)
 
     def add(self, source, **kwargs):
-        import ipdb; ipdb.set_trace(); pass
         urn = bittorrentlib.normalize_urn(source.urn)
 
         if urn in self.shield:
@@ -116,9 +114,9 @@ class TransmissionDownloader(pluginlib.Downloader):
         #   isFinished attr can handle this
         if tr_obj.status == 'stopped':
             if tr_obj.progress < 100:
-                return models.Source.State.PAUSED
+                return models.State.PAUSED
             else:
-                return models.Source.State.DONE
+                return models.State.DONE
 
         state = tr_obj.status
 

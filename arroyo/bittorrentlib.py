@@ -48,8 +48,8 @@ def normalize_urn(urn):
         msg = msg.format(urn=urn)
         raise ValueError(msg)
 
-def magnet_from_torrent_data(torrent_data):
 
+def magnet_from_torrent_data(torrent_data):
     def flatten(x):
         if isinstance(x, list):
             for y in x:

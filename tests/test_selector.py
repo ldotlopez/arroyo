@@ -147,7 +147,7 @@ class SourceSelectorTest(SelectorTestCase):
         self.assertQuery(srcs, name_glob='*')
 
         for src in srcs:
-            src.state = models.Source.State.DOWNLOADING
+            src.state = models.State.DOWNLOADING
             self.app.db.session.add(src)
 
         self.app.db.session.commit()
@@ -320,7 +320,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             [srcs[0]],
             kind='episode', series='game of thrones')
 
-        srcs[0].state = models.Source.State.DONE
+        srcs[0].state = models.State.DONE
 
         self.assertQuery(
             [srcs[2]],
@@ -351,7 +351,7 @@ class EpisodeSelectorTest(SelectorTestCase):
 
         # After this state change nothing matches
         for src in srcs:
-            src.state = models.Source.State.DONE
+            src.state = models.State.DONE
         self.assertQuery(
             [],
             kind='episode', series='game of thrones', quality='hdtv')
@@ -365,7 +365,7 @@ class EpisodeSelectorTest(SelectorTestCase):
 
         # Revert src states and link episodes with sources
         for src in srcs:
-            src.state = models.Source.State.NONE
+            src.state = models.State.NONE
         spec = self.app.selector.query_from_params(
             display_name='test',
             params=dict(kind='episode', series='game of thrones', quality='hdtv'))

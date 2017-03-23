@@ -131,7 +131,7 @@ class BaseTest:
         self.wait()
         self.assertEqual(
             src2.state,
-            models.Source.State.ARCHIVED)
+            models.State.ARCHIVED)
 
     def test_info(self):
         src = mock_source('foo')

@@ -69,7 +69,7 @@ class Db:
     def update_all_states(self, state):
         for src in self._sess.query(models.Source):
             src.state = state
-        if state == models.Source.State.NONE:
+        if state == models.State.NONE:
             self._sess.query(models.Selection).delete()
         self._sess.commit()
 
@@ -77,13 +77,13 @@ class Db:
         query = sautils.query_from_params(self._sess, models.Source, **kwargs)
         if not all_states:
             query = query.filter(
-                models.Source.state == models.Source.State.NONE)
+                models.Source.state == models.State.NONE)
 
         return query
 
     def get_active(self):
         query = self._sess.query(models.Source)
         query = query.filter(~models.Source.state.in_(
-            (models.Source.State.NONE, models.Source.State.ARCHIVED)))
+            (models.State.NONE, models.State.ARCHIVED)))
 
         return query

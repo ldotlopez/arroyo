@@ -27,7 +27,7 @@ class ExternalHooksTest(unittest.TestCase):
         backend._update_info(src, {
             'location': '/foo/bar'
         })
-        backend._update_state(src, models.Source.State.DONE)
+        backend._update_state(src, models.State.DONE)
         self.app.downloads.sync()
 
 if __name__ == '__main__':

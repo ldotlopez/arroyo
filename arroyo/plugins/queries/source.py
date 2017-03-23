@@ -14,7 +14,7 @@ class SourceQuery(pluginlib.Query):
         if not everything:
             # Weird equality but it's OK, read it trice
             qs = qs.filter(pluginlib.models.Source.state ==
-                           pluginlib.models.Source.State.NONE)
+                           pluginlib.models.State.NONE)
 
         return qs
 

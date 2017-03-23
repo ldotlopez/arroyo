@@ -71,10 +71,10 @@ class Command(pluginlib.Command):
             db.reset()
 
         elif reset_states:
-            db.update_all_states(models.Source.State.NONE)
+            db.update_all_states(models.State.NONE)
 
         elif archive_all:
-            db.update_all_states(models.Source.State.ARCHIVED)
+            db.update_all_states(models.State.ARCHIVED)
 
         elif shell:
             sess = db.session
@@ -92,9 +92,9 @@ class Command(pluginlib.Command):
             source_id = reset_source_id or archive_source_id
 
             if reset_source_id:
-                state = models.Source.State.NONE
+                state = models.State.NONE
             else:
-                state = models.Source.State.ARCHIVED
+                state = models.State.ARCHIVED
 
             source = db.get(models.Source, id=source_id)
             if not source:

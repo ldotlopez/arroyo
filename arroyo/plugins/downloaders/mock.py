@@ -25,7 +25,7 @@ class MockDownloader(pluginlib.Downloader):
         self.variables.set(
             key(source.urn),
             {
-                'state': models.Source.State.INITIALIZING,
+                'state': models.State.INITIALIZING,
                 'info': {
                     'files': None,
                     'eta': None,

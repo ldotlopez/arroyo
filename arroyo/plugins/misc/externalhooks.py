@@ -14,14 +14,14 @@ from appkit import (
 
 SETTINGS_NS = 'plugins.misc.externalhooks'
 STATES = {
-    models.Source.State.NONE: 'none',
-    models.Source.State.INITIALIZING: 'initialize',
-    models.Source.State.QUEUED: 'queue',
-    models.Source.State.PAUSED: 'pause',
-    models.Source.State.DOWNLOADING: 'download',
-    models.Source.State.SHARING: 'share',
-    models.Source.State.DONE: 'done',
-    models.Source.State.ARCHIVED: 'archive'
+    models.State.NONE: 'none',
+    models.State.INITIALIZING: 'initialize',
+    models.State.QUEUED: 'queue',
+    models.State.PAUSED: 'pause',
+    models.State.DOWNLOADING: 'download',
+    models.State.SHARING: 'share',
+    models.State.DONE: 'done',
+    models.State.ARCHIVED: 'archive'
 }
 
 
