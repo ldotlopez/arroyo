@@ -64,10 +64,12 @@ class TorrentAPI(pluginlib.Provider):
 
         uri = uritools.alter_query_params(
             uri,
-            format='json_extended',
-            limit=100,
-            sort='last',
-            token=self.token)
+            dict(
+                format='json_extended',
+                limit=100,
+                sort='last',
+                token=self.token)
+        )
 
         return (yield from super().fetch(fetcher, uri))
 
@@ -123,6 +125,10 @@ class TorrentAPI(pluginlib.Provider):
             'episode': 'tv',
             'movie': 'movies'
         }
+
+        querystr = query.base_string
+        if not querystr:
+            return None
 
         q = {
             'search_string': query.base_string

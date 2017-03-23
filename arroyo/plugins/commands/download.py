@@ -1,18 +1,20 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import pluginlib
-
-
 import itertools
 import re
+import sys
 
 
+import humanfriendly
+import tabulate
 from appkit import (
     logging,
     utils
 )
-import humanfriendly
-import tabulate
+from arroyo import (
+    selector,
+    pluginlib
+)
 
 
 models = pluginlib.models
@@ -116,23 +118,18 @@ class DownloadCommand(pluginlib.Command):
         # Conflicts with:
         # --filter / keywords
 
-        selector = app.selector
-        downloads = app.downloads
-        db = app.db
-
         #
         # Build queries from configuration, filter arguments or keywords
         #
         queries = []
 
         if arguments.filters or arguments.keywords:
-            query = self.query_from_arguments(selector,
-                                              arguments.filters,
+            query = self.query_from_arguments(arguments.filters,
                                               arguments.keywords)
             queries = [query]
 
         if arguments.from_config:
-            queries = selector.queries_from_config()
+            queries = self.selector.queries_from_config()
             if not queries:
                 msg = "No configured queries"
                 self.logger.error(msg)
@@ -143,19 +140,21 @@ class DownloadCommand(pluginlib.Command):
         #
 
         if arguments.add:
-            sources = [self.source_from_id(db, x) for x in arguments.add]
+            sources = [self.source_from_id(x)
+                       for x in arguments.add]
             sources = [x for x in sources if x]
-            self.add_downloads(downloads, sources,
+            self.add_downloads(sources,
                                dry_run=arguments.dry_run)
 
         if arguments.remove:
-            sources = [self.source_from_id(db, x) for x in arguments.remove]
+            sources = [self.source_from_id(x)
+                       for x in arguments.remove]
             sources = [x for x in sources if x]
-            self.remove_downloads(downloads, sources,
+            self.remove_downloads(sources,
                                   dry_run=arguments.dry_run)
 
         if arguments.list:
-            downloads = downloads.list()
+            downloads = self.app.downloads.list()
             if not downloads:
                 msg = "No downloads"
                 print(msg)
@@ -173,16 +172,20 @@ class DownloadCommand(pluginlib.Command):
                 print(formated_table)
 
         for query in queries:
-            srcs = selector.matches(query,
-                                    auto_import=arguments.scan,
-                                    everything=arguments.everything)
+            try:
+                srcs = self.app.selector.matches(
+                    query,
+                    auto_import=arguments.scan,
+                    everything=arguments.everything)
 
-            if not srcs:
+            except (selector.FilterNotFoundError,
+                    selector.FilterCollissionError) as e:
+                print(e, file=sys.stderr)
                 continue
 
             # Build selections
             selections = []
-            for (entity, sources) in selector.group(srcs):
+            for (entity, sources) in self.app.selector.group(srcs):
                 if len(sources) > 1:
                     selected = selector.select(sources)
                 else:
@@ -194,11 +197,10 @@ class DownloadCommand(pluginlib.Command):
                 explain(selections)
 
             self.add_downloads(
-                downloads,
                 [selected for (dummy, dummy, selected) in selections],
                 dry_run=arguments.dry_run)
 
-    def add_downloads(self, download_iface, sources, dry_run=False):
+    def add_downloads(self, sources, dry_run=False):
         assert sources
         assert isinstance(sources, list)
         assert all([isinstance(x, models.Source) for x in sources])
@@ -210,10 +212,10 @@ class DownloadCommand(pluginlib.Command):
             if dry_run:
                 print(msg)
             else:
-                download_iface.add(src)
+                self.app.downloads.add(src)
                 self.logger.info(msg)
 
-    def remove_downloads(self, download_iface, sources, dry_run=False):
+    def remove_downloads(self, sources, dry_run=False):
         assert sources
         assert isinstance(sources, list)
         assert all([isinstance(x, models.Source) for x in sources])
@@ -225,11 +227,11 @@ class DownloadCommand(pluginlib.Command):
             if dry_run:
                 print(msg)
             else:
-                download_iface.remove(src)
+                self.app.downloads.remove(src)
                 self.logger.info(msg)
 
-    def source_from_id(self, db, id):
-        source = db.get(models.Source, id=id)
+    def source_from_id(self, id):
+        source = self.app.db.get(models.Source, id=id)
         if not source:
             msg = "Source with ID={id} not found"
             msg = msg.format(id=id)
@@ -238,7 +240,7 @@ class DownloadCommand(pluginlib.Command):
 
         return source
 
-    def query_from_arguments(self, selector, filters, keywords):
+    def query_from_arguments(self, filters, keywords):
         if keywords:
             # Check for missuse of keywords
             if any([re.search(r'^([a-z]+)=(.+)$', x)
@@ -253,7 +255,7 @@ class DownloadCommand(pluginlib.Command):
                 self.logger.warning(msg)
 
             # Transform keywords into a usable query
-            query = selector.query_from_string(
+            query = self.app.selector.query_from_string(
                 ' '.join([x.strip() for x in keywords]),
                 type_hint=filters.pop('kind', None))
 
@@ -263,8 +265,9 @@ class DownloadCommand(pluginlib.Command):
 
         elif filters:
             # Build the query from filters
-            query = selector.query_from_params(params=filters,
-                                               display_name='command-line')
+            query = self.app.selector.query_from_params(
+                params=filters,
+                display_name='command-line')
 
         return query
 

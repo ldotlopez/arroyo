@@ -359,8 +359,7 @@ class ArroyoAsyncFetcher(network.AsyncFetcher):
             fetcher_cache = cache.DiskCache(
                 basedir=utils.user_path(utils.UserPathType.CACHE, 'network',
                                         create=True, is_folder=True),
-                delta=cache_delta,
-                logger=logger)
+                delta=cache_delta)
 
             if logger:
                 msg = "{clsname} using cachepath '{path}'"

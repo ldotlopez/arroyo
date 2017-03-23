@@ -22,6 +22,14 @@ from arroyo import (
 )
 
 
+class FilterNotFoundError(Exception):
+    pass
+
+
+class FilterCollissionError(Exception):
+    pass
+
+
 class Query(kit.Extension):
     KIND = None
 
@@ -221,7 +229,6 @@ class Selector:
 
     def _get_filter_registry(self):
         registry = {}
-        conflicts = set()
 
         # Build filter register
         # This register a is two-level dict. First by model, second by key
@@ -229,25 +236,18 @@ class Selector:
             if ext.APPLIES_TO not in registry:
                 registry[ext.APPLIES_TO] = {}
 
-            ext_conflicts = set(registry[ext.APPLIES_TO]).intersection(
-                set(ext.HANDLES))
-            if ext_conflicts:
-                conflicts = conflicts.union(ext_conflicts)
-                msg = ('Filter «{name}» disabled. Conflicts in {model}: '
-                       '{conflicts}')
-                msg = msg.format(
-                    name=name,
-                    model=repr(ext.APPLIES_TO),
-                    conflicts=','.join(list(ext_conflicts)))
+            for handler in ext.HANDLES:
+                if handler in registry[ext.APPLIES_TO]:
+                    msg = ("Filter {model}:{handler} from {extension} already "
+                           "defined by {existing_extension}")
+                    msg = msg.format(
+                        model=ext.APPLIES_TO, extension=ext,
+                        existing_extension=registry[ext.APPLIES_TO][handler])
+                    raise FilterCollissionError(msg)
 
-                self.logger.warning(msg)
-                continue
+                registry[ext.APPLIES_TO][handler] = ext
 
-            # Update registry with impl
-            registry[ext.APPLIES_TO].update({
-                key: ext for key in ext.HANDLES})
-
-        return registry, conflicts
+        return registry
 
     def matches(self, query, everything=False, auto_import=None):
         def _count(x):
@@ -273,7 +273,7 @@ class Selector:
         models = [x.mapper.class_ for x in models]
 
         # Get filters
-        qs_funcs, iter_funcs, dummy, dummy = \
+        qs_funcs, iter_funcs = \
             self.get_filters_from_params(models, query.params)
 
         ret = qs
@@ -326,11 +326,10 @@ class Selector:
         if not isinstance(params, dict):
             raise TypeError('params should be a dict <str:str>')
 
-        registry, conflicts = self._get_filter_registry()
+        registry = self._get_filter_registry()
 
         iter_filters = []
         qs_filters = []
-        missing = []
 
         for (key, value) in params.items():
             ext = None
@@ -354,13 +353,11 @@ class Selector:
                     raise arroyo.exc.FatalError(msg)
 
             if ext is None:
-                missing.append(key)
-
                 msg = "Unable to find matching filter for «{key}»"
                 msg = msg.format(key=key)
-                raise arroyo.exc.FatalError(msg)
+                raise FilterNotFoundError(msg)
 
-        return qs_filters, iter_filters, conflicts, missing
+        return qs_filters, iter_filters
 
     def group(self, sources):
         def _entity_key_func(src):
