@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import pluginlib
+
+
 models = pluginlib.models
-
-
-import re
 
 
 class CodecFilter(pluginlib.IterableFilter):

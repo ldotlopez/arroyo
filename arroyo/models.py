@@ -342,12 +342,16 @@ class Episode(sautils.Base):
 
         return ret
 
+    @classmethod
+    def normalize_series(cls, series):
+        if not isinstance(series, str) or not series:
+            raise ValueError(series)
+
+        return series.lower()
+
     @validates('series')
     def validate_series(self, key, value):
-        if not isinstance(value, str) or not value:
-            raise ValueError(value)
-
-        return value.lower()
+        return self.normalize_series(value)
 
     def as_dict(self):
         return {k: v for (k, v) in self}
@@ -435,12 +439,16 @@ class Movie(sautils.Base):
 
         return ret
 
+    @classmethod
+    def normalize_title(cls, title):
+        if not isinstance(title, str) or not title:
+            raise ValueError(title)
+
+        return title.lower()
+
     @validates('title')
     def validate_title(self, key, value):
-        if not isinstance(value, str) or not value:
-            raise ValueError(value)
-
-        return value.lower()
+        return self.normalize_title(value)
 
     def as_dict(self):
         return {k: v for (k, v) in self}

@@ -63,13 +63,6 @@ class Mediainfo:
             name = (name[:idx] + name[idx+len(tag):]).strip()
             source_distributors.add(dist)
 
-            # Regular expression based code:
-            # tag = r'\[' + dist + r'\]'
-            # name, count = re.subn(tag, '', name, count=0,
-            #                       flags=re.IGNORECASE)
-            # if count:
-            #     source_distributors.add(dist)
-
         info = guessit.guessit(name, options={'type': source.type})
 
         if source_distributors:
@@ -295,22 +288,11 @@ class Mediainfo:
         self._app.db.session.commit()
 
     def entity_from_info(self, info):
-        if info['type'] == 'movie':
-            try:
-                model = models.Movie
-                arguments = {
-                    'title': info['title'],
-                    'year': int(info.get('year', '0')) or None
-                }
-            except KeyError:
-                msg = "Mediainfo data for movie source is incomplete"
-                raise ValueError(msg)
-
-        elif info['type'] == 'episode':
+        if info['type'] == 'episode':
             try:
                 model = models.Episode
                 arguments = {
-                    'series': info['series'],
+                    'series': model.normalize_series(info['series']),
                     'season': int(info.get('season', '0')),
                     'number': int(info['episode_number']),
                     'year': int(info.get('year', '0')) or None
@@ -318,6 +300,17 @@ class Mediainfo:
 
             except KeyError:
                 msg = "Mediainfo data for episode source is incomplete"
+                raise ValueError(msg)
+
+        elif info['type'] == 'movie':
+            try:
+                model = models.Movie
+                arguments = {
+                    'title': model.normalize_title(info['title']),
+                    'year': int(info.get('year', '0')) or None
+                }
+            except KeyError:
+                msg = "Mediainfo data for movie source is incomplete"
                 raise ValueError(msg)
 
         else:

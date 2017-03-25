@@ -135,8 +135,10 @@ class Db:
 
                     self.session.delete(entity)
 
-        fix_value = self.get(models.Variable, key='db.fixes.entity-case') or 0
-        if fix_value >= 1:
+        fix_value = self.get(models.Variable, key='db.fixes.entity-case')
+        fix_value = 0 if fix_value is None else fix_value.value
+
+        if fix_value > 1:
             msg = 'Invalid value for {variable}: {value}'
             msg = msg.format(variable='db.fixes.entity-case', value=fix_value)
             raise ValueError(msg)

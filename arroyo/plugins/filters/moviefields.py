@@ -1,32 +1,34 @@
 # -*- coding: utf-8 -*-
 
+
 from arroyo import pluginlib
 from arroyo.pluginlib import filter
+
+
 models = pluginlib.models
-
-
-import functools
 
 
 class Filter(pluginlib.QuerySetFilter):
     __extension_name__ = 'movie-fields'
 
-    _strs = ['title', 'title-glob']
-    _nums = ['year']
-    _nums = [[x, x + '-min', x + '-max'] for x in _nums]
-    _nums = functools.reduce(lambda x, y: x + y, _nums, [])
-
     APPLIES_TO = models.Movie
-    HANDLES = _strs + _nums
+    HANDLES = [
+        'title', 'title-glob',
+        'year', 'year-min', 'year-max',
+    ]
 
     def alter(self, key, value, qs):
+        # For us, 'title' and 'title-glob' makes no difference
         if key == 'title':
             key = 'title-glob'
 
-        elif key == 'episode' or key.startswith('episode-'):
-            key = key.replace('episode', 'number')
+        # 'title' must be normalized
+        # FIXME: Should this be there?
+        if key == 'title' or key.startswith('title'):
+            value = self.APPLIES_TO.normalize_title(value)
 
-        elif key in self._nums:
+        # 'year' is integer
+        if key == 'year' or key.startswith('year-'):
             value = int(value)
 
         return filter.alter_query_for_model_attr(

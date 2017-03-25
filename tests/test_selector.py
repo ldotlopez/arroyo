@@ -11,7 +11,10 @@ from arroyo import models
 
 class QueryBuilderTest(unittest.TestCase):
     def test_episode_search(self):
-        app = testapp.TestApp()
+        app = testapp.TestApp({
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.episode.enabled': True
+        })
         q1 = app.selector.get_query_from_string('the oa 3x02')
         q2 = app.selector.get_query_from_string('the oa s03e02')
         q3 = app.selector.get_query_from_string('the oa s03 e02')
@@ -32,7 +35,10 @@ class QueryBuilderTest(unittest.TestCase):
         )
 
     def test_movie(self):
-        app = testapp.TestApp()
+        app = testapp.TestApp({
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.movie.enabled': True,
+        })
 
         q1 = app.selector.get_query_from_string('Flash Gordon 1980')
         q2 = app.selector.get_query_from_string('Flash Gordon (1980)')
@@ -51,7 +57,10 @@ class QueryBuilderTest(unittest.TestCase):
         )
 
     def test_mediainfo(self):
-        app = testapp.TestApp()
+        app = testapp.TestApp({
+            'plugins.queries.source.enabled': True,
+            'plugins.queries.episode.enabled': True,
+        })
         q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
         self.assertEqual(
             q.params['quality'], '720p'
@@ -134,7 +143,7 @@ class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
             'plugins.queries.source.enabled': True,
-            'plugins.filters.source.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
         })
 
     def test_not_everything(self):
@@ -292,11 +301,11 @@ class MediainfoFiltersTest(SelectorTestCase):
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True
         })
 
     def test_series(self):
@@ -370,8 +379,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             display_name='test',
             params=dict(kind='episode', series='game of thrones', quality='hdtv'))
         matches = self.app.selector.matches(spec)
-        srcs = self.app.selector.select(matches)
-        for src in self.app.selector.select(srcs):
+        for src in self.app.selector.select_from_mixed_sources(matches):
             src.episode.selection = models.EpisodeSelection(source=src)
 
         # Check or queryspec again
@@ -405,11 +413,11 @@ class EpisodeSelectorTest(SelectorTestCase):
             s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
         ]
         app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True,
         })
         app.insert_sources(*srcs)
         query = app.selector.get_query_from_params(
@@ -443,12 +451,13 @@ class EpisodeSelectorTest(SelectorTestCase):
         ]
 
         app = testapp.TestApp({
-            'plugin.episodequery.enabled': True,
-            'plugin.sourcefilters.enabled': True,
-            'plugin.episodefilters.enabled': True,
-            'plugin.mediainfofilters.enabled': True,
-            'plugin.basicsorter.enabled': True,
+            'plugins.queries.episode.enabled': True,
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.mediainfo.enabled': True,
+            'plugins.sorters.basic.enabled': True,
         })
+
         app.insert_sources(*srcs)
         query = app.selector.get_query_from_params(
             display_name='test',
@@ -457,8 +466,8 @@ class EpisodeSelectorTest(SelectorTestCase):
         matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 9)
 
-        candidates = list(app.selector.select(matches))
-        self.assertEqual(len(candidates), 3)
+        groups = self.app.selector.group(matches)
+        self.assertEqual(len(groups), 3)
 
 
 if __name__ == '__main__':
