@@ -30,9 +30,9 @@ class TwitterTest(unittest.TestCase):
         foo = mock_source('Foo')
         self.app.insert_sources(foo)
 
-        foo.state = models.Source.State.DONE
+        foo.state = models.State.DONE
 
-        with self.app.hijack(ldottwitter.Twitter, 'send', fake_send):
+        with self.app.hijack(appkit_twitter.Twitter, 'send', fake_send):
             self.app.signals.send('source-state-change', source=foo)
             self.assertEqual(send_msg, '[Arroyo] Foo is done')
 
@@ -50,7 +50,7 @@ class TwitterTest(unittest.TestCase):
             self.app.downloads.add(foo)
             self.app.downloads.backend._update_state(
                 foo,
-                models.Source.State.DONE)
+                models.State.DONE)
             self.app.downloads.sync()
             self.assertEqual(send_msg, '[Arroyo] Foo is done')
 
@@ -68,7 +68,7 @@ class TwitterTest(unittest.TestCase):
             self.app.downloads.add(foo)
             self.app.downloads.backend._update_state(
                 foo,
-                models.Source.State.ARCHIVED)
+                models.State.ARCHIVED)
             self.app.downloads.sync()
             self.assertEqual(send_msg, '')
 

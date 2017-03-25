@@ -4,7 +4,10 @@
 from arroyo import pluginlib
 
 
-class ImportCommand(pluginlib.Command):
+from appkit import logging
+
+
+class ScanCommand(pluginlib.Command):
     __extension_name__ = 'scan'
 
     HELP = 'Scan sources (i.e. websites)'
@@ -45,7 +48,13 @@ class ImportCommand(pluginlib.Command):
             help='Import from the origins defined in the configuration file')
     )
 
-    def execute(self, arguments):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('scan')
+
+    def execute(self, app, arguments):
+        importer = app.importer
+
         if arguments.from_config and arguments.provider:
             msg = ("Only one of --from-config or --provider options can be "
                    "specified. They are mutually exclusive.")
@@ -71,16 +80,16 @@ class ImportCommand(pluginlib.Command):
                     except ValueError:
                         msg = 'Invalid argument {key}'
                         msg = msg.format(key=k)
-                        self.app.logger.error(msg)
+                        self.logger.error(msg)
                         continue
 
                     origin_data[k] = v
 
-            origin = self.app.importer.origin_from_params(**origin_data)
-            self.app.importer.process(origin)
+            origin = importer.origin_from_params(**origin_data)
+            importer.process(origin)
 
         elif arguments.from_config:
-            self.app.importer.run()
+            importer.run()
 
         else:
             # This code should never be reached but keeping it here we will
@@ -90,5 +99,5 @@ class ImportCommand(pluginlib.Command):
 
 
 __arroyo_extensions__ = [
-    ImportCommand
+    ScanCommand
 ]

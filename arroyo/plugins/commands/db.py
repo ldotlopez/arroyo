@@ -45,14 +45,16 @@ class Command(pluginlib.Command):
             help='Sets downloading state to ARCHIVED on a sources'),
         )
 
-    def execute(self, args):
-        shell = args.shell
-        reset = args.reset
-        reset_states = args.reset_states
-        archive_all = args.archive_all
-        reset_source_id = args.reset_source_id
-        archive_source_id = args.archive_source_id
-        reset = args.reset
+    def execute(self, app, arguments):
+        db = app.db
+
+        shell = arguments.shell
+        reset = arguments.reset
+        reset_states = arguments.reset_states
+        archive_all = arguments.archive_all
+        reset_source_id = arguments.reset_source_id
+        archive_source_id = arguments.archive_source_id
+        reset = arguments.reset
 
         test = [1 for x in (reset, shell, reset_states, archive_all,
                             reset_source_id, archive_source_id) if x]
@@ -66,16 +68,16 @@ class Command(pluginlib.Command):
             raise pluginlib.exc.ArgumentsError(msg)
 
         if reset:
-            self.app.db.reset()
+            db.reset()
 
         elif reset_states:
-            self.app.db.update_all_states(models.Source.State.NONE)
+            db.update_all_states(models.State.NONE)
 
         elif archive_all:
-            self.app.db.update_all_states(models.Source.State.ARCHIVED)
+            db.update_all_states(models.State.ARCHIVED)
 
         elif shell:
-            sess = self.app.db.session
+            sess = db.session
             print("[!!] Database connection in 'sess' {}".format(sess))
             print("[!!] If you make any changes remember to call "
                   "sess.commit()")
@@ -90,17 +92,17 @@ class Command(pluginlib.Command):
             source_id = reset_source_id or archive_source_id
 
             if reset_source_id:
-                state = models.Source.State.NONE
+                state = models.State.NONE
             else:
-                state = models.Source.State.ARCHIVED
+                state = models.State.ARCHIVED
 
-            source = self.app.db.get(models.Source, id=source_id)
+            source = db.get(models.Source, id=source_id)
             if not source:
                 msg = "No source with ID={id}".format(id=source_id)
                 raise pluginlib.exc.ArgumentsError(msg)
 
             source.state = state
-            self.app.db.session.commit()
+            db.session.commit()
 
         else:
             # This code should never be reached but keeping it here we will

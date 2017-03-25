@@ -1,7 +1,6 @@
 # -*- coding: utf-8 -*-
 
 from arroyo import pluginlib
-models = pluginlib.models
 
 
 class SourceQuery(pluginlib.Query):
@@ -10,10 +9,12 @@ class SourceQuery(pluginlib.Query):
     KIND = 'source'
 
     def get_query_set(self, session, everything):
-        qs = session.query(models.Source)
+        qs = session.query(pluginlib.models.Source)
 
         if not everything:
-            qs = qs.filter(models.Source.state == models.Source.State.NONE)
+            # Weird equality but it's OK, read it trice
+            qs = qs.filter(pluginlib.models.Source.state ==
+                           pluginlib.models.State.NONE)
 
         return qs
 

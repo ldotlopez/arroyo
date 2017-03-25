@@ -23,9 +23,12 @@ class MediainfoCommand(pluginlib.Command):
         ),
     )
 
-    def execute(self, args):
-        item = args.item
-        all_ = args.all
+    def execute(self, app, arguments):
+        db = app.app
+        mediainfo = app.mediainfo
+
+        item = arguments.item
+        all_ = arguments.all
 
         test = sum([1 for x in [item, all_] if x])
         if test == 0:
@@ -38,7 +41,7 @@ class MediainfoCommand(pluginlib.Command):
             raise pluginlib.exc.ArgumentsError(msg)
 
         if item:
-            src = self.app.db.get(models.Source, id=item)
+            src = db.get(models.Source, id=item)
             if not src:
                 msg = "No matching source with ID={id}"
                 msg = msg.format(id=item)
@@ -47,9 +50,9 @@ class MediainfoCommand(pluginlib.Command):
             srcs = [src]
 
         elif all_:
-            srcs = self.app.db.session.query(models.Source)
+            srcs = db.session.query(models.Source)
 
-        self.app.mediainfo.process(*srcs)
+        mediainfo.process(*srcs)
 
 
 __arroyo_extensions__ = [

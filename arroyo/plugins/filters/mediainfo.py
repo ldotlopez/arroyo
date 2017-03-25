@@ -6,6 +6,12 @@ from arroyo import pluginlib
 models = pluginlib.models
 
 
+from appkit import logging
+
+
+models = pluginlib.models
+
+
 class CodecFilter(pluginlib.IterableFilter):
     __extension_name__ = 'codec'
 
@@ -129,6 +135,10 @@ class RipFormatFilter(pluginlib.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ['rip-format']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('kickass')
+
     def filter(self, key, value, item):
         if not isinstance(value, str):
             raise TypeError(value)
@@ -140,7 +150,7 @@ class RipFormatFilter(pluginlib.IterableFilter):
         if not isinstance(itemformat, str):
             msg = "Item {item} has multiple formats ({formats}). Not supported"
             msg = msg.format(item=item, formats=repr(itemformat))
-            self.app.logger.error(msg)
+            self.logger.error(msg)
             return False
 
         return itemformat.lower() == value.lower()

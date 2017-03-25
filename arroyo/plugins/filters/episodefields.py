@@ -8,6 +8,9 @@ from arroyo.pluginlib import filter
 models = pluginlib.models
 
 
+models = pluginlib.models
+
+
 class Filter(pluginlib.QuerySetFilter):
     __extension_name__ = 'episode-fields'
 

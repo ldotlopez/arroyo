@@ -298,34 +298,38 @@ class ArroyoStore(store.Store):
         #     kwargs['validator'] = _get_validator()
 
     def set(self, key, value):
-        parts = key.split('.')
+        if key:
+            parts = key.split('.')
 
-        if parts[0] == 'origin':
-            if len(parts) != 3:
-                msg = "Invalid configuration for origin section, check docs"
+            if parts[0] == 'origin':
+                if len(parts) != 3:
+                    msg = ("Invalid configuration for origin section, check "
+                           "docs.")
+                    raise ValueError(msg)
+
+                dummy, name, origin_key = parts
+                if origin_key not in ['provider', 'uri', 'type', 'language',
+                                      'iterations']:
+                    msg = "Invalid key '{key}' for origin '{name}'"
+                    msg = msg.format(key=origin_key, name=name)
+                    raise ValueError(msg)
+
+            if (len(parts) >= 3 and
+                    parts[0] == 'origin' and
+                    parts[2] == 'backend'):
+                msg = ("[Configuration Error] 'plugin.' namespace is "
+                       "deprecated, use 'plugins.'")
                 raise ValueError(msg)
 
-            dummy, name, origin_key = parts
-            if origin_key not in ['provider', 'uri', 'type', 'language',
-                                  'iterations']:
-                msg = "Invalid key '{key}' for origin '{name}'"
-                msg = msg.format(key=origin_key, name=name)
+            if key.startswith('plugin.'):
+                msg = ("[Configuration Error] 'plugin.' namespace is "
+                       "deprecated, use 'plugins.'")
                 raise ValueError(msg)
-
-        if len(parts) >= 3 and parts[0] == 'origin' and parts[2] == 'backend':
-            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
-                   "use 'plugins.'")
-            raise ValueError(msg)
-
-        if key.startswith('plugin.'):
-            msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
-                   "use 'plugins.'")
-            raise ValueError(msg)
 
         return super().set(key, value)
 
     def get(self, key, default=store.UNDEFINED):
-        if key.startswith('plugin.'):
+        if key and key.startswith('plugin.'):
             msg = ("[Configuration Error] 'plugin.' namespace is deprecated, "
                    "use 'plugins.'")
             raise ValueError(msg)

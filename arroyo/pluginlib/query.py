@@ -8,7 +8,7 @@ class HighLevelQuery(pluginlib.Query):
         qs = qs.join(self.ENTITY_MODEL)
         if not everything:
             qs = qs.filter(
-                models.Source.state == models.Source.State.NONE)
+                models.Source.state == models.State.NONE)
             qs = qs.filter(
                 self.ENTITY_MODEL.selection == None)  # nopep8
 

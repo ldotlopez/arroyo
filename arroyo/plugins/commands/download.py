@@ -1,16 +1,23 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import pluginlib
-models = pluginlib.models
-
-
 import itertools
 import re
+import sys
 
 
-from appkit import utils
 import humanfriendly
 import tabulate
+from appkit import (
+    logging,
+    utils
+)
+from arroyo import (
+    selector,
+    pluginlib
+)
+
+
+models = pluginlib.models
 
 
 class DownloadCommand(pluginlib.Command):
@@ -101,81 +108,11 @@ class DownloadCommand(pluginlib.Command):
             help='keywords')
     )
 
-    def build_queries_from_args(self, filters, keywords):
-        if keywords:
-            # Check for missuse of keywords
-            if any([re.search(r'^([a-z]+)=(.+)$', x)
-                    for x in keywords]):
-                msg = ("Found a filter=value argument without -f/--filter "
-                       "flag")
-                self.app.logger.warning(msg)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.logger = logging.getLogger('download')
 
-            # Check for dangling filters
-            if '-f' in keywords or '--filter' in keywords:
-                msg = "-f/--filter must be used *before* keywords"
-                self.app.logger.warning(msg)
-
-            # Transform keywords into a usable query
-            query = self.app.selector.get_query_from_string(
-                ' '.join([x.strip() for x in keywords]),
-                type_hint=filters.pop('kind', None))
-
-            # ...and update it with supplied filters
-            for (key, value) in filters.items():
-                query.params[key] = value
-
-        elif filters:
-            # Build the query from filters
-            query = self.app.selector.get_query_from_params(
-                params=filters, display_name='command-line')
-
-        return [query]
-
-    def add_downloads(self, downloads, dry_run=False):
-        for src in downloads:
-            if isinstance(src, int):
-                src = self.app.db.get(models.Source, id=src)
-
-                if not src:
-                    msg = "Source with ID={id} not found"
-                    msg = msg.format(id=src)
-                    self.app.logger.error(msg)
-
-            if not isinstance(src, models.Source):
-                raise TypeError(src)
-
-            msg = "Download added: «{source}»"
-            msg = msg.format(source=src.name)
-
-            if dry_run:
-                print(msg)
-            else:
-                self.app.downloads.add(src)
-                self.app.logger.info(msg)
-
-    def remove_downloads(self, downloads, dry_run=False):
-        for src in downloads:
-            if isinstance(src, int):
-                src = self.app.db.get(models.Source, id=src)
-
-                if not src:
-                    msg = "Source with ID={id} not found"
-                    msg = msg.format(id=src)
-                    self.app.logger.error(msg)
-
-            if not isinstance(src, models.Source):
-                raise TypeError(src)
-
-            msg = "Download removed: «{source}»"
-            msg = msg.format(source=src.name)
-
-            if dry_run:
-                print(msg)
-            else:
-                self.app.downloads.remove(src)
-                self.app.logger.info(msg)
-
-    def execute(self, args):
+    def execute(self, app, arguments):
         # Direct download management:
         # --add / --remove / --list
         # Conflicts with:
@@ -186,29 +123,37 @@ class DownloadCommand(pluginlib.Command):
         #
         queries = []
 
-        if args.filters or args.keywords:
-            queries = self.build_queries_from_args(args.filters, args.keywords)
+        if arguments.filters or arguments.keywords:
+            query = self.query_from_arguments(arguments.filters,
+                                              arguments.keywords)
+            queries = [query]
 
-        if args.from_config:
-            queries = self.app.selector.get_configured_queries()
+        if arguments.from_config:
+            queries = self.selector.queries_from_config()
             if not queries:
                 msg = "No configured queries"
-                self.app.logger.error(msg)
+                self.logger.error(msg)
                 raise pluginlib.ConfigurationError(msg)
 
         #
         # Handle user will
         #
 
-        if args.add:
-            self.add_downloads(args.add, dry_run=args.dry_run)
+        if arguments.add:
+            sources = [self.source_from_id(x)
+                       for x in arguments.add]
+            sources = [x for x in sources if x]
+            self.add_downloads(sources,
+                               dry_run=arguments.dry_run)
 
-        if args.remove:
-            self.remove_downloads(args.remove, dry_run=args.dry_run)
+        if arguments.remove:
+            sources = [self.source_from_id(x)
+                       for x in arguments.remove]
+            sources = [x for x in sources if x]
+            self.remove_downloads(sources,
+                                  dry_run=arguments.dry_run)
 
-        if args.list:
-            self.app.downloads.sync()
-
+        if arguments.list:
             downloads = self.app.downloads.list()
             if not downloads:
                 msg = "No downloads"
@@ -227,26 +172,100 @@ class DownloadCommand(pluginlib.Command):
                 print(formated_table)
 
         for query in queries:
-            srcs = self.app.selector.matches(query,
-                                             auto_import=args.scan,
-                                             everything=args.everything)
+            try:
+                srcs = self.app.selector.matches(
+                    query,
+                    auto_import=arguments.scan,
+                    everything=arguments.everything)
+
+            except (selector.FilterNotFoundError,
+                    selector.FilterCollissionError) as e:
+                print(e, file=sys.stderr)
+                continue
 
             # Build selections
             selections = []
             for (entity, sources) in self.app.selector.group(srcs):
-                if len(sources) > 1:
-                    selected = self.app.selector.select(sources)
-                else:
-                    selected = sources[0]
-
+                selected = self.app.selector.select(sources)
                 selections.append((entity, sources, selected))
 
-            if args.explain:
+            if arguments.explain:
                 explain(selections)
 
             self.add_downloads(
                 [selected for (dummy, dummy, selected) in selections],
-                dry_run=args.dry_run)
+                dry_run=arguments.dry_run)
+
+    def add_downloads(self, sources, dry_run=False):
+        assert sources
+        assert isinstance(sources, list)
+        assert all([isinstance(x, models.Source) for x in sources])
+
+        for src in sources:
+            msg = "Download added: «{source}»"
+            msg = msg.format(source=src.name)
+
+            if dry_run:
+                print(msg)
+            else:
+                self.app.downloads.add(src)
+                self.logger.info(msg)
+
+    def remove_downloads(self, sources, dry_run=False):
+        assert sources
+        assert isinstance(sources, list)
+        assert all([isinstance(x, models.Source) for x in sources])
+
+        for src in sources:
+            msg = "Download removed: «{source}»"
+            msg = msg.format(source=src.name)
+
+            if dry_run:
+                print(msg)
+            else:
+                self.app.downloads.remove(src)
+                self.logger.info(msg)
+
+    def source_from_id(self, id):
+        source = self.app.db.get(models.Source, id=id)
+        if not source:
+            msg = "Source with ID={id} not found"
+            msg = msg.format(id=id)
+            self.logger.error(msg)
+            return None
+
+        return source
+
+    def query_from_arguments(self, filters, keywords):
+        if keywords:
+            # Check for missuse of keywords
+            if any([re.search(r'^([a-z]+)=(.+)$', x)
+                    for x in keywords]):
+                msg = ("Found a filter=value argument without -f/--filter "
+                       "flag")
+                self.logger.warning(msg)
+
+            # Check for dangling filters
+            if '-f' in keywords or '--filter' in keywords:
+                msg = "-f/--filter must be used *before* keywords"
+                self.logger.warning(msg)
+
+            # Transform keywords into a usable query
+            query = self.app.selector.query_from_string(
+                ' '.join([x.strip() for x in keywords]),
+                type_hint=filters.pop('kind', None))
+
+            # ...and update it with supplied filters
+            for (key, value) in filters.items():
+                query.params[key] = value
+
+        elif filters:
+            # Build the query from filters
+            query = self.app.selector.query_from_params(
+                params=filters,
+                display_name='command-line')
+
+        return query
 
 
 def explain(selections):

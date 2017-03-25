@@ -28,7 +28,7 @@ class Filter(pluginlib.QuerySetFilter):
     _nums = [[x, x + '-min', x + '-max'] for x in _nums]
     _nums = functools.reduce(lambda x, y: x + y, _nums, [])
 
-    APPLIES_TO = models.Source
+    APPLIES_TO = pluginlib.models.Source
     HANDLES = _strs + _nums + ['since']
 
     def alter(self, key, value, qs):
@@ -38,11 +38,6 @@ class Filter(pluginlib.QuerySetFilter):
                 value = func(value)
             except ValueError as e:
                 raise pluginlib.exc.SettingError(key, value, e)
-
-        def _warn():
-            msg = "Ignoring invalid setting '{key}': '{value}'"
-            msg = msg.format(key=key, value=value)
-            self.app.logger.warning(msg)
 
         if key == 'size' or key.startswith('size-'):
             _convert_value(utils.parse_size)
@@ -63,7 +58,7 @@ class Filter(pluginlib.QuerySetFilter):
             _convert_value(float)
 
         return filter.alter_query_for_model_attr(
-            qs, models.Source, key, value)
+            qs, pluginlib.models.Source, key, value)
 
 
 __arroyo_extensions__ = [

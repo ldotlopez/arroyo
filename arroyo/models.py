@@ -3,6 +3,7 @@
 import re
 import sys
 
+
 from appkit import (
     keyvaluestore,
     utils
@@ -17,7 +18,6 @@ from sqlalchemy import (
     func,
     schema
 )
-
 from sqlalchemy.ext.hybrid import hybrid_property
 from sqlalchemy.orm import (
     backref,
@@ -48,19 +48,19 @@ SourceTag = keyvaluestore.keyvaluemodel(
     }))
 
 
+class State:
+    NONE = 0
+    INITIALIZING = 1
+    QUEUED = 2
+    PAUSED = 3
+    DOWNLOADING = 4
+    SHARING = 5
+    DONE = 6
+    ARCHIVED = 7
+
+
 class Source(sautils.Base):
     __tablename__ = 'source'
-
-    # TODO: rethink those classes
-    class State:
-        NONE = 0
-        INITIALIZING = 1
-        QUEUED = 2
-        PAUSED = 3
-        DOWNLOADING = 4
-        SHARING = 5
-        DONE = 6
-        ARCHIVED = 7
 
     class Formats:
         DEFAULT = '{name}'
@@ -175,7 +175,7 @@ class Source(sautils.Base):
 
     # @hybrid_property
     # def is_active(self):
-    #     return self.state not in [Source.State.NONE, Source.State.ARCHIVED]
+    #     return self.state not in [State.NONE, State.ARCHIVED]
 
     @validates('language')
     def validate_language(self, key, value):
@@ -205,8 +205,8 @@ class Source(sautils.Base):
 
     @property
     def state_name(self):
-        for attr in [x for x in dir(Source.State)]:
-            if getattr(Source.State, attr) == self.state:
+        for attr in [x for x in dir(State)]:
+            if getattr(State, attr) == self.state:
                 return attr.lower()
         return "unknow-{}".format(self.state)
 
