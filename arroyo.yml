@@ -143,8 +143,7 @@ query: {}
     #     # "_in": Comma-separated list of possible values
     #     # "_min" and "_max": Used with integer values, the usual suffixes like
     #     #                    [KkMmGg] are valid.
-    #     name-like = *foo*
-    #     name-regex = .+720.+
+    #     name-glob = *foo*
     #     min-size = 100M
     #     series = Lost
     #     series-in = Lost, Breaking Bad
@@ -156,7 +155,7 @@ query: {}
     #     # - title, year, language, quality (see episode selector)
     #     kind: source
     #     type: episode
-    #     name-regexp: .+720p.+
+    #     name-glob: *720p*
 
     # TBBT:
     #     kind: episode

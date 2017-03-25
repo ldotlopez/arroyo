@@ -67,10 +67,6 @@ class Query(kit.Extension):
             ret = self.params[base_key+'-glob'].replace('*', ' ')
             ret = ret.replace('.', ' ')
 
-        elif base_key+'-like' in self.params:
-            ret = self.params[base_key+'-like'].replace('%', ' ')
-            ret = ret.replace('_', ' ')
-
         return ret.strip() if ret else None
 
     def get_query_set(self, session, include_all=False):

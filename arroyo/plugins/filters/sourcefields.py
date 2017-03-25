@@ -2,7 +2,6 @@
 
 from arroyo import pluginlib
 from arroyo.pluginlib import filter
-models = pluginlib.models
 
 
 import datetime
@@ -14,12 +13,15 @@ import humanfriendly
 from appkit import utils
 
 
+models = pluginlib.models
+
+
 class Filter(pluginlib.QuerySetFilter):
     __extension_name__ = 'source-fields'
 
     _strs = ('urn', 'uri', 'name', 'provider', 'language', 'type',
              'state-name')
-    _strs = [[x, x + '-glob', x + '-regexp', x + '-in'] for x in _strs]
+    _strs = [[x, x + '-glob', x + '-in'] for x in _strs]
     _strs = functools.reduce(lambda x, y: x + y, _strs, [])
 
     _nums = ('id', 'size', 'seeds', 'leechers', 'share-ratio', 'state', 'age')

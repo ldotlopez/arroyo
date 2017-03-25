@@ -60,7 +60,7 @@ El proceso de búsqueda y descarga automática es muy similar, realmente es el m
 
 Para buscar utilizamos el comando 'search':
 
-> $ arroyo search -f name-like='interstellar'
+> $ arroyo search -f name-glob='*interstellar*'
 
 En este ejemplo hemos buscado todo el material cuyo nombre contenga la palabra "interstellar".
 
