@@ -82,13 +82,13 @@ class Source(sautils.Base):
     # Required
     id = Column(Integer, primary_key=True)
     provider = Column(String, nullable=False)
-    name = Column(String, nullable=False)
+    name = Column(String, nullable=False, index=True)
     created = Column(Integer, nullable=False)
     last_seen = Column(Integer, nullable=False)
 
     # Real ID
-    urn = Column(String, nullable=True, unique=True)
-    uri = Column(String, nullable=True, unique=True)
+    urn = Column(String, nullable=True, unique=True, index=True)
+    uri = Column(String, nullable=True, unique=True, index=True)
 
     # Other data
     size = Column(Integer, nullable=True)
@@ -317,7 +317,7 @@ class Episode(sautils.Base):
 
     id = Column(Integer, primary_key=True)
 
-    series = Column(String, nullable=False)
+    series = Column(String, nullable=False, index=True)
     year = Column(Integer, nullable=True)
     season = Column(Integer, nullable=False)
     # guessit returns episodeList attribute if more than one episode is
@@ -341,6 +341,13 @@ class Episode(sautils.Base):
                 setattr(ret, attr, value)
 
         return ret
+
+    @validates('series')
+    def validate_series(self, key, value):
+        if not isinstance(value, str) or not value:
+            raise ValueError(value)
+
+        return value.lower()
 
     def as_dict(self):
         return {k: v for (k, v) in self}
@@ -409,7 +416,7 @@ class Movie(sautils.Base):
 
     id = Column(Integer, primary_key=True)
 
-    title = Column(String, nullable=False)
+    title = Column(String, nullable=False, index=True)
     year = Column(Integer, nullable=True)
 
     SELECTION_MODEL = MovieSelection
@@ -427,6 +434,13 @@ class Movie(sautils.Base):
                 setattr(ret, attr, value)
 
         return ret
+
+    @validates('title')
+    def validate_title(self, key, value):
+        if not isinstance(value, str) or not value:
+            raise ValueError(value)
+
+        return value.lower()
 
     def as_dict(self):
         return {k: v for (k, v) in self}

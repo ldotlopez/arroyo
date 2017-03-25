@@ -33,6 +33,7 @@ class Db:
             db_uri += '?check_same_thread=False'
 
         self._sess = sautils.create_session(db_uri)
+        self.fixes()
 
     @property
     def session(self):
@@ -59,6 +60,11 @@ class Db:
             return o, False
         else:
             return model(**kwargs), True
+
+    def delete(self, model, **kwargs):
+        objs = self.get(model, **kwargs)
+        self.session.delete(*objs)
+        self.session.commit()
 
     def reset(self):
         for model in [models.Source, models.Movie, models.Episode]:
@@ -87,3 +93,61 @@ class Db:
             (models.Source.State.NONE, models.Source.State.ARCHIVED)))
 
         return query
+
+    def fixes(self):
+        self._fix_entity_case()
+
+    def _fix_entity_case(self):
+        def _normalize(string):
+            return string.lower()
+
+        def _fix_entity_case(model, model_attr,
+                             source_entity_attr,
+                             selection_entity_attr):
+            entity_map = {}
+            entities = self.session.query(model)
+            migration_count = entities.count()
+
+            for (migration_idx, entity) in enumerate(entities):
+                normalized = _normalize(getattr(entity, model_attr))
+
+                if not migration_idx % 10:
+                    print("Migrating {model} {count} of {total}".format(
+                        model=model,
+                        count=migration_idx,
+                        total=migration_count))
+
+                if normalized not in entity_map:
+                    entity_map[normalized] = entity
+
+                elif normalized != getattr(entity, model_attr):
+                    for src in entity.sources:
+                        setattr(
+                            src,
+                            source_entity_attr,
+                            entity_map[normalized])
+
+                    if entity.selection:
+                        setattr(
+                            entity.selection,
+                            selection_entity_attr,
+                            entity_map[normalized])
+
+                    self.session.delete(entity)
+
+        fix_value = self.get(models.Variable, key='db.fixes.entity-case') or 0
+        if fix_value >= 1:
+            msg = 'Invalid value for {variable}: {value}'
+            msg = msg.format(variable='db.fixes.entity-case', value=fix_value)
+            raise ValueError(msg)
+
+        elif fix_value == 1:
+            return
+
+        else:
+            _fix_entity_case(models.Episode, 'series', 'episode', 'episode')
+            _fix_entity_case(models.Movie, 'title', 'movie', 'movie')
+
+            var = models.Variable(key='db.fixes.entity-case', value=1)
+            self.session.add(var)
+            self.session.commit()

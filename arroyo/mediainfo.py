@@ -275,7 +275,7 @@ class Mediainfo:
             # source
             if src.type in ('movie', 'episode'):
                 try:
-                    specialized_source = self.get_specialized_source(info)
+                    entity = self.entity_from_info(info)
                 except ValueError as e:
                     msg = ("unable to get specilized data for "
                            "'{source}': {reason}")
@@ -284,17 +284,17 @@ class Mediainfo:
 
             # Link source and specialized_source
             if src.type == 'movie':
-                src.movie = specialized_source
+                src.movie = entity
                 src.episode = None
 
             elif src.type == 'episode':
                 src.movie = None
-                src.episode = specialized_source
+                src.episode = entity
 
         # Apply changes
         self._app.db.session.commit()
 
-    def get_specialized_source(self, info):
+    def entity_from_info(self, info):
         if info['type'] == 'movie':
             try:
                 model = models.Movie
