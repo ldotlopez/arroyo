@@ -14,7 +14,6 @@ from arroyo.downloads import (
 from arroyo.importer import Provider
 from arroyo.selector import (
     IterableFilter,
-    Query,
     QuerySetFilter,
     Sorter
 )
@@ -32,7 +31,6 @@ __all__ = [
     'Downloader',
     'IterableFilter',
     'Provider',
-    'Query',
     'QuerySetFilter',
     'Service',
     'Sorter',

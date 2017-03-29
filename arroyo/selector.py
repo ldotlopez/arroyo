@@ -16,6 +16,7 @@ import guessit
 
 import arroyo.exc
 from arroyo import (
+    coretypes,
     importer,
     kit,
     models,
@@ -30,96 +31,14 @@ class FilterCollissionError(Exception):
     pass
 
 
-class Query(kit.Extension):
-    KIND = None
-
-    def __init__(self, *args, params={}, display_name=None, **kwargs):
-
-        def _normalize_key(key):
-            for x in [' ', '_']:
-                key = key.replace(x, '-')
-            return key
-
-        if not isinstance(params, dict) or not dict:
-            raise TypeError("params must be a non empty dict")
-
-        params = {_normalize_key(k): v for (k, v) in params.items()}
-
-        # FIXME: Remove this specific stuff out of here
-
-        if 'language' in params:
-            params['language'] = params['language'].lower()
-
-        if 'type' in params:
-            params['type'] = params['type'].lower()
-
-        super().__init__(*args, **kwargs)
-
-        self.params = params
-        self.display_name = display_name
-
-    def asdict(self):
-        ret = self.params.copy()
-        ret['type'] = self.kind
-        return ret
-
-    @property
-    def base_string(self):
-        return self._get_base_string()
-
-    def _get_base_string(self, base_key='name'):
-        ret = None
-
-        if base_key in self.params:
-            ret = self.params[base_key]
-
-        elif base_key+'-glob' in self.params:
-            ret = self.params[base_key+'-glob'].replace('*', ' ')
-            ret = ret.replace('.', ' ')
-
-        return ret.strip() if ret else None
-
-    def get_query_set(self, session, include_all=False):
-        raise NotImplementedError()
-
-    @property
-    def kind(self):
-        if self.KIND is None:
-            msg = "Class {clsname} must override KIND attribute"
-            msg = msg.format(clsname=self.__class__.__name__)
-            raise NotImplementedError(msg)
-
-        return self.KIND
-
-    def __eq__(self, other):
-        return isinstance(other, Query) and self.asdict() == other.asdict()
-
-    def __repr__(self):
-        if self.display_name:
-            s = "'{name}', {params})".format(
-                name=self.display_name, params=repr(self.params)
-            )
-        else:
-            s = repr(self.params)
-
-        return "{}({})".format(self.__class__.__name__, s)
-
-    def __str__(self):
-        return self.__unicode__()
-
-    def __unicode__(self):
-        return self.display_name or repr(self)
-
-
 class Selector:
     def __init__(self, app):
         self.app = app
         self.logger = logging.getLogger('selector')
         self.app.register_extension_point(Filter)
-        self.app.register_extension_point(Query)
         self.app.register_extension_point(Sorter)
 
-    def query_from_string(self, string, type_hint=None):
+    def _query_params_from_keyword(self, keyword, type_hint=None):
         def get_episode(info):
             assert info['type'] == 'episode'
 
@@ -159,54 +78,66 @@ class Selector:
                 'name-glob': '*' + '*'.join(words) + '*'
             }
 
-        guessed_info = guessit.guessit(string, options={'type': type_hint})
+        guessed_info = guessit.guessit(
+            keyword,
+            options={'type': type_hint})
 
-        kind = guessed_info['type']
+        guessed_type = guessed_info['type']
 
-        if kind == 'movie':
-            confident, info = get_movie(guessed_info)
-        elif kind == 'episode':
-            confident, info = get_episode(guessed_info)
+        if guessed_type == 'movie':
+            confident, params = get_movie(guessed_info)
+        elif guessed_type == 'episode':
+            confident, params = get_episode(guessed_info)
         else:
-            confident, info = get_source(string)
+            confident, params = get_source(keyword)
 
         if type_hint:
             confident = True
 
-        if not confident:
-            kind = None
-            dummy, info = get_source(string)
+        if confident:
+            params['type'] = guessed_type
+        else:
+            dummy, params = get_source(keyword)
+            params['type'] = 'source'
 
-        info = {k: v for (k, v) in info.items() if v}
-        info['kind'] = kind or 'source'
+        params = {k: str(v) for (k, v) in params.items() if v}
+        return params
 
-        return self.query_from_params(params=info)
-
-    def query_from_params(self, params={}, display_name=None):
-        impl_name = params.pop('kind', 'source')
+    def _default_query_params_from_config(self, type):
+        assert isinstance(type, str) and type
 
         query_defalts = self.app.settings.get(
             'selector.query-defaults',
             default={})
-        kind_defaults = self.app.settings.get(
-            'selector.query-{kind}-defaults'.format(kind=impl_name),
+        type_defaults = self.app.settings.get(
+            'selector.query-{type}-defaults'.format(type=type),
             default={})
 
         params_ = {}
         params_.update(query_defalts)
-        params_.update(kind_defaults)
+        params_.update(type_defaults)
+
+        return params_
+
+    def query_from_args(self, keyword=None, params=None):
+        if params is None:
+            params = {}
+
+        if keyword:
+            keyword_params = self._query_params_from_keyword(
+                keyword, params.get('type'))
+        else:
+            keyword_params = {}
+
+        default_params = self._default_query_params_from_config(
+            params.get('type') or keyword_params.get('type') or 'source')
+
+        params_ = {}
+        params_.update(default_params)
+        params_.update(keyword_params)
         params_.update(params)
 
-        try:
-            return self.app.get_extension(
-                Query, impl_name,
-                params=params_,
-                display_name=display_name
-            )
-        except extensionmanager.ExtensionNotFoundError as e:
-            msg = "Invalid query kind: {kind}"
-            msg = msg.format(kind=impl_name)
-            raise ValueError(msg) from e  # FIXME: Use custom exception
+        return coretypes.Query(**params_)
 
     def queries_from_config(self):
         specs = self.app.settings.get('query', default={})
@@ -254,7 +185,7 @@ class Selector:
             except TypeError:
                 return x.count()
 
-        if not isinstance(query, Query):
+        if not isinstance(query, coretypes.BaseQuery):
             raise TypeError('query is not a Query')
 
         self.maybe_run_importer_process(query, auto_import)
@@ -262,20 +193,31 @@ class Selector:
         debug = self.app.settings.get('log-level').lower() == 'debug'
 
         msg = "Search matches for query: {query}"
-        msg = msg.format(query=str(query.params))
+        msg = msg.format(query=repr(query))
         self.logger.debug(msg)
 
         # Get base query set from query
-        qs = query.get_query_set(self.app.db.session, everything)
-        models = itertools.chain(qs._entities, qs._join_entities)
-        models = [x.mapper.class_ for x in models]
+        qs = self.app.db.session.query(models.Source)
+        if isinstance(query, coretypes.SourceQuery):
+            pass
+        elif isinstance(query, coretypes.EpisodeQuery):
+            qs = qs.join(models.Episode)
+        elif isinstance(query, coretypes.MovieQuery):
+            qs = qs.join(models.Movie)
+        else:
+            raise ValueError(query)
+
+        # qs = query.get_query(self.app.db.session)
+        qs_models = itertools.chain(qs._entities, qs._join_entities)
+        qs_models = [x.mapper.class_ for x in qs_models]
 
         # Get filters
         qs_funcs, iter_funcs = \
-            self.get_filters_from_params(models, query.params)
+            self.filters_for_query(qs_models, query)
+
+        unrolled = False
 
         ret = qs
-        unrolled = False
 
         for func in qs_funcs + iter_funcs:
             ext = func.func.__self__
@@ -317,21 +259,32 @@ class Selector:
 
         return ret
 
-    def get_filters_from_params(self, models, params):
-        if not isinstance(models, list):
-            raise TypeError('models should be a list of models')
+    def filters_for_query(self, qs_models, query):
+        if not isinstance(query, coretypes.BaseQuery):
+            raise TypeError('Expected Query object')
 
-        if not isinstance(params, dict):
-            raise TypeError('params should be a dict <str:str>')
+        if not isinstance(qs_models, list):
+            raise TypeError('qs_models should be a list of models')
+
+        # qs_models = set([models.Source])
+
+        # if isinstance(query, EpisodeQuery):
+        #     qs_models.add(models.Episode)
+
+        # elif isinstance(query, MovieQuery):
+        #     qs_models.add(models.Movie)
+
+        # else:
+        #     raise ValueError(query)
 
         registry = self._get_filter_registry()
 
         iter_filters = []
         qs_filters = []
 
-        for (key, value) in params.items():
+        for (key, value) in query.items():
             ext = None
-            for model in models:
+            for model in qs_models:
                 if model not in registry or key not in registry[model]:
                     continue
 
@@ -366,13 +319,12 @@ class Selector:
 
         def _entity_str_key_func(key, group):
             # key can be a source or an entity
-
             if isinstance(key, models.Source):
-                kind = ''
+                type = ''
             else:
-                kind = key.__class__.__name__.lower()
+                type = key.__class__.__name__.lower()
 
-            return (kind, str(key).lower(), key.id)
+            return (type, str(key).lower(), key.id)
 
         # Before group anything we need to sort data
         sources = sorted(sources,

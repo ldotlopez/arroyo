@@ -124,8 +124,29 @@ class DownloadCommand(pluginlib.Command):
         queries = []
 
         if arguments.filters or arguments.keywords:
-            query = self.query_from_arguments(arguments.filters,
-                                              arguments.keywords)
+            if arguments.keywords:
+                # Check for missuse of keywords
+                if any([re.search(r'^([a-z]+)=(.+)$', x)
+                        for x in arguments.keywords]):
+                    msg = ("Found a filter=value argument without -f/--filter "
+                           "flag")
+                    self.logger.warning(msg)
+
+                # Check for dangling filters
+                if ('-f' in arguments.keywords or
+                        '--filter' in arguments.keywords):
+                    msg = "-f/--filter must be used *before* keywords"
+                    self.logger.warning(msg)
+
+                # Transform keywords into a usable query
+                keyword = ' '.join([x.strip() for x in arguments.keywords])
+
+            else:
+                keyword = None
+
+            query = self.app.selector.query_from_args(
+                keyword=keyword,
+                params=arguments.filters)
             queries = [query]
 
         if arguments.from_config:
@@ -251,17 +272,18 @@ class DownloadCommand(pluginlib.Command):
                 self.logger.warning(msg)
 
             # Transform keywords into a usable query
-            query = self.app.selector.query_from_string(
-                ' '.join([x.strip() for x in keywords]),
-                type_hint=filters.pop('kind', None))
+            keyword = ' '.join([x.strip() for x in keywords])
+            query = self.app.selector.query_from_args(keyword, filters)
+            #     ' '.join([x.strip() for x in keywords]),
+            #     type_hint=filters.pop('kind', None))
 
-            # ...and update it with supplied filters
-            for (key, value) in filters.items():
-                query.params[key] = value
+            # # ...and update it with supplied filters
+            # for (key, value) in filters.items():
+            #     query.params[key] = value
 
         elif filters:
             # Build the query from filters
-            query = self.app.selector.query_from_params(
+            query = self.app.selector.query_from_args(
                 params=filters,
                 display_name='command-line')
 

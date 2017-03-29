@@ -107,12 +107,7 @@ _plugins = [
     'providers.yts',
 
     # Sorters
-    'sorters.basic',
-
-    # Queries
-    'queries.episode',
-    'queries.movie',
-    'queries.source',
+    'sorters.basic'
 ]
 
 _defaults.update({'plugins.{}.enabled'.format(x): True

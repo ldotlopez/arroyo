@@ -11,10 +11,7 @@ from arroyo import models
 
 class QueryBuilderTest(unittest.TestCase):
     def test_episode_search(self):
-        app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.episode.enabled': True
-        })
+        app = testapp.TestApp()
         q1 = app.selector.get_query_from_string('the oa 3x02')
         q2 = app.selector.get_query_from_string('the oa s03e02')
         q3 = app.selector.get_query_from_string('the oa s03 e02')
@@ -35,10 +32,7 @@ class QueryBuilderTest(unittest.TestCase):
         )
 
     def test_movie(self):
-        app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.movie.enabled': True,
-        })
+        app = testapp.TestApp()
 
         q1 = app.selector.get_query_from_string('Flash Gordon 1980')
         q2 = app.selector.get_query_from_string('Flash Gordon (1980)')
@@ -57,10 +51,7 @@ class QueryBuilderTest(unittest.TestCase):
         )
 
     def test_mediainfo(self):
-        app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.episode.enabled': True,
-        })
+        app = testapp.TestApp()
         q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
         self.assertEqual(
             q.params['quality'], '720p'
@@ -73,11 +64,8 @@ class QueryBuilderTest(unittest.TestCase):
 class SelectorInterfaceTest(unittest.TestCase):
     def test_get_queries(self):
         app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.movie.enabled': True,
-
             'query.test1.name-glob': '*x*',
-            'query.test2.kind': 'movie',
+            'query.test2.type': 'movie',
             'query.test2.title': 'foo',
             })
 
@@ -89,16 +77,13 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_get_queries_with_defaults(self):
         app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.movie.enabled': True,
-
             'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.language': 'eng-us',
             'selector.query-movie-defaults.quality': '720p',
 
             'query.test1.name': 'foo',
 
-            'query.test2.kind': 'movie',
+            'query.test2.type': 'movie',
             'query.test2.title': 'bar'
         })
 
@@ -116,13 +101,10 @@ class SelectorInterfaceTest(unittest.TestCase):
 
     def test_include_defaults_in_query(self):
         app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-
-            'selector.query-defaults.since': 1234567890,
             'selector.query-defaults.since': 1234567890,
         })
 
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
             params=dict(name_glob='*foo*'))
 
@@ -131,7 +113,7 @@ class SelectorInterfaceTest(unittest.TestCase):
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
-        spec = self.app.selector.get_query_from_params(display_name='test', params=dict(**params))
+        spec = self.app.selector.query_from_params(display_name='test', params=dict(**params))
         res = self.app.selector.matches(spec, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
@@ -142,7 +124,6 @@ class SelectorTestCase(unittest.TestCase):
 class SourceSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
             'plugins.filters.sourcefields.enabled': True,
         })
 
@@ -156,7 +137,7 @@ class SourceSelectorTest(SelectorTestCase):
         self.assertQuery(srcs, name_glob='*')
 
         for src in srcs:
-            src.state = models.Source.State.DOWNLOADING
+            src.state = models.State.DOWNLOADING
             self.app.db.session.add(src)
 
         self.app.db.session.commit()
@@ -210,8 +191,6 @@ class SourceSelectorTest(SelectorTestCase):
 class MediainfoFiltersTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.episode.enabled': True,
             'plugins.filters.mediainfo.enabled': True
         })
 
@@ -301,11 +280,11 @@ class MediainfoFiltersTest(SelectorTestCase):
 class EpisodeSelectorTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
-            'plugins.queries.episode.enabled': True,
             'plugins.filters.sourcefields.enabled': True,
             'plugins.filters.episodefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True,
-            'plugins.sorters.basic.enabled': True
+            'plugins.sorters.basic.enabled': True,
+            'log-level': 'DEBUG'
         })
 
     def test_series(self):
@@ -320,24 +299,23 @@ class EpisodeSelectorTest(SelectorTestCase):
             testapp.mock_source('Game Of Thrones S05E05 720p HDTV x264-0SEC[rarbg]')
         ]
         self.app.insert_sources(*srcs)
-
         self.assertQuery(
             [srcs[0], srcs[2]],
-            kind='episode', series='*')
+            type='episode', series='*')
 
         self.assertQuery(
             [srcs[0]],
-            kind='episode', series='game of thrones')
+            type='episode', series='game of thrones')
 
-        srcs[0].state = models.Source.State.DONE
+        srcs[0].state = models.State.DONE
 
         self.assertQuery(
             [srcs[2]],
-            kind='episode', series='*')
+            type='episode', series='*')
 
         self.assertQuery(
             [],
-            kind='episode', series='game of thrones')
+            type='episode', series='game of thrones')
 
     def test_real_world_first_use(self):
         s = testapp.mock_source
@@ -356,50 +334,51 @@ class EpisodeSelectorTest(SelectorTestCase):
         # All GoT episodes match
         self.assertQuery(
             srcs[:5:2],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
         # After this state change nothing matches
         for src in srcs:
-            src.state = models.Source.State.DONE
+            src.state = models.State.DONE
         self.assertQuery(
             [],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
         # Adding a new version from existings episode should be matched
         new_source = s('Game of Thrones S05E01 HDTV PROPER', type='episode')
         self.app.insert_sources(new_source,)
         self.assertQuery(
             [new_source],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
         # Revert src states and link episodes with sources
         for src in srcs:
-            src.state = models.Source.State.NONE
-        spec = self.app.selector.get_query_from_params(
+            src.state = models.State.NONE
+        spec = self.app.selector.query_from_params(
             display_name='test',
-            params=dict(kind='episode', series='game of thrones', quality='hdtv'))
+            params=dict(type='episode', series='game of thrones', quality='hdtv'))
         matches = self.app.selector.matches(spec)
         for src in self.app.selector.select_from_mixed_sources(matches):
             src.episode.selection = models.EpisodeSelection(source=src)
 
+        import ipdb; ipdb.set_trace(); pass
         # Check or queryspec again
         self.assertQuery(
             [],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
         # And with new sources?
         new_source = s('Game of Thrones S05E01 HDTV LoL x264', type='episode')
         self.app.insert_sources(new_source,)
         self.assertQuery(
             [],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
         # But… let's check with new episode
         new_source = s('Game of Thrones S05E04 HDTV LoL x264', type='episode')
         self.app.insert_sources(new_source,)
         self.assertQuery(
             [new_source],
-            kind='episode', series='game of thrones', quality='hdtv')
+            type='episode', series='game of thrones', quality='hdtv')
 
     def test_basic_sorter(self):
         s = testapp.mock_source
@@ -413,16 +392,15 @@ class EpisodeSelectorTest(SelectorTestCase):
             s('True Detective S02E04 INTERNAL HDTV x264-BATV[ettv]', type='episode', seeds=17, leechers=197, language='eng-us'),
         ]
         app = testapp.TestApp({
-            'plugins.queries.episode.enabled': True,
             'plugins.filters.sourcefields.enabled': True,
             'plugins.filters.episodefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True,
             'plugins.sorters.basic.enabled': True,
         })
         app.insert_sources(*srcs)
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
-            params=dict(kind='episode', series='true detective', quality='720p', language='eng-us'))
+            params=dict(type='episode', series='true detective', quality='720p', language='eng-us'))
 
         matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 4)
@@ -451,7 +429,6 @@ class EpisodeSelectorTest(SelectorTestCase):
         ]
 
         app = testapp.TestApp({
-            'plugins.queries.episode.enabled': True,
             'plugins.filters.sourcefields.enabled': True,
             'plugins.filters.episodefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True,
@@ -459,9 +436,9 @@ class EpisodeSelectorTest(SelectorTestCase):
         })
 
         app.insert_sources(*srcs)
-        query = app.selector.get_query_from_params(
+        query = app.selector.query_from_params(
             display_name='test',
-            params=dict(kind='episode', series='the last man on earth'))
+            params=dict(type='episode', series='the last man on earth'))
 
         matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 9)

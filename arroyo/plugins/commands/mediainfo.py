@@ -24,7 +24,7 @@ class MediainfoCommand(pluginlib.Command):
     )
 
     def execute(self, app, arguments):
-        db = app.app
+        db = app.db
         mediainfo = app.mediainfo
 
         item = arguments.item
