@@ -137,6 +137,12 @@ class Selector:
         params_.update(keyword_params)
         params_.update(params)
 
+        # FIXME: Deprecation code
+        if 'kind' in params_:
+            msg = "'kind' parameter is deprecated. Use 'type'"
+            self.logger.warning(msg)
+            params_['type'] = params_.pop('kind')
+
         return coretypes.Query(**params_)
 
     def queries_from_config(self):

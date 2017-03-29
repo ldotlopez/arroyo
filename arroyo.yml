@@ -153,17 +153,17 @@ query: {}
     #     # - series, year, language, season, episode, quality (hdtv, 480p, 720p, 1080p)
     #     # movie selector accepts:
     #     # - title, year, language, quality (see episode selector)
-    #     kind: source
+    #     type: source
     #     type: episode
     #     name-glob: *720p*
 
     # TBBT:
-    #     kind: episode
+    #     type: episode
     #     series: the big bang theory
     #     quality: HDTV
 
     # AHS:
-    #     kind: episode
+    #     type: episode
     #     series: American Horror Story
     #     quality: 720p
     #     language: eng-us
