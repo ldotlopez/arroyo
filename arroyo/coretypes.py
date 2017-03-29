@@ -12,16 +12,25 @@ class BaseQuery(abc.Mapping):
         self._items = {}
 
         for (param, value) in params.items():
-            if not isinstance(param, str) or not param:
+            try:
+                param = str(param)
+            except ValueError as e:
                 msg = ("Invalid param '{param}'. "
                        "All params must be non empty strings")
                 msg = msg.format(param=param)
-                raise ValueError(msg)
+                raise ValueError(msg) from e
 
-            if not isinstance(value, str) or not value:
+            try:
+                value = str(value)
+            except ValueError as e:
                 msg = ("Invalid value '{value}' for param '{param}'. "
                        "All values must be non empty strings")
                 msg = msg.format(param=param, value=value)
+                raise ValueError(msg) from e
+
+            # FIXME: Deprecation code
+            if param == 'kind':
+                msg = "kind paramater for queries is deprecated. Use 'type'"
                 raise ValueError(msg)
 
             self._items[param] = value
