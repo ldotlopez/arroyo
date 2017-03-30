@@ -143,17 +143,18 @@ class MovieQuery(BaseQuery):
 
 
 def Query(**params):
-    type = params['type'] = params.get('type', 'source')
+    params = params.copy()
+    params['type'] = params.get('type', 'source')
     params['state'] = params.get('state', 'none')
 
-    if type == 'source':
+    if params['type'] == 'source':
         return SourceQuery(**params)
 
-    elif type == 'episode':
+    elif params['type'] == 'episode':
         return EpisodeQuery(**params)
 
-    elif type == 'movie':
+    elif params['type'] == 'movie':
         return MovieQuery(**params)
 
     else:
-        raise ValueError('type='+type)
+        raise ValueError('type='+params['type'])

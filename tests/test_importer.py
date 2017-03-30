@@ -71,7 +71,6 @@ class ImporterTest(unittest.TestCase):
         app.db.session.commit()
 
         ret = app.importer._get_sources_for_data(psrcs[1])
-        import ipdb; ipdb.set_trace(); pass
         self.assertEqual(ret[psrcs[1]['name']], ['updated'])
 
 if __name__ == '__main__':

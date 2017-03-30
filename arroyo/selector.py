@@ -152,13 +152,10 @@ class Selector:
             self.logger.warning(msg)
             return []
 
-        ret = [
-            self.query_from_params(
-                params=params, display_name=name
-            )
-            for (name, params) in specs.items()
-        ]
-        ret = [x for x in ret if x is not None]
+        ret = {name: self.query_from_args(
+            keyword=None,
+            params=params
+        ) for (name, params) in specs.items()}
 
         return ret
 

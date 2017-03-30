@@ -121,7 +121,7 @@ class DownloadCommand(pluginlib.Command):
         #
         # Build queries from configuration, filter arguments or keywords
         #
-        queries = []
+        queries = {}
 
         if arguments.filters or arguments.keywords:
             if arguments.keywords:
@@ -144,13 +144,13 @@ class DownloadCommand(pluginlib.Command):
             else:
                 keyword = None
 
-            query = self.app.selector.query_from_args(
+            query = app.selector.query_from_args(
                 keyword=keyword,
                 params=arguments.filters)
-            queries = [query]
+            queries = {'command-line': query}
 
         if arguments.from_config:
-            queries = self.selector.queries_from_config()
+            queries = app.selector.queries_from_config()
             if not queries:
                 msg = "No configured queries"
                 self.logger.error(msg)
@@ -175,7 +175,7 @@ class DownloadCommand(pluginlib.Command):
                                   dry_run=arguments.dry_run)
 
         if arguments.list:
-            downloads = self.app.downloads.list()
+            downloads = app.downloads.list()
             if not downloads:
                 msg = "No downloads"
                 print(msg)
@@ -192,9 +192,9 @@ class DownloadCommand(pluginlib.Command):
                              'Seed ratio'])
                 print(formated_table)
 
-        for query in queries:
+        for (name, query) in queries.items():
             try:
-                srcs = self.app.selector.matches(
+                srcs = app.selector.matches(
                     query,
                     auto_import=arguments.scan,
                     everything=arguments.everything)
@@ -206,8 +206,8 @@ class DownloadCommand(pluginlib.Command):
 
             # Build selections
             selections = []
-            for (entity, sources) in self.app.selector.group(srcs):
-                selected = self.app.selector.select(sources)
+            for (entity, sources) in app.selector.group(srcs):
+                selected = app.selector.select(sources)
                 selections.append((entity, sources, selected))
 
             if arguments.explain:
@@ -218,7 +218,9 @@ class DownloadCommand(pluginlib.Command):
                 dry_run=arguments.dry_run)
 
     def add_downloads(self, sources, dry_run=False):
-        assert sources
+        if not sources:
+            self.logger.info("No sources found")
+            return
         assert isinstance(sources, list)
         assert all([isinstance(x, models.Source) for x in sources])
 
@@ -273,19 +275,12 @@ class DownloadCommand(pluginlib.Command):
 
             # Transform keywords into a usable query
             keyword = ' '.join([x.strip() for x in keywords])
-            query = self.app.selector.query_from_args(keyword, filters)
-            #     ' '.join([x.strip() for x in keywords]),
-            #     type_hint=filters.pop('kind', None))
+        else:
+            keyword = None
 
-            # # ...and update it with supplied filters
-            # for (key, value) in filters.items():
-            #     query.params[key] = value
-
-        elif filters:
-            # Build the query from filters
-            query = self.app.selector.query_from_args(
-                params=filters,
-                display_name='command-line')
+        query = self.app.selector.query_from_args(
+            keyword=keyword,
+            parms=filters)
 
         return query
 

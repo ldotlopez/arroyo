@@ -69,7 +69,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'foo',
             })
 
-        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
+        queries = app.selector.queries_from_config()
 
         self.assertTrue('test1' in queries)
         self.assertTrue('test2' in queries)
@@ -87,7 +87,7 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'bar'
         })
 
-        queries = {q.display_name: q for q in app.selector.get_configured_queries()}
+        queries = app.selector.queries_from_config()
         self.assertEqual(
             queries['test1'].params.get('language', None),
             'eng-us')
@@ -104,17 +104,15 @@ class SelectorInterfaceTest(unittest.TestCase):
             'selector.query-defaults.since': 1234567890,
         })
 
-        query = app.selector.query_from_params(
-            display_name='test',
-            params=dict(name_glob='*foo*'))
+        query = app.selector.query_from_args(params={'name_glob': '*foo*'})
 
         self.assertTrue('since' in query.params)
 
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
-        spec = self.app.selector.query_from_params(display_name='test', params=dict(**params))
-        res = self.app.selector.matches(spec, everything=False)
+        query = self.app.selector.query_from_args(params=dict(**params))
+        res = self.app.selector.matches(query, everything=False)
         self.assertEqual(
             set([x.name for x in expected]),
             set([x.name for x in res])
@@ -353,14 +351,12 @@ class EpisodeSelectorTest(SelectorTestCase):
         # Revert src states and link episodes with sources
         for src in srcs:
             src.state = models.State.NONE
-        spec = self.app.selector.query_from_params(
-            display_name='test',
+        query = self.app.selector.query_from_args(
             params=dict(type='episode', series='game of thrones', quality='hdtv'))
-        matches = self.app.selector.matches(spec)
+        matches = self.app.selector.matches(query)
         for src in self.app.selector.select_from_mixed_sources(matches):
             src.episode.selection = models.EpisodeSelection(source=src)
 
-        import ipdb; ipdb.set_trace(); pass
         # Check or queryspec again
         self.assertQuery(
             [],
@@ -398,8 +394,7 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugins.sorters.basic.enabled': True,
         })
         app.insert_sources(*srcs)
-        query = app.selector.query_from_params(
-            display_name='test',
+        query = app.selector.query_from_args(
             params=dict(type='episode', series='true detective', quality='720p', language='eng-us'))
 
         matches = list(app.selector.matches(query))
@@ -436,7 +431,7 @@ class EpisodeSelectorTest(SelectorTestCase):
         })
 
         app.insert_sources(*srcs)
-        query = app.selector.query_from_params(
+        query = app.selector.query_from_args(
             display_name='test',
             params=dict(type='episode', series='the last man on earth'))
 
