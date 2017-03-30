@@ -35,8 +35,8 @@ class EliteTorrent(pluginlib.Provider):
         'estrenos': 'movie'
     }
 
-    default_language = 'spa-es'
-    _langs = [
+    DEFAULT_LANGUAGE = 'spa-es'
+    SUPPORTED_LANGUAGES = [
         'spa-es',
         'lat-es'
     ]
@@ -94,15 +94,19 @@ class EliteTorrent(pluginlib.Provider):
             yield parse.urlunparse(parsed)
 
     def get_query_uri(self, query):
-        if query.params.get('language', None) not in self._langs:
+        # Only supported languages for elitetorrent
+        if query.get('language', None) not in self.SUPPORTED_LANGUAGES:
             return
 
+        # FIXME: Query.base_string should return something always
+        # In special cases it should raise an Exception
         q = query.base_string
-
         if not q:
             return None
 
-        if query.kind == 'episode':
+        # For episdes we replace some strings with the schema used by
+        # elitetorrent community
+        if query['type'] == 'episode':
             q = re.sub(r' S0*(\d+)$',
                        lambda m: ' Temporada ' + m.group(1),
                        query.base_string)
@@ -117,9 +121,7 @@ class EliteTorrent(pluginlib.Provider):
             words = words[diff:diff+6]
         q = ' '.join(words)
 
-        q = parse.quote_plus(q)
-
-        return self.SEARCH_URI.format(query=q)
+        return self.SEARCH_URI.format(query=parse.quote_plus(q))
 
     @asyncio.coroutine
     def fetch(self, fetcher, uri):
@@ -239,7 +241,7 @@ class EliteTorrent(pluginlib.Provider):
 
         return (
             self.type_map.get(text, None),
-            self.default_language if '(vose)' not in text else None
+            self.DEFAULT_LANGUAGE if '(vose)' not in text else None
         )
 
     def parse_uploaded(self, node):

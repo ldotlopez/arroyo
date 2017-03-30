@@ -55,17 +55,20 @@ class Eztv(pluginlib.Provider):
             page += 1
 
     def get_query_uri(self, query):
-        if query.kind != 'episode':
+        # eztv only has series
+        if query.get('type', None) != 'episode':
             return
 
-        series = query.params.get('series')
-        if not series:
+        try:
+            series = query['series']
+        except KeyError:
             return
 
         q = series.strip().replace(' ', '-')
-        q = parse.quote_plus(q)
 
-        return '{base}/search/{q}'.format(base=self._BASE_DOMAIN, q=q)
+        return '{base}/search/{q}'.format(
+            base=self._BASE_DOMAIN,
+            q=parse.quote_plus(q))
 
     def parse(self, buff):
         """

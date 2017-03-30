@@ -34,12 +34,12 @@ class ScanCommand(pluginlib.Command):
             '-t', '--type',
             dest='type',
             type=str,
-            help='Override type (kind) of found sources'),
+            help='Override type of found sources'),
         pluginlib.cliargument(
             '-l', '--language',
             dest='language',
             type=str,
-            help='Override language (kind) of found sources'),
+            help='Override language of found sources'),
         pluginlib.cliargument(
             '--from-config',
             dest='from_config',

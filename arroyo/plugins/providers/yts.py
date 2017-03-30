@@ -35,11 +35,11 @@ class Yts(pluginlib.Provider):
             yield uri
 
     def get_query_uri(self, query):
-        if query.kind != 'movie':
+        if query['type'] != 'movie':
             return None
 
         try:
-            q = query.params['title']
+            q = query['title']
         except KeyError:
             q = query.base_string.replace('*', ' ')
 

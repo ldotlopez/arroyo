@@ -19,8 +19,8 @@ from appkit import (
 class KickAss(pluginlib.Provider):
     __extension_name__ = 'kickass'
 
-    _BASE_URI = 'https://kickass.cd'
-    DEFAULT_URI = _BASE_URI + '/new/'
+    BASE_URI = 'https://kickass.cd'
+    DEFAULT_URI = BASE_URI + '/new/'
     URI_PATTERNS = [
         r'^http(s)?://([^.]\.)?kickass.[^.]{2,3}/',
         r'^http(s)?://([^.]\.)?kat.[^.]{2,3}/',
@@ -70,18 +70,21 @@ class KickAss(pluginlib.Provider):
             'movie': 'movies'
         }
 
+        # FIXME: Return something or raise
         q = query.base_string
         if not q:
             return
 
-        if query.kind in category_table:
-            q += ' category:' + category_table[query.kind]
+        try:
+            q += ' category:' + category_table[query['type']]
+        except KeyError:
+            pass
 
-        q = parse.quote_plus(q)
-        return ('{domain}/usearch/{q}/?'
-                'field=time_add&sorder=desc').format(
-                    domain=self._BASE_URI,
-                    q=q)
+        uri = '{domain}/usearch/{q}/?field=time_add&sorder=desc'.format(
+            domain=self.BASE_URI,
+            q=parse.quote_plus(q))
+
+        return uri
 
     def parse(self, buff):
         """

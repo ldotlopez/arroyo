@@ -22,7 +22,7 @@
 
 
 from arroyo import pluginlib
-# from arroyo.pluginlib import downloads
+
 
 import asyncio
 import json
@@ -50,6 +50,11 @@ class TorrentAPI(pluginlib.Provider):
 
     TOKEN_URL = 'http://torrentapi.org/pubapi_v2.php?get_token=get_token'
     SEARCH_URL = r'http://torrentapi.org/pubapi_v2.php?mode=search'
+
+    CATEGORY_MAP = {
+        'episode': 'tv',
+        'movie': 'movies'
+    }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -121,11 +126,6 @@ class TorrentAPI(pluginlib.Provider):
         return ret
 
     def get_query_uri(self, query):
-        _category_table = {
-            'episode': 'tv',
-            'movie': 'movies'
-        }
-
         querystr = query.base_string
         if not querystr:
             return None
@@ -134,10 +134,11 @@ class TorrentAPI(pluginlib.Provider):
             'search_string': query.base_string
         }
 
-        if query.kind in _category_table:
-            q['category'] = _category_table[query.kind]
+        try:
+            q['category'] = self.CATEGORY_MAP[query['type']]
+        except KeyError:
+            pass
 
-        q['search_string'] = query.base_string
         return self.SEARCH_URL + "&" + parse.urlencode(q)
 
     @classmethod

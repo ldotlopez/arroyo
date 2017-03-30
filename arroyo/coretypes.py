@@ -35,14 +35,6 @@ class BaseQuery(abc.Mapping):
 
             self._items[param] = value
 
-    @property
-    def kind(self):
-        return self['type']
-
-    @property
-    def params(self):
-        return self
-
     def __iter__(self):
         yield from self._items.__iter__()
 

@@ -63,9 +63,10 @@ class CompatFilter(pluginlib.IterableFilter):
     __extension_name__ = 'compatibility-filter'
 
     APPLIES_TO = pluginlib.models.Source
-    HANDLES = ['state', 'type', 'kind', 'entity']
+    HANDLES = ['state', 'type', 'kind', 'entity']  # FIXME: Deprecation
 
     def filter(self, key, value, item):
+        # FIXME: Deprecation
         if key in ['kind', 'entity']:
             key = 'type'
 
