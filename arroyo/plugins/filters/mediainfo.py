@@ -1,12 +1,9 @@
 # -*- coding: utf-8 -*-
 
-from arroyo import pluginlib
 
-
-models = pluginlib.models
-
-
+import re
 from appkit import logging
+from arroyo import pluginlib
 
 
 models = pluginlib.models

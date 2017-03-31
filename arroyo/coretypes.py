@@ -19,14 +19,32 @@ class BaseQuery(abc.Mapping):
                        "All params must be non empty strings")
                 msg = msg.format(param=param)
                 raise ValueError(msg) from e
+            param = param.replace('_', '-')
 
-            try:
-                value = str(value)
-            except ValueError as e:
-                msg = ("Invalid value '{value}' for param '{param}'. "
-                       "All values must be non empty strings")
-                msg = msg.format(param=param, value=value)
-                raise ValueError(msg) from e
+            if param.endswith('-in'):
+                if not isinstance(value, list):
+                    msg = ("Invalid value '{value}' for param '{param}'. "
+                           "Expected list value for '-in' parameter")
+                    msg = msg.format(param=param, value=value)
+                    raise ValueError(msg)
+
+                try:
+                    value = [str(x) for x in value]
+
+                except ValueError as e:
+                    msg = ("Invalid value '{value}' for param '{param}'. "
+                           "Expected list of strings value for parameter")
+                    msg = msg.format(param=param, value=value)
+                    raise ValueError(msg) from e
+
+            else:
+                try:
+                    value = str(value)
+                except ValueError as e:
+                    msg = ("Invalid value '{value}' for param '{param}'. "
+                           "All values must be non empty strings")
+                    msg = msg.format(param=param, value=value)
+                    raise ValueError(msg) from e
 
             # FIXME: Deprecation code
             if param == 'kind':

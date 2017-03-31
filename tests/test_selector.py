@@ -12,52 +12,53 @@ from arroyo import models
 class QueryBuilderTest(unittest.TestCase):
     def test_episode_search(self):
         app = testapp.TestApp()
-        q1 = app.selector.get_query_from_string('the oa 3x02')
-        q2 = app.selector.get_query_from_string('the oa s03e02')
-        q3 = app.selector.get_query_from_string('the oa s03 e02')
-
+        q1 = app.selector.query_from_args(keyword='the oa 3x02')
+        q2 = app.selector.query_from_args(keyword='the oa s03e02')
+        q3 = app.selector.query_from_args(keyword='the oa s03 e02')
         self.assertEqual(q1.asdict(), dict(
             type='episode',
             series='the oa',
-            season=3,
-            episode=2
+            season='3',
+            episode='2',
+            state='none'
         ))
         self.assertEqual(q1, q2)
         self.assertEqual(q1, q3)
 
-        q_as_source = app.selector.get_query_from_string('the oa   3x02  ', type_hint='source')
+        q_as_source = app.selector.query_from_args(keyword='the oa   3x02  ', params={'type': 'source'})
         self.assertEqual(
             q_as_source.asdict(),
-            {'name-glob': '*the*oa*3x02*', 'type': 'source'}
+            {'name-glob': '*the*oa*3x02*', 'type': 'source', 'state': 'none'}
         )
 
     def test_movie(self):
         app = testapp.TestApp()
 
-        q1 = app.selector.get_query_from_string('Flash Gordon 1980')
-        q2 = app.selector.get_query_from_string('Flash Gordon (1980)')
+        q1 = app.selector.query_from_args(keyword='Flash Gordon 1980')
+        q2 = app.selector.query_from_args(keyword='Flash Gordon (1980)')
 
         self.assertEqual(q1.asdict(), dict(
             type='movie',
             title='Flash Gordon',
-            year=1980
+            year='1980',
+            state='none'
         ))
         self.assertEqual(q1, q2)
 
-        q = app.selector.get_query_from_string('Flash gordon')
+        q = app.selector.query_from_args(keyword='Flash gordon')
         self.assertEqual(
             q.asdict(),
-            {'name-glob': '*flash*gordon*', 'type': 'source'}
+            {'name-glob': '*flash*gordon*', 'type': 'source', 'state': 'none'}
         )
 
     def test_mediainfo(self):
         app = testapp.TestApp()
-        q = app.selector.get_query_from_string('series s01e01 720p x264 FuM[ettv]')
+        q = app.selector.query_from_args(keyword='series s01e01 720p x264 FuM[ettv]')
         self.assertEqual(
-            q.params['quality'], '720p'
+            q['quality'], '720p'
         )
         self.assertEqual(
-            q.params['codec'], 'h264'  # x264 is detected as h264
+            q['codec'], 'h264'  # x264 is detected as h264
         )
 
 
@@ -89,15 +90,15 @@ class SelectorInterfaceTest(unittest.TestCase):
 
         queries = app.selector.queries_from_config()
         self.assertEqual(
-            queries['test1'].params.get('language', None),
+            queries['test1'].get('language', None),
             'eng-us')
         self.assertTrue(
-            'quality' not in queries['test1'].params)
+            'quality' not in queries['test1'])
 
         self.assertTrue(
-            'quality' in queries['test2'].params)
+            'quality' in queries['test2'])
         self.assertTrue(
-            'since' in queries['test2'].params)
+            'since' in queries['test2'])
 
     def test_include_defaults_in_query(self):
         app = testapp.TestApp({
@@ -106,13 +107,13 @@ class SelectorInterfaceTest(unittest.TestCase):
 
         query = app.selector.query_from_args(params={'name_glob': '*foo*'})
 
-        self.assertTrue('since' in query.params)
+        self.assertTrue('since' in query)
 
 
 class SelectorTestCase(unittest.TestCase):
     def assertQuery(self, expected, **params):
         query = self.app.selector.query_from_args(params=dict(**params))
-        res = self.app.selector.matches(query, everything=False)
+        res = self.app.selector.matches(query)
         self.assertEqual(
             set([x.name for x in expected]),
             set([x.name for x in res])
@@ -125,7 +126,7 @@ class SourceSelectorTest(SelectorTestCase):
             'plugins.filters.sourcefields.enabled': True,
         })
 
-    def test_not_everything(self):
+    def test_exclude_state_not_none(self):
         srcs = [
             testapp.mock_source('foo'),
             testapp.mock_source('bar'),
@@ -189,6 +190,9 @@ class SourceSelectorTest(SelectorTestCase):
 class MediainfoFiltersTest(SelectorTestCase):
     def setUp(self):
         self.app = testapp.TestApp({
+            'plugins.filters.sourcefields.enabled': True,
+            'plugins.filters.episodefields.enabled': True,
+            'plugins.filters.moviefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True
         })
 
@@ -432,7 +436,6 @@ class EpisodeSelectorTest(SelectorTestCase):
 
         app.insert_sources(*srcs)
         query = app.selector.query_from_args(
-            display_name='test',
             params=dict(type='episode', series='the last man on earth'))
 
         matches = list(app.selector.matches(query))

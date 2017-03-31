@@ -181,7 +181,7 @@ class Selector:
 
         return registry
 
-    def matches(self, query, everything=False, auto_import=None):
+    def matches(self, query, auto_import=None):
         def _count(x):
             try:
                 return len(x)

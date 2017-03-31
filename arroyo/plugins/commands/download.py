@@ -118,6 +118,12 @@ class DownloadCommand(pluginlib.Command):
         # Conflicts with:
         # --filter / keywords
 
+        # FIXME: Deprecated code
+        if arguments.everything:
+            msg = "--all flag is deprecated. Use -f state=all"
+            self.logger.warning(msg)
+            arguments.filters['state'] = 'all'
+
         #
         # Build queries from configuration, filter arguments or keywords
         #
@@ -196,8 +202,7 @@ class DownloadCommand(pluginlib.Command):
             try:
                 srcs = app.selector.matches(
                     query,
-                    auto_import=arguments.scan,
-                    everything=arguments.everything)
+                    auto_import=arguments.scan)
 
             except (selector.FilterNotFoundError,
                     selector.FilterCollissionError) as e:
