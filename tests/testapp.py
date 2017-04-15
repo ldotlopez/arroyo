@@ -2,6 +2,7 @@ import contextlib
 import hashlib
 import os
 import sys
+from appkit import utils
 from urllib import parse
 
 
@@ -37,11 +38,11 @@ class TestApp(core.Arroyo):
     def insert_sources(self, *srcs):
         for src in srcs:
             if isinstance(src, str):
-                src = models.Source.from_data(src)
+                src = mock_source(src)
 
             elif callable(src):
                 name, kwargs = src()
-                src = models.Source.from_data(name, **kwargs)
+                src = mock_source(name, **kwargs)
 
             elif isinstance(src, models.Source):
                 pass
@@ -64,14 +65,24 @@ class TestApp(core.Arroyo):
 
 def mock_source(name, **kwargs):
     if 'urn' not in kwargs:
-        kwargs['urn'] = 'urn:btih:'+hashlib.sha1(name.encode('utf-8')).hexdigest()
+        kwargs['urn'] = \
+            'urn:btih:' + hashlib.sha1(name.encode('utf-8')).hexdigest()
 
     if 'uri' not in kwargs:
         kwargs['uri'] = 'magnet:?xt={urn}&dn={dn}'.format(
             urn=kwargs['urn'],
             dn=parse.quote_plus(name))
 
-    return models.Source.from_data(name, **kwargs)
+    kwargs.pop('_discriminator', None)
+
+    now = utils.now_timestamp()
+    kwargs['created'] = kwargs.get('created', now)
+    kwargs['last_seen'] = kwargs.get('last_seen', now)
+
+    if 'provider' not in kwargs:
+        kwargs['provider'] = 'mock'
+
+    return models.Source(name=name, **kwargs)
 
 
 def www_sample_path(sample):

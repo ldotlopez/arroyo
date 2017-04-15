@@ -113,32 +113,6 @@ class Source(sautils.Base):
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
 
-    # FIXME: Delete this method
-    @classmethod
-    def from_data(cls, name, **kwargs):
-        kwargs.pop('_discriminator', None)
-
-        now = utils.now_timestamp()
-        kwargs['created'] = kwargs.get('created', now)
-        kwargs['last_seen'] = kwargs.get('last_seen', now)
-
-        if 'provider' not in kwargs:
-            kwargs['provider'] = 'mock'
-
-        ret = Source()
-        ret.name = name
-
-        # ret.urn = 'urn:btih:' + sha1
-        # ret.uri = 'magnet:?xt={urn}&dn={dn}'.format(
-        #     urn=ret.urn,
-        #     dn=parse.quote_plus(name))
-
-        for (attr, value) in kwargs.items():
-            if hasattr(ret, attr):
-                setattr(ret, attr, value)
-
-        return ret
-
     @property
     def tag_dict(self):
         return {x.key: x.value for x in self.tags.all()}

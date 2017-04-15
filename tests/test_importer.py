@@ -1,9 +1,12 @@
 # -*- coding: utf-8 -*-
 # vim: set fileencoding=utf-8 :
 
+# FIXME: This test is broken
+
+raise Exception('Broken test')
+
 import unittest
 
-import os
 
 from appkit import network
 

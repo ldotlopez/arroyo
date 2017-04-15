@@ -667,7 +667,7 @@ class Importer:
             if ctx.source is not None:
                 continue
 
-            ctx.source = models.Source.from_data(**ctx.data)
+            ctx.source = models.Source(**ctx.data)
             ctx.tags.append(_ProcessingTag.ADDED)
 
     def _process_finalize(self, contexts):

@@ -202,7 +202,7 @@ class SourceModelTest(unittest.TestCase):
 
         s1 = mock_source(name='s1', seeds=10, leechers=1)
         s2 = mock_source(name='s2', seeds=1, leechers=10)
-        s3 = mock_source(name='s2')
+        s3 = mock_source(name='s3')
 
         self.sess.add_all([s1, s2, s3])
         self.sess.commit()
@@ -256,13 +256,13 @@ class SourceModelTest(unittest.TestCase):
 class SourceTagsRelationshipsTest(unittest.TestCase):
     def setUp(self):
         self.path = tempfile.mktemp()
-        self.sess = create_session('sqlite:///'+self.path)
+        self.sess = sautils.create_session('sqlite:///'+self.path)
 
     def tearDown(self):
         os.unlink(self.path)
 
     def test_adding(self):
-        src = models.Source.from_data('src')
+        src = mock_source('src')
         tag1 = models.SourceTag(key='foo', value=1)
         tag2 = models.SourceTag(key='bar', value=2)
 
@@ -274,7 +274,7 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
         self.assertEqual(src.tags.count(), 2)
 
     def test_orphan_tag(self):
-        src = models.Source.from_data('src')
+        src = mock_source('src')
         tag1 = models.SourceTag(key='foo', value=1)
         tag2 = models.SourceTag(key='bar', value=2)
 
@@ -289,7 +289,7 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
         self.assertEqual(self.sess.query(models.SourceTag).count(), 1)
 
     def test_delete_tag(self):
-        src = models.Source.from_data('src')
+        src = mock_source('src')
         tag1 = models.SourceTag(key='foo', value=1)
         tag2 = models.SourceTag(key='bar', value=2)
 
@@ -300,8 +300,8 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
             self.sess.delete(tag2)
 
     def test_delete_source(self):
-        src1 = models.Source.from_data('src1')
-        src2 = models.Source.from_data('src2')
+        src1 = mock_source('src1')
+        src2 = mock_source('src2')
         src1.tags.append(models.SourceTag('foo', '1'))
         src2.tags.append(models.SourceTag('bar', '1'))
 
@@ -319,7 +319,7 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
         self.assertEqual(self.sess.query(models.SourceTag).count(), 1)
 
     def test_bulk_delete_source(self):
-        src1 = models.Source.from_data('src1')
+        src1 = mock_source('src1')
         tag1 = models.SourceTag(key='foo', value=1)
         tag2 = models.SourceTag(key='bar', value=2)
         src1.tags.append(tag1)
@@ -332,7 +332,7 @@ class SourceTagsRelationshipsTest(unittest.TestCase):
         self.sess.query(models.Source).delete()
 
     def test_duplicate_tag(self):
-        src1 = models.Source.from_data('src1')
+        src1 = mock_source('src1')
         tag1 = models.SourceTag('foo', 'a')
         tag2 = models.SourceTag('foo', 'b')
 
