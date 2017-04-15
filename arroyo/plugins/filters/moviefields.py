@@ -21,14 +21,9 @@ class Filter(pluginlib.QuerySetFilter):
     ]
 
     def alter(self, key, value, qs):
-        # For us, 'title' and 'title-glob' makes no difference
-        if key == 'title':
-            key = 'title-glob'
-
-        # 'title' must be normalized
-        # FIXME: Should this be there?
-        if key == 'title' or key.startswith('title'):
-            value = self.APPLIES_TO.normalize_title(value)
+        # FIXME: Should we use normalization here?
+        if key == 'title' or key.startswith('title-'):
+            value = self.APPLIES_TO.normalize('title', value)
 
         # 'year' is integer
         if key == 'year' or key.startswith('year-'):

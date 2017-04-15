@@ -695,10 +695,11 @@ class Importer:
             if _ProcessingTag.UPDATED in ctx.tags:
                 updated.append(ctx.source)
 
+        self.app.db.session.add_all(added)
+
         sources_and_metas = [(ctx.source, ctx.meta) for ctx in contexts]
         self.app.mediainfo.process(*sources_and_metas)
 
-        self.app.db.session.add_all(added)
         self.app.db.session.commit()
 
         self.app.signals.send('sources-added-batch', sources=added)
@@ -707,11 +708,11 @@ class Importer:
 
         msg = '{n} sources {action}'
         self.logger.info(msg.format(n=len(added),
-                                        action='added'))
+                                    action='added'))
         self.logger.info(msg.format(n=len(updated),
-                                        action='updated'))
+                                    action='updated'))
         self.logger.info(msg.format(n=len(set(added+name_updated)),
-                                        action='parsed'))
+                                    action='parsed'))
 
         ret = [ctx.source for ctx in contexts]
         return ret

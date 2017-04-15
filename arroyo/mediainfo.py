@@ -10,191 +10,355 @@ import babelfish
 import guessit
 
 
+_SOURCE_TAGS_PREFIX = 'core.'
+
+
+class Tags:
+    AUDIO_CHANNELS = _SOURCE_TAGS_PREFIX + 'audio.channels'
+    AUDIO_CODEC = _SOURCE_TAGS_PREFIX + 'audio.codec'
+    AUDIO_PROFILE = _SOURCE_TAGS_PREFIX + 'audio.profile'
+    BROADCAST_DATE = _SOURCE_TAGS_PREFIX + 'broadcast.date'
+    EPISODE_COUNT = _SOURCE_TAGS_PREFIX + 'episode.count'
+    EPISODE_TITLE = _SOURCE_TAGS_PREFIX + 'episode.title'
+    GUESSIT_OTHER = _SOURCE_TAGS_PREFIX + 'guessit.other'
+    GUESSIT_UUID = _SOURCE_TAGS_PREFIX + 'guessit.uuid'
+    MEDIA_CONTAINER = _SOURCE_TAGS_PREFIX + 'media.container'
+    MEDIA_COUNTRY = _SOURCE_TAGS_PREFIX + 'media.country'
+    MEDIA_LANGUAGE = _SOURCE_TAGS_PREFIX + 'media.language'
+    MIMETYPE = _SOURCE_TAGS_PREFIX + 'mimetype'
+    RELEASE_DISTRIBUTORS = _SOURCE_TAGS_PREFIX + 'release.distributors'
+    RELEASE_GROUP = _SOURCE_TAGS_PREFIX + 'release.group'
+    RELEASE_PROPER = _SOURCE_TAGS_PREFIX + 'release.proper'
+    STREAMING_SERVICE = _SOURCE_TAGS_PREFIX + 'streaming.service'
+    VIDEO_CODEC = _SOURCE_TAGS_PREFIX + 'video.codec'
+    VIDEO_FORMAT = _SOURCE_TAGS_PREFIX + 'video.format'
+    VIDEO_SCREEN_SIZE = _SOURCE_TAGS_PREFIX + 'video.screen-size'
+
+    @classmethod
+    def values(cls):
+        for x in dir(cls):
+            if x[0] == '_':
+                continue
+
+            value = getattr(cls, x)
+            if (not isinstance(value, str) or
+                    not value.startswith(_SOURCE_TAGS_PREFIX)):
+                continue
+
+            yield value
+
+METADATA_RULES = [
+    ('audio_channels', Tags.AUDIO_CHANNELS),
+    ('audio_codec', Tags.AUDIO_CODEC),
+    ('audio_profile', Tags.AUDIO_PROFILE),
+    ('container', Tags.MEDIA_CONTAINER),
+    ('country', Tags.MEDIA_COUNTRY),
+    ('date', Tags.BROADCAST_DATE),
+    ('episode_count', Tags.EPISODE_COUNT),
+    ('episode_title', Tags.EPISODE_TITLE),
+    ('format', Tags.VIDEO_FORMAT),
+    ('language', Tags.MEDIA_LANGUAGE),
+    ('mimetype', Tags.MIMETYPE),
+    ('proper_count', Tags.RELEASE_PROPER, lambda x: int(x) > 0),
+    ('other', Tags.GUESSIT_OTHER),
+    ('release_distributors', Tags.RELEASE_DISTRIBUTORS),
+    ('release_group', Tags.RELEASE_GROUP),
+    ('screen_size', Tags.VIDEO_SCREEN_SIZE),
+    ('streaming_service', Tags.STREAMING_SERVICE),
+    ('uuid', Tags.GUESSIT_UUID),
+    ('video_codec', Tags.VIDEO_CODEC),
+]
+
+KNOWN_DISTRIBUTORS = [
+    'glodls',
+    'ethd',
+    'ettv',
+    'eztv',
+    'rartv'
+]  # keep lower case!!
+
+
+class ParseError(Exception):
+    """
+    Exception raised for unparseable or unidentificable strings
+    """
+    pass
+
+
+class UnknownEntityTypeError(Exception):
+    """
+    Exception raised for entity datas with unsupported type field
+    """
+    pass
+
+
+class IncompleteEntityDataError(Exception):
+    pass
+
+
+def extract_items(orig, rules):
+    ret = {}
+
+    for rule in rules:
+        if len(rule) == 3:
+            orig_key, dest_key, fn = rule
+        else:
+            orig_key, dest_key = rule
+            fn = None
+
+        if orig_key in orig:
+            value = orig.pop(orig_key)
+            if fn:
+                value = fn(value)
+
+            ret[dest_key] = value
+
+    return ret
+
+
+def extract_entity_data_from_info(info):
+    table = {
+        'episode': (models.Episode, ['series', 'year', 'season', 'number']),
+        'movie': (models.Movie, ['title', 'year'])
+    }
+
+    try:
+        type_ = info['type']
+    except KeyError as e:
+        msg = 'Missing type information'
+        raise UnknownEntityTypeError(msg)
+
+    if type_ not in table:
+        raise UnknownEntityTypeError(type_)
+
+    model_class, available_items = table[type_]
+
+    ret = {'type': info.pop('type')}
+    ret.update({
+        key: model_class.normalize(key, info.pop(key))
+        for key in available_items
+        if key in info
+    })
+
+    return ret
+
+
+def entity_data_has_fields(data, keys_map):
+    try:
+        type_ = data['type']
+    except KeyError as e:
+        msg = 'Missing type information'
+        raise UnknownEntityTypeError(msg)
+
+    if type_ not in keys_map:
+        raise UnknownEntityTypeError(type_)
+
+    return all([
+        x in data and data[x] != ''
+        for x in keys_map[type_]
+    ])
+
+
+def entity_data_is_complete(data):
+    """
+    Check if entity_data has enoguht information to build a complete entity
+    model
+    """
+    fields_map = {
+        'episode': ['series', 'season', 'number'],
+        'movie': ['title']
+    }
+
+    return entity_data_has_fields(data, fields_map)
+
+
+def entity_data_is_confident(data):
+    fields_map = {
+        'episode': ['series', 'season', 'number'],
+        'movie': ['title', 'year']
+    }
+
+    return entity_data_has_fields(data, fields_map)
+
+
+def _guessit_parse(name, extra_tags=None, type_hint=None):
+    """
+    Parse "backend using guessit"
+    """
+
+    # We preprocess name to extract distributors
+    # (distributors != release-teams)
+    release_distributors = set()
+    for dist in KNOWN_DISTRIBUTORS:
+        tag = '[' + dist + ']'
+        idx = name.lower().find(tag)
+        if idx == -1:
+            continue
+
+        name = (name[:idx] + name[idx+len(tag):]).strip()
+        release_distributors.add(dist)
+
+    # Process via guessit (options.type is integrated into returned info by
+    # guessit.guessit, no need to manually add it
+    info = guessit.guessit(name, options={'type': type_hint})
+
+    # Errors: 'part' is not supported
+    if 'part' in info:
+        msg = ("Name '{name}' has a 'part' component. This is unsupported due "
+               "to its complexity")
+        msg = msg.format(name=name)
+        raise ParseError(msg)
+
+    # Fixes: Insert distributors again
+    if release_distributors:
+        info['release_distributors'] = list(release_distributors)
+
+    # Fixes: Reformat date as episode number for episodes if needed
+    if info['type'] == 'episode' and 'date' in info:
+        # FIXME: should we fix season??
+        if not info.get('season'):
+            info['season'] = 1
+
+        # Reformat episode number
+        if not info.get('episode'):
+            info['episode'] = '{year}{month:0>2}{day:0>2}'.format(
+                year=info['date'].year,
+                month=info['date'].month,
+                day=info['date'].day)
+
+    # Fixes: Rename episode fields
+    if info['type'] == 'episode':
+        if 'episode' in info:
+            info['number'] = info.pop('episode')
+        if 'title' in info:
+            info['series'] = info.pop('title')
+
+    # Fixes: Normalize language
+    if isinstance(info.get('language'), list):
+        # msg = 'Drop multiple instances of {key} in {name}'
+        # msg = msg.format(name=name, key=k)
+        # self.logger.warning(msg)
+        info['language'] = info['language'][0]
+
+    # Fixes: Normalize language value
+    if 'language' in info:
+        try:
+            info['language'] = '{}-{}'.format(
+                info['language'].alpha3,
+                info['language'].alpha2)
+        except babelfish.exceptions.LanguageConvertError as e:
+            # FIXME: Log this error
+            # msg = "Language error in '{name}': {msg}"
+            # msg = msg.format(name=name, msg=e)
+            # self.logger.warning(msg)
+            del info['language']
+
+    return info
+
+
+def parse(name, extra_tags=None, type_hint=None):
+    """
+    Parse name and extra_tags to find entity_data and metadata
+    """
+    if extra_tags is None:
+        extra_tags = {}
+
+    # For now we only support one parser provider: guessit
+    info = _guessit_parse(name, extra_tags=extra_tags, type_hint=type_hint)
+
+    # Extract two sets of information
+    try:
+        entity_data = extract_entity_data_from_info(info)
+    except UnknownEntityTypeError as e:
+        raise ParseError from e
+
+    if not entity_data_is_confident(entity_data) and not type_hint:
+        raise ParseError('Incomplete data')
+
+    metadata = extract_items(info, METADATA_RULES)
+
+    # FIXME: Warn about leftovers
+
+    return entity_data, metadata
+
+
 class Mediainfo:
     def __init__(self, app):
-        # app.signals.connect('sources-added-batch', self._on_source_batch)
-        # app.signals.connect('sources-updated-batch', self._on_source_batch)
-        self._app = app
+        self.app = app
         self.logger = app.logger.getChild('mediainfo')
+
+        app.signals.connect('sources-added-batch', self._on_source_batch)
+        app.signals.connect('sources-updated-batch', self._on_source_batch)
+
+    def _on_source_batch(self, sender, sources):
+        self.process(*sources)
 
     @functools.lru_cache(maxsize=16)
     def get_default_language_for_provider(self, provider):
         k = 'plugins.provider.' + provider + '.default-language'
-        return self._app.settings.get(k, default=None)
+        return self.app.settings.get(k, default=None)
 
-    def get_mediainfo(self, source):
-        """
-        Get guessed mediainfo from source (mostly from source.name)
-        """
+    def entity_from_data(self, entity_data):
+        # Create entity model
+        if entity_data['type'] == 'episode':
+            model_class = models.Episode
 
-        # This table it used in a second phase to get a better guess
-        # _fixes = {
-        #     'movie': (
-        #         ('title', 'year', 'format', 'language'),
-        #         ('.avi')
-        #     ),
-        #     'episode': (
-        #         ('title',  # series title, not episode_title
-        #          'year',
-        #          'season',
-        #          'episode',  # number of episode
-        #          'format',
-        #          'language'),
-        #         ('.mp4')
-        #     )
-        # }
-
-        # Release teams ofter are shadowed by 'distributors' (eztv, rartv,
-        # etc...) because guessit doesn't do a perfect job.
-        # In order to fix this we made a "preprocessing" to extract (and
-        # remove) known distributors from source's name and add distribution
-        # field into info after processing source's name with guessit.
-
-        known_distributors = ['eztv', 'rartv', 'ethd']  # keep lower case!!
-        source_distributors = set()
-        name = source.name
-
-        for dist in known_distributors:
-            tag = '[' + dist + ']'
-            idx = name.lower().find(tag)
-            if idx == -1:
-                continue
-
-            name = (name[:idx] + name[idx+len(tag):]).strip()
-            source_distributors.add(dist)
-
-        info = guessit.guessit(name, options={'type': source.type})
-
-        if source_distributors:
-            info['distributors'] = list(source_distributors)
-
-        # FIXME: Why are we doing this?
-        # Do a second guess with fake name
-        # if source.type in _fixes:
-        #     wanted_fields, expected_ext = _fixes[source.type]
-        #     filename, extension = path.splitext(source.name)
-        #     if extension != expected_ext:
-        #         print("!! Fake guess on {}{}".format(
-        #             source.name, expected_ext))
-        #         fake_info = guessit.guessit(source.name + expected_ext)
-
-        #         for f in wanted_fields:
-        #             if f not in info and f in fake_info:
-        #                 info[f] = fake_info[f]
-        #     else:
-        #         print("OK {}".format(source.name))
-
-        # After all guesses from guessit translate to arroyo-style
-        if info.get('type') == 'episode':
-            info['series'] = info.pop('title', None)
-            info['episode_number'] = info.pop('episode', None)
-
-        info = {k: v for (k, v) in info.items() if v is not None}
-
-        # FIXME: Don't drop, save
-        # Drop multiple languages and multiple episode numbers
-        for k in ['language', 'part']:
-            if isinstance(info.get(k), list):
-                msg = 'Drop multiple instances of {key} in {source}'
-                msg = msg.format(source=source, key=k)
-                self.logger.warning(msg)
-                info[k] = info[k][0]
-
-        # Integrate part as episode in season 0
-        if 'part' in info:
-            if info.get('type') == 'movie':
-                msg = "Movie '{source}' has 'part'"
-                msg = msg.format(source=source)
-                self.logger.warning(msg)
-
-            elif info.get('type') == 'episode':
-                if 'season' in info:
-                    msg = ("Episode '{source}' has 'part' and 'season'")
-                    msg = msg.format(
-                        source=source, type=info.get('type') or '(None)'
-                    )
-                    self.logger.warning(msg)
-                else:
-                    info['season'] = 0
-                    info['episode_number'] = info.pop('part')
-
-            else:
-                msg = ("Source '{source}' has 'part' and an unknow "
-                       "type: '{type}'")
-                msg = msg.format(
-                    source=source, type=info.get('type') or '(None)'
-                )
-                self.logger.warning(msg)
-
-        # Reformat date as episode number for episodes if needed
-        if info.get('type', None) == 'episode' and \
-           'date' in info:
-
-            # Fix season
-            if not info.get('season', None):
-                info['season'] = 0
-
-            # Reformat episode number
-            if not info.get('episode_number', None):
-                info['episode_number'] = '{year}{month:0>2}{day:0>2}'.format(
-                    year=info['date'].year,
-                    month=info['date'].month,
-                    day=info['date'].day)
-
-        # Reformat language as 3let-2let code
-        # Note that info also contains a country property but doesn't
-        # satisfy our needs: info's country refers to the country where the
-        # episode/movie was produced.
-        # Example:
-        # "Sherlock (US) - 1x01.mp4" vs "Sherlock (UK) - 1x01.mp4"
-        # For now only the 3+2 letter code is used.
-        #
-        # Other sources like 'game of thrones 1x10 multi.avi' are parsed as
-        # multilingual (babelfish <Language [mul]>) but throw an exception when
-        # alpha2 property is accessed.
-
-        if 'language' in info:
-            try:
-                info['language'] = '{}-{}'.format(
-                    info['language'].alpha3,
-                    info['language'].alpha2)
-            except babelfish.exceptions.LanguageConvertError as e:
-                msg = "Language error in '{source}': {msg}"
-                msg = msg.format(source=source.name, msg=e)
-                self.logger.warning(msg)
-                del info['language']
+        elif entity_data['type'] == 'movie':
+            model_class = models.Movie
 
         else:
-            info['language'] = self.get_default_language_for_provider(
-                source.provider)
+            msg = "Unsupported entity type: '{type}'"
+            msg = msg.format(type=entity_data['type'])
+            raise ValueError(msg)
 
-        # Misc fixes. Maybe this needs its own module
-        # - 12 Monkeys series
-        if info.get('type', None) == 'episode' and \
-           info.get('series', None) == 'Monkeys' and \
-           source.name.lower().startswith('12 monkeys'):
-            info['series'] = '12 Monkeys'
+        if not entity_data_is_complete(entity_data):
+            raise IncompleteEntityDataError()
 
-        return info
+        # Complete data with NULLs before quering the database
+        if model_class == models.Episode:
+            entity_data = {
+                k: entity_data.get(k, None)
+                for k in ['series', 'year', 'season', 'number']
+            }
 
-    def process(self, *sources_and_metas):
-        """
-        Mediainfo.process takes sources and tries to fill aditional info like
-        language, episode or movie relationships
-        """
-        for x in sources_and_metas:
+        elif model_class == models.Movie:
+            entity_data = {
+                k: entity_data.get(k, None)
+                for k in ['title', 'year']
+            }
+        else:
+            raise ValueError()
+
+        model, dummy = self.app.db.get_or_create(model_class,
+                                                 **entity_data)
+
+        if isinstance(model, list):
+            import ipdb; ipdb.set_trace(); pass
+
+        return model
+
+    def link_source_with_entity(self, source, entity):
+        attrs = ['episode', 'movie']
+
+        if source.type == 'episode':
+            attr = 'episode'
+        elif source.type == 'movie':
+            attr = 'movie'
+        else:
+            msg = "Unsupported entity type: '{type}'"
+            msg = msg.format(type=source.type)
+            raise ValueError(msg)
+
+        for x in attrs:
+            value = entity if x == attr else None
+            setattr(source, x, value)
+
+    def process(self, *sources_and_tags):
+        for x in sources_and_tags:
             if isinstance(x, models.Source):
-                src, meta = x, None
+                src, tags = x, None
             else:
-                src, meta = x[0], x[1]
-
-            # FIXME: meta is not yet used
-            del meta
-
-            # if meta:
-            #     msg = "Source {source} has metadata: {meta}"
-            #     msg = msg.format(source=src, meta=meta)
-            #     self.logger.debug(msg)
+                src, tags = x[0], x[1]
 
             # Check for older "APIs"
             if src.type == 'unknown':
@@ -204,123 +368,47 @@ class Mediainfo:
                 self.logger.error(msg)
                 src.type = None
 
-            # Sources with 'other' type are not processed
-            # *This* is the way to disable mediainfo processing
-            if src.type not in ('movie', 'episode', None):
-                continue
+            # Extract entity data
+            try:
+                entity_data, metadata = parse(
+                    src.name, extra_tags=tags, type_hint=src.type)
 
-            info = self.get_mediainfo(src)
-            if src.type and src.type != info['type']:
-                msg = "Type missmatch for '{source}': {type1} != {type2}"
-                msg = msg.format(
-                    source=src, type1=src.type, type2=info['type'])
+            except UnknownEntityTypeError as e:
+                msg = "Unknow entity type in '{source}': {e}"
+                msg = msg.format(source=src, e=str(e))
                 self.logger.warning(msg)
                 continue
 
-            # Update src's type and language
-            info_type = info.get('type')
-            if src.language is None and info_type is not None:
-                try:
-                    src.type = info['type']
-                except ValueError as e:
-                    msg = "Guessed type for {src} is invalid: {type}"
-                    msg = msg.format(src=src.name, type=info_type)
-                    self.logger.warning(msg)
+            except ParseError as e:
+                msg = "Unable to indentify entity in '{source}': {e}"
+                msg = msg.format(source=src, e=str(e))
+                self.logger.warning(msg)
+                continue
 
-            info_lang = info.get('language')
-            if src.language is None and info_lang is not None:
-                try:
-                    src.language = info['language']
-                except ValueError as e:
-                    msg = "Guessed language for {src} is invalid: {language}"
-                    msg = msg.format(src=src.name, language=info_lang)
-                    self.logger.warning(msg)
+            # Update source type
+            # FIXME: Set source language from provider default language
+            src.type = entity_data['type']
 
-            # ... but delete the old ones first
+            # Create entity from data
+            try:
+                entity = self.entity_from_data(entity_data)
+                self.link_source_with_entity(src, entity)
+                self.app.db.session.add(entity)
+            except IncompleteEntityDataError as e:
+                msg = "Incomplete entity data for '{source}'"
+                msg = msg.format(source=src.name)
+                self.logger.warning(msg)
+
+            # Delete old tags
             #
             # Warning: delete operation needs synchronize_session parameter.
             # Possible values are 'fetch' or False, both work as expected but
             # 'fetch' is slightly faster.
             # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
-            if src.id:
-                tags = src.tags
-                tags = tags.filter(
-                    models.SourceTag.key.startswith('mediainfo.'))
-                tags.delete(synchronize_session='fetch')
+            src.tags.filter(
+                models.SourceTag.key.in_(Tags.values())
+            ).delete(synchronize_session='fetch')
 
-            # ... ok, create links now
-            for (k, v) in info.items():
-                if k in ('type', 'language'):
-                    continue
-
-                if info['type'] == 'episode' and \
-                   k in ('series', 'year', 'season', 'episode-number'):
-                    continue
-
-                if info['type'] == 'movie' and \
-                   k in ('title', 'year'):
-                    continue
-
-                src.tags.append(models.SourceTag('mediainfo.'+k, v))
-
-            # Get or create specilized model. There is no need to check if it
-            # gets created, will be added to session when it gets linked to its
-            # source
-            if src.type in ('movie', 'episode'):
-                try:
-                    entity = self.entity_from_info(info)
-                except ValueError as e:
-                    msg = ("unable to get specilized data for "
-                           "'{source}': {reason}")
-                    self.logger.warning(msg.format(source=src, reason=e))
-                    continue
-
-            # Link source and specialized_source
-            if src.type == 'movie':
-                src.movie = entity
-                src.episode = None
-
-            elif src.type == 'episode':
-                src.movie = None
-                src.episode = entity
-
-        # Apply changes
-        self._app.db.session.commit()
-
-    def entity_from_info(self, info):
-        if info['type'] == 'episode':
-            try:
-                model = models.Episode
-                arguments = {
-                    'series': model.normalize_series(info['series']),
-                    'season': int(info.get('season', '0')),
-                    'number': int(info['episode_number']),
-                    'year': int(info.get('year', '0')) or None
-                }
-
-            except KeyError:
-                msg = "Mediainfo data for episode source is incomplete"
-                raise ValueError(msg)
-
-        elif info['type'] == 'movie':
-            try:
-                model = models.Movie
-                arguments = {
-                    'title': model.normalize_title(info['title']),
-                    'year': int(info.get('year', '0')) or None
-                }
-            except KeyError:
-                msg = "Mediainfo data for movie source is incomplete"
-                raise ValueError(msg)
-
-        else:
-            raise ValueError('invalid type in info data: ' + info['type'])
-
-        ret, created = self._app.db.get_or_create(model, **arguments)
-        if created:
-            self._app.db.session.add(ret)
-
-        return ret
-
-    def _on_source_batch(self, sender, sources):
-        self.process(*sources)
+            # Create new tags
+            for (k, v) in metadata.items():
+                src.tags.append(models.SourceTag(k, v))

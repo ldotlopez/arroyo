@@ -87,7 +87,7 @@ class CompatFilter(pluginlib.IterableFilter):
             return isinstance(item.entity, models.Episode)
 
         elif type == 'movie':
-            return isinstance(item.entity, models.Episode)
+            return isinstance(item.entity, models.Movie)
 
     def filter_state(self, state, item):
         # Don't exclude anything

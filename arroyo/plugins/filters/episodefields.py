@@ -35,7 +35,7 @@ class Filter(pluginlib.QuerySetFilter):
         # 'series' must be normalized
         # FIXME: Should this be there?
         if key == 'series' or key.startswith('series'):
-            value = self.APPLIES_TO.normalize_series(value)
+            value = self.APPLIES_TO.normalize('series', value)
 
         # 'year', 'season' and 'episode' are integers
         if (key == 'year' or key.startswith('year-') or

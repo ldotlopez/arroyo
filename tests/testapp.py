@@ -47,8 +47,10 @@ class TestApp(core.Arroyo):
                 pass
 
             self.db.session.add(src)
-            if src.type:
-                self.mediainfo.process(src)
+
+        with_type = [x for x in srcs if x.type]
+        if with_type:
+            self.mediainfo.process(*with_type)
 
         self.db.session.commit()
 

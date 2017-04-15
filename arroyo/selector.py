@@ -7,11 +7,7 @@ import itertools
 import types
 
 
-from appkit import (
-    extensionmanager,
-    logging
-)
-import guessit
+from appkit import logging
 
 
 import arroyo.exc
@@ -19,6 +15,7 @@ from arroyo import (
     coretypes,
     importer,
     kit,
+    mediainfo,
     models,
 )
 
@@ -39,68 +36,47 @@ class Selector:
         self.app.register_extension_point(Sorter)
 
     def _query_params_from_keyword(self, keyword, type_hint=None):
-        def get_episode(info):
-            assert info['type'] == 'episode'
-
-            confident = (
-                'title' in info and
-                'season' in info and
-                'episode' in info)
-
-            return confident, dict(
-                series=info.get('title', None),
-                year=info.get('year', None),
-                season=info.get('season', None),
-                episode=info.get('episode', None),
-                quality=info.get('screen_size', None),
-                codec=info.get('video_codec', None)
-            )
-
-        def get_movie(info):
-            assert info['type'] == 'movie'
-
-            confident = (
-                'title' in info and
-                'year' in info)
-
-            return confident, dict(
-                title=info.get('title', None),
-                year=info.get('year', None),
-                quality=info.get('screen_size', None),
-                codec=info.get('video_codec', None)
-            )
-
-        def get_source(string):
-            words = string.lower().split()
-            words = [x.strip() for x in words]
-            words = [x for x in words if x]
-            return True, {
-                'name-glob': '*' + '*'.join(words) + '*'
+        try:
+            entity, metadata = mediainfo.parse(
+                keyword, type_hint=type_hint)
+            keyword_params = {
+                key: str(value)
+                for (key, value) in entity.items()
+                if value
             }
 
-        guessed_info = guessit.guessit(
-            keyword,
-            options={'type': type_hint})
+        except mediainfo.ParseError as e:
+            words = keyword.lower().split()
+            words = [x.strip() for x in words]
+            words = [x for x in words if x]
 
-        guessed_type = guessed_info['type']
+            keyword_params = {
+                'name-glob': '*' + '*'.join(words) + '*'
+            }
+            metadata = {}
 
-        if guessed_type == 'movie':
-            confident, params = get_movie(guessed_info)
-        elif guessed_type == 'episode':
-            confident, params = get_episode(guessed_info)
-        else:
-            confident, params = get_source(keyword)
+        # FIXME: Add 'reverse' matching HANDLERS to Filter extension
+        # Keep in sync with filters from arroyo.plugins.filters.mediainfo
+        reverse_filters = [
+            (mediainfo.Tags.VIDEO_CODEC, 'codec'),
+            (mediainfo.Tags.MEDIA_CONTAINER, 'container'),
+            (mediainfo.Tags.MIMETYPE, 'mimetype'),
+            (mediainfo.Tags.RELEASE_GROUP, 'release-group'),
+            (mediainfo.Tags.VIDEO_CODEC, 'codec'),
+            (mediainfo.Tags.VIDEO_FORMAT, 'format'),
+            (mediainfo.Tags.VIDEO_SCREEN_SIZE, 'quality'),
+        ]
 
-        if type_hint:
-            confident = True
+        metadata_params = {
+            param: metadata[mediainfo_tag]
+            for (mediainfo_tag, param) in reverse_filters
+            if mediainfo_tag in metadata
+        }
 
-        if confident:
-            params['type'] = guessed_type
-        else:
-            dummy, params = get_source(keyword)
-            params['type'] = 'source'
+        params = {}
+        params.update(metadata_params)
+        params.update(keyword_params)
 
-        params = {k: str(v) for (k, v) in params.items() if v}
         return params
 
     def _default_query_params_from_config(self, type):

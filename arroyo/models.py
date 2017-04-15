@@ -113,8 +113,9 @@ class Source(sautils.Base):
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
 
-    @staticmethod
-    def from_data(name, **kwargs):
+    # FIXME: Delete this method
+    @classmethod
+    def from_data(cls, name, **kwargs):
         kwargs.pop('_discriminator', None)
 
         now = utils.now_timestamp()
@@ -329,29 +330,40 @@ class Episode(sautils.Base):
     class Formats:
         DEFAULT = '{series_with_year} S{season:02d}E{number:02d}'
 
-    @staticmethod
-    def from_data(series, season, number, **kwargs):
-        ret = Episode()
-        ret.series = series
-        ret.title = season
-        ret.number = number
-
-        for (attr, value) in kwargs.items():
-            if hasattr(ret, attr):
-                setattr(ret, attr, value)
-
-        return ret
-
     @classmethod
-    def normalize_series(cls, series):
-        if not isinstance(series, str) or not series:
-            raise ValueError(series)
+    def normalize(cls, key, value):
 
-        return series.lower()
+        # Nullables
+        if key == 'year' and value is None:
+            return None
 
-    @validates('series')
-    def validate_series(self, key, value):
-        return self.normalize_series(value)
+        # Normalization
+        if key == 'series':
+            value = value.lower()
+            if not value:
+                raise ValueError(value)
+
+        elif key in ['season', 'number', 'year']:
+            value = int(value)
+            if value < 0:
+                raise ValueError(value)
+
+        else:
+            ValueError(repr(key) + '=' + repr(value))
+
+        return value
+
+    @validates('series', 'year', 'season', 'number')
+    def validate(self, key, value):
+        return self.normalize(key, value)
+
+    def is_complete(self):
+        needed = ['series', 'season', 'number']
+        for attr in needed:
+            if not hasattr(self, attr) or getattr(self, attr) is None:
+                return False
+
+        return True
 
     def as_dict(self):
         return {k: v for (k, v) in self}
@@ -370,6 +382,7 @@ class Episode(sautils.Base):
         return fmt.format(**d)
 
     def __iter__(self):
+        # FIXME: use self.__class__.__table__.columns.__iter__
         keys = ['id', 'series', 'year', 'season', 'number']
         for k in keys:
             yield (k, getattr(self, k))
@@ -428,29 +441,42 @@ class Movie(sautils.Base):
     class Formats:
         DEFAULT = '{title_with_year}'
 
-    @staticmethod
-    def from_data(title, **kwargs):
-        ret = Movie()
-        ret.title = title
-
-        for (attr, value) in kwargs.items():
-            if hasattr(ret, attr):
-                setattr(ret, attr, value)
-
-        return ret
-
     @classmethod
-    def normalize_title(cls, title):
-        if not isinstance(title, str) or not title:
-            raise ValueError(title)
+    def normalize(cls, key, value):
+        # Nullables
+        if key == 'year' and value is None:
+            return None
 
-        return title.lower()
+        # Real normalization
+        if key == 'title':
+            value = value.lower()
+            if not value:
+                raise ValueError(value)
 
-    @validates('title')
-    def validate_title(self, key, value):
-        return self.normalize_title(value)
+        elif key == 'year':
+            value = int(value)
+            if value < 0:
+                raise ValueError(value)
+
+        else:
+            ValueError(repr(key) + '=' + repr(value))
+
+        return value
+
+    @validates('title', 'year')
+    def validate(self, key, value):
+        return self.normalize(key, value)
+
+    def is_complete(self):
+        needed = ['title']
+        for attr in needed:
+            if not hasattr(self, attr) or getattr(self, attr) is None:
+                return False
+
+        return True
 
     def as_dict(self):
+        # FIXME: change definition of iter
         return {k: v for (k, v) in self}
 
     def format(self, fmt=Formats.DEFAULT, extra_data={}):

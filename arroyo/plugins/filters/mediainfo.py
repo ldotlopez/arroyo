@@ -1,10 +1,14 @@
 # -*- coding: utf-8 -*-
 
+# FIXME:
+# Keep in sync with method Selector._query_params_from_keyword
 
 import re
 from appkit import logging
-from arroyo import pluginlib
-
+from arroyo import (
+    mediainfo,
+    pluginlib
+)
 
 models = pluginlib.models
 
@@ -16,7 +20,7 @@ class CodecFilter(pluginlib.IterableFilter):
     HANDLES = ['codec']
 
     def filter(self, key, value, item):
-        item_video_codec = item.tag_dict.get('mediainfo.video_codec', '')
+        item_video_codec = item.tag_dict.get(mediainfo.Tags.VIDEO_CODEC, '')
         return (value.lower() == item_video_codec.lower())
 
 
@@ -44,8 +48,10 @@ class Container(pluginlib.IterableFilter):
         else:
             value = [value]
 
-        container = item.tag_dict.get('mediainfo.container', '').lower()
-        mimetype = item.tag_dict.get('mediainfo.mimetype', '').lower()
+        container = item.tag_dict.get(
+            mediainfo.Tags.MEDIA_CONTAINER, '').lower()
+        mimetype = item.tag_dict.get(
+            mediainfo.Tags.MIMETYPE, '').lower()
 
         # Container can be a list for some broken sources like:
         # Foo.S01.E01.720p.HDTV.X264-DIMENSION.mkv[eztv].avi
@@ -68,7 +74,6 @@ class QualityFilter(pluginlib.IterableFilter):
 
     APPLIES_TO = models.Source
     HANDLES = ['quality']
-
     _SUPPORTED = ['1080p', '720p', '480p', 'hdtv']
 
     def filter(self, key, value, item):
@@ -86,8 +91,10 @@ class QualityFilter(pluginlib.IterableFilter):
 
             raise ValueError(msg)
 
-        screen_size = item.tag_dict.get('mediainfo.screen_size', '').lower()
-        fmt = item.tag_dict.get('mediainfo.format', '').lower()
+        screen_size = item.tag_dict.get(
+            mediainfo.Tags.VIDEO_SCREEN_SIZE, '').lower()
+        fmt = item.tag_dict.get(
+            mediainfo.Tags.VIDEO_FORMAT, '').lower()
 
         # Check for plain HDTV (in fact it means no 720p or anything else)
         if value == 'hdtv':
@@ -115,12 +122,12 @@ class ReleaseGroupFilter(pluginlib.IterableFilter):
             if not isinstance(value, list):
                 value = [x.strip() for x in value.split(',')]
 
-        groups = [x.lower() for x in value]
-        if not groups:
+        item_rg = item.tag_dict.get(mediainfo.Tags.RELEASE_GROUP, '').lower()
+        if not item_rg:
             return False
 
-        item_rg = item.tag_dict.get('mediainfo.release_group', '').lower()
-        if not item_rg:
+        groups = [x.lower() for x in value]
+        if not groups:
             return False
 
         return item_rg in groups
@@ -143,7 +150,9 @@ class RipFormatFilter(pluginlib.IterableFilter):
         if not value or not re.match(r'^[0-9a-z\-]+$', value, re.IGNORECASE):
             raise ValueError(value)
 
-        itemformat = item.tag_dict.get('mediainfo.format', '')
+        itemformat = item.tag_dict.get(
+            mediainfo.Tags.VIDEO_FORMAT, '')
+
         if not isinstance(itemformat, str):
             msg = "Item {item} has multiple formats ({formats}). Not supported"
             msg = msg.format(item=item, formats=repr(itemformat))

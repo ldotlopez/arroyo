@@ -16,6 +16,9 @@ class Epublibre(pluginlib.Provider):
     ]
 
     def get_query_uri(self, query):
+        if query['type'] != 'ebook':
+            return
+
         q = query.base_string
         if not q:
             return

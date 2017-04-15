@@ -1,8 +1,10 @@
 # -*- coding: utf-8 -*-
 
 
-from arroyo import pluginlib
-from arroyo.pluginlib import downloads
+from arroyo import (
+    bittorrentlib,
+    pluginlib
+)
 
 
 from urllib import parse
@@ -100,7 +102,7 @@ class Nyaa(pluginlib.Provider):
         }]
 
     def parse_torrent_file(self, buff):
-        magnet = downloads.magnet_from_torrent_data(buff)
+        magnet = bittorrentlib.magnet_from_torrent_data(buff)
         parsed = parse.urlparse(magnet)
         qs = parse.parse_qs(parsed.query)
 

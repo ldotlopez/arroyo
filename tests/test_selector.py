@@ -19,7 +19,7 @@ class QueryBuilderTest(unittest.TestCase):
             type='episode',
             series='the oa',
             season='3',
-            episode='2',
+            number='2',
             state='none'
         ))
         self.assertEqual(q1, q2)
@@ -39,7 +39,7 @@ class QueryBuilderTest(unittest.TestCase):
 
         self.assertEqual(q1.asdict(), dict(
             type='movie',
-            title='Flash Gordon',
+            title='flash gordon',
             year='1980',
             state='none'
         ))
@@ -52,7 +52,9 @@ class QueryBuilderTest(unittest.TestCase):
         )
 
     def test_mediainfo(self):
-        app = testapp.TestApp()
+        app = testapp.TestApp({
+            'plugins.filters.mediainfo.enabled': True
+        })
         q = app.selector.query_from_args(keyword='series s01e01 720p x264 FuM[ettv]')
         self.assertEqual(
             q['quality'], '720p'
@@ -286,7 +288,6 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugins.filters.episodefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True,
             'plugins.sorters.basic.enabled': True,
-            'log-level': 'DEBUG'
         })
 
     def test_series(self):
