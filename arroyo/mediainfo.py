@@ -4,7 +4,7 @@ from arroyo import models
 
 
 import functools
-
+import warnings
 
 import babelfish
 import guessit
@@ -19,6 +19,7 @@ class Tags:
     AUDIO_PROFILE = _SOURCE_TAGS_PREFIX + 'audio.profile'
     BROADCAST_DATE = _SOURCE_TAGS_PREFIX + 'broadcast.date'
     EPISODE_COUNT = _SOURCE_TAGS_PREFIX + 'episode.count'
+    EPISODE_DETAILS = _SOURCE_TAGS_PREFIX + 'episode.details'
     EPISODE_TITLE = _SOURCE_TAGS_PREFIX + 'episode.title'
     GUESSIT_OTHER = _SOURCE_TAGS_PREFIX + 'guessit.other'
     GUESSIT_UUID = _SOURCE_TAGS_PREFIX + 'guessit.uuid'
@@ -55,6 +56,7 @@ METADATA_RULES = [
     ('country', Tags.MEDIA_COUNTRY),
     ('date', Tags.BROADCAST_DATE),
     ('episode_count', Tags.EPISODE_COUNT),
+    ('episode_details', Tags.EPISODE_DETAILS),
     ('episode_title', Tags.EPISODE_TITLE),
     ('format', Tags.VIDEO_FORMAT),
     ('language', Tags.MEDIA_LANGUAGE),
@@ -215,9 +217,8 @@ def _guessit_parse(name, extra_tags=None, type_hint=None):
 
     # Fixes: Reformat date as episode number for episodes if needed
     if info['type'] == 'episode' and 'date' in info:
-        # FIXME: should we fix season??
         if not info.get('season'):
-            info['season'] = 1
+            info['season'] = 0
 
         # Reformat episode number
         if not info.get('episode'):
@@ -277,7 +278,17 @@ def parse(name, extra_tags=None, type_hint=None):
 
     metadata = extract_items(info, METADATA_RULES)
 
-    # FIXME: Warn about leftovers
+    # FIXME: Using warnings module instead of logger
+    if info:
+        leftovers = ['{}={}'.format(k, v) for k, v in info.items()]
+        leftovers = ', '.join(leftovers)
+        msg = "BUG: Unhandled information for {type} '{name}': {leftovers}."
+        msg = msg.format(
+            name=name,
+            leftovers=leftovers,
+            type=entity_data['type'],
+        )
+        warnings.warn(msg)
 
     return entity_data, metadata
 
@@ -294,7 +305,7 @@ class Mediainfo:
         self.process(*sources)
 
     @functools.lru_cache(maxsize=16)
-    def get_default_language_for_provider(self, provider):
+    def default_language_for_provider(self, provider):
         k = 'plugins.provider.' + provider + '.default-language'
         return self.app.settings.get(k, default=None)
 
@@ -331,9 +342,7 @@ class Mediainfo:
 
         model, dummy = self.app.db.get_or_create(model_class,
                                                  **entity_data)
-
-        if isinstance(model, list):
-            import ipdb; ipdb.set_trace(); pass
+        assert not isinstance(model, list)
 
         return model
 
@@ -386,8 +395,11 @@ class Mediainfo:
                 continue
 
             # Update source type
-            # FIXME: Set source language from provider default language
             src.type = entity_data['type']
+
+            # Update source type if it's missing
+            if not src.language:
+                src.language = self.default_language_for_provider(src.provider)
 
             # Create entity from data
             try:

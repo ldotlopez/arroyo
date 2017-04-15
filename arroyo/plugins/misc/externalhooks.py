@@ -55,7 +55,7 @@ class ExternalHooks(pluginlib.Service):
         state_name = STATES[source.state]
 
         data = {
-            'source': source.as_dict(),
+            'source': source.asdict(),
             'info': self.app.downloads.get_info(source)
         }
         data['source']['state'] = state_name

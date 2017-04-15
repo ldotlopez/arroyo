@@ -26,6 +26,59 @@ from sqlalchemy.orm import (
 )
 
 
+class _BaseModel:
+    REQUIRED_FIELDS = []
+    OPTIONAL_FIELDS = []
+
+    class Formats:
+        DEFAULT = '{classname} at 0x{hexid}'
+
+    def __iter__(self):
+        yield from (
+            self.__class__._REQUIRED_FIELDS +
+            self.__class__._OPTIONAL_FIELDS
+        )
+
+    def format(self, fmt=Formats.DEFAULT):
+        table = {
+            'classname': str(self.__class__),
+            'hexid': hex(id(self))
+        }
+        return fmt.format(**table)
+
+    def asdict(self):
+        return {
+            attr: getattr(self, attr)
+            for attr in self
+        }
+
+    def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(other)
+
+        return self.id.__eq__(other.id)
+
+    def __lt__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(other)
+
+        return self.id.__lt__(other.id)
+
+    def __repr__(self):
+        return '<' + self.format() + '>'
+
+    def __str__(self):
+        return self.__unicode__()
+
+
+class _EntityMixin:
+    def is_confident(self):
+        raise NotImplementedError()
+
+    def is_complete(self):
+        raise NotImplementedError()
+
+
 Variable = keyvaluestore.keyvaluemodel('Variable', sautils.Base, dict({
     '__doc__': "Define variables.",
     '__table_args__': (schema.UniqueConstraint('key'),)
@@ -144,24 +197,6 @@ class Source(sautils.Base):
     def needs_postprocessing(self):
         return and_(self.urn.is_(None), ~self.uri.is_(None))
 
-    # @entity.expression
-    # def entity(self):
-    #     return func.coalesce(self.episode, self.movie)
-
-    # @hybrid_property
-    # def is_active(self):
-    #     return self.state not in [State.NONE, State.ARCHIVED]
-
-    @validates('language')
-    def validate_language(self, key, value):
-        if value is None:
-            return None
-
-        if not isinstance(value, str) or not _check_language(value):
-            raise ValueError(value)
-
-        return value.lower()
-
     @hybrid_property
     def share_ratio(self):
         seeds = self.seeds if self.seeds is not None else 0
@@ -189,24 +224,77 @@ class Source(sautils.Base):
     def state_symbol(self):
         return self._SYMBOL_TABLE.get(self.state, ' ')
 
-    @validates('type')
-    def validate_type(self, key, value):
-        if value is None:
-            return None
+    @classmethod
+    def normalize(cls, key, value):
+        if key in ['name', 'provider', 'urn', 'uri']:
+            value = str(value)
+            if not value:
+                raise ValueError(value)
 
-        if not isinstance(value, str) or not _check_type(value):
+            return value
+
+        elif key in ['created', 'last_seen']:
+            return int(value)
+
+        elif key in ['size', 'seeds', 'leechers']:
+            if value is None:
+                return None
+
+            return int(key)
+
+        elif key == 'language':
+            if value is None:
+                return None
+
+            value = str(value)
+
+            if not re.match(r'^...(\-..)?$', value):
+                raise ValueError(value)
+
+            return value
+
+        elif key == 'type':
+            if value is None:
+                return None
+
+            value = str(value)
+
+            if value in (
+                    'application',
+                    'book',
+                    'episode',
+                    'game',
+                    'movie',
+                    'music',
+                    'other',
+                    'xxx'):
+                return value
+
             raise ValueError(value)
 
-        return value.lower()
+        else:
+            raise Exception(key)
 
-    def as_dict(self):
-        ret = {k: v for (k, v) in self if k != 'tags'}
+    @validates('language', 'type')
+    def validate(self, key, value):
+        if (key == 'urn' and self.uri or
+                key == 'uri' and self.urn):
+            raise ValueError(value)
+
+        return self.normalize(key, value)
+
+    def asdict(self):
+        ret = {
+            attr: getattr(self, attr)
+            for attr in self
+            if attr != 'tags'
+        }
         ret['tags'] = self.tag_dict
 
         return ret
 
     def format(self, fmt=Formats.DEFAULT, extra_data={}):
-        data = self.as_dict()
+        data = self.asdict()
         data['seeds'] = data.get('seeds') or '-'
         data['leechers'] = data.get('leechers') or '-'
         data['language'] = data.get('language') or 'unknow'
@@ -218,22 +306,20 @@ class Source(sautils.Base):
     def __eq__(self, other):
         return self.id.__eq__(other.id)
 
+    def __lt__(self, other):
+        return self.id.__lt__(other.id)
+
+    # FIXME: Delete this method
     def __hash__(self):
         return hash((self.id, self.urn, self.uri))
 
     def __iter__(self):
-        keys = [
+        yield from [
             'age', 'created', 'entity', 'episode', 'episode_id', 'id',
             'language', 'last_seen', 'leechers', 'movie', 'movie_id', 'name',
             'provider', 'seeds', 'share_ratio', 'size', 'state',
             'state_symbol', 'tags', 'type', 'type', 'uri', 'urn'
         ]
-
-        for k in keys:
-            yield (k, getattr(self, k))
-
-    def __lt__(self, other):
-        return self.id.__lt__(other.id)
 
     def __str__(self):
         return self.__unicode__()
@@ -339,11 +425,14 @@ class Episode(sautils.Base):
 
         return True
 
-    def as_dict(self):
-        return {k: v for (k, v) in self}
+    def asdict(self):
+        return {
+            attr: getattr(self, attr)
+            for attr in self
+        }
 
     def format(self, fmt=Formats.DEFAULT, extra_data={}):
-        d = self.as_dict()
+        d = self.asdict()
 
         if self.year:
             series_with_year = "{series} ({year})"
@@ -356,10 +445,7 @@ class Episode(sautils.Base):
         return fmt.format(**d)
 
     def __iter__(self):
-        # FIXME: use self.__class__.__table__.columns.__iter__
-        keys = ['id', 'series', 'year', 'season', 'number']
-        for k in keys:
-            yield (k, getattr(self, k))
+        yield from ['id', 'series', 'year', 'season', 'number']
 
     def __repr__(self):
         d = {}
@@ -449,12 +535,14 @@ class Movie(sautils.Base):
 
         return True
 
-    def as_dict(self):
-        # FIXME: change definition of iter
-        return {k: v for (k, v) in self}
+    def asdict(self):
+        return {
+            attr: getattr(self, attr)
+            for attr in self
+        }
 
     def format(self, fmt=Formats.DEFAULT, extra_data={}):
-        d = self.as_dict()
+        d = self.asdict()
 
         if self.year:
             title_with_year = "{title} ({year})"
@@ -467,9 +555,7 @@ class Movie(sautils.Base):
         return fmt.format(**d)
 
     def __iter__(self):
-        keys = ['id', 'title', 'year']
-        for k in keys:
-            yield (k, getattr(self, k))
+        yield from ['id', 'title', 'year']
 
     def __repr__(self):
         d = {}
@@ -485,21 +571,3 @@ class Movie(sautils.Base):
 
     def __unicode__(self):
         return self.format()
-
-
-def _check_language(lang):
-    return (lang is None or re.match(r'^...(\-..)?$', lang))
-
-
-def _check_type(typ):
-    return typ in (
-        None,
-        'application',
-        'book',
-        'episode',
-        'game',
-        'movie',
-        'music',
-        'other',
-        'xxx',
-    )

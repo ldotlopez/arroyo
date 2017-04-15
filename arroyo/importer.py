@@ -573,12 +573,16 @@ class Importer:
         Args:
           psources - List of data (or pseudo-sources).
         """
+        now = utils.now_timestamp()
+
         ret = []
         for psrc in psources:
             discriminator = psrc.pop('_discriminator')
             assert discriminator is not None
 
             meta = psrc.pop('meta', {})
+            psrc['created'] = psrc.get('created') or now
+            psrc['last_seen'] = psrc.get('last_seen') or now
             ret.append(_ProcessingContext(
                 data=psrc,
                 discriminator=discriminator,

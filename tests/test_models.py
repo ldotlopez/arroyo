@@ -227,28 +227,28 @@ class SourceModelTest(unittest.TestCase):
         )
 
     def test_language(self):
-        s1 = mock_source(name='s1', language='xxx-xx')
+        mock_source(name='s1', language='xxx-xx')
 
         with self.assertRaises(ValueError):
-            s2 = mock_source(name='s1', language='spanish')
+            mock_source(name='s1', language='spanish')
 
         with self.assertRaises(ValueError):
-            s2 = mock_source(name='s1', language=object())
+            mock_source(name='s1', language=object())
 
     def test_type(self):
-        s1 = mock_source(name='s1', type='movie')
+        mock_source(name='s1', type='movie')
 
         with self.assertRaises(ValueError):
-            s2 = mock_source(name='s1', type='foo')
+            mock_source(name='s1', type='foo')
 
         with self.assertRaises(ValueError):
-            s2 = mock_source(name='s1', type=object())
+            mock_source(name='s1', type=object())
 
-    def test_as_dict(self):
+    def test_asdict(self):
         s = mock_source(name='foo')
         s.tags.append(models.SourceTag(key='a', value='b'))
 
-        d = s.as_dict()
+        d = s.asdict()
         self.assertTrue(isinstance(d['tags'], dict))
         self.assertTrue('tag_dict' not in d)
 

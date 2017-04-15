@@ -352,7 +352,7 @@ def tabulate_groups(groups, *args, headers=None, **kwargs):
 
 
 def tabulated_data_from_source(source):
-    ret = source.as_dict()
+    ret = source.asdict()
 
     ret.update({
         'state_symbol': '[{}]'.format(source.state_symbol),
