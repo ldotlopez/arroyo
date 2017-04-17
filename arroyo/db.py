@@ -4,11 +4,31 @@
 from arroyo import models
 
 
+import contextlib
+import sys
+
+import tqdm
 from appkit.db import sqlalchemyutils as sautils
 
 
+@contextlib.contextmanager
+def _mute_logger(logger):
+    mute = 51
+    prev = logger.getEffectiveLevel()
+    logger.setLevel(mute)
+    yield
+    logger.setLevel(prev)
+
+
+def _tqdm(*args, **kwargs):
+    kwargs_ = dict(dynamic_ncols=True, disable=not sys.stderr.isatty())
+    kwargs_.update(kwargs)
+
+    return tqdm.tqdm(*args, **kwargs_)
+
+
 class Db:
-    def __init__(self, db_uri='sqlite:////:memory:'):
+    def __init__(self, app, db_uri='sqlite:////:memory:'):
 
         # sqlalchemy scoped session mode
 
@@ -26,18 +46,14 @@ class Db:
         # self._sess = sessmaker()
 
         # Add check_same_thread=False to db_uri.
-        # This is a _hack_ required by the webui plugin.
+        # FIXME: This is a _hack_ required by the webui plugin.
         if '?' in db_uri:
             db_uri += '&check_same_thread=False'
         else:
             db_uri += '?check_same_thread=False'
 
-        self._sess = sautils.create_session(db_uri)
-        self.fixes()
-
-    @property
-    def session(self):
-        return self._sess
+        self.app = app
+        self.session = sautils.create_session(db_uri)
 
     def install_model(self, model):
         model.metadata.create_all(self.session.connection())
@@ -68,19 +84,20 @@ class Db:
 
     def reset(self):
         for model in [models.Source, models.Movie, models.Episode]:
-            for src in self._sess.query(model):
-                self._sess.delete(src)
-        self._sess.commit()
+            for src in self.session.query(model):
+                self.session.delete(src)
+        self.session.commit()
 
     def update_all_states(self, state):
-        for src in self._sess.query(models.Source):
+        for src in self.session.query(models.Source):
             src.state = state
         if state == models.State.NONE:
-            self._sess.query(models.Selection).delete()
-        self._sess.commit()
+            self.session.query(models.Selection).delete()
+        self.session.commit()
 
     def search(self, all_states=False, **kwargs):
-        query = sautils.query_from_params(self._sess, models.Source, **kwargs)
+        query = sautils.query_from_params(self.session, models.Source,
+                                          **kwargs)
         if not all_states:
             query = query.filter(
                 models.Source.state == models.State.NONE)
@@ -88,68 +105,112 @@ class Db:
         return query
 
     def get_active(self):
-        query = self._sess.query(models.Source)
-        query = query.filter(~models.Source.state.in_(
-            (models.State.NONE, models.State.ARCHIVED)))
+        qs = self.session.query(models.Source)
+        qs = qs.filter(
+            ~models.Source.state.in_(
+                (models.State.NONE, models.State.ARCHIVED)
+            )
+        )
 
-        return query
+        return qs
 
-    def fixes(self):
-        self._fix_entity_case()
+    def migrations(self):
+        migrations = [
+            ('01_normalize-entities',
+             self._migration_normalize_entities),
 
-    def _fix_entity_case(self):
-        def _normalize(string):
-            return string.lower()
+            ('02_delete-entities-with-zero-sources',
+             self._migration_delete_entities_with_zero_sources),
 
-        def _fix_entity_case(model, model_attr,
-                             source_entity_attr,
-                             selection_entity_attr):
-            entity_map = {}
-            entities = self.session.query(model)
-            migration_count = entities.count()
+            ('03_migration_delete_false_selections',
+             self._migration_delete_false_selections)
+        ]
 
-            for (migration_idx, entity) in enumerate(entities):
-                normalized = _normalize(getattr(entity, model_attr))
+        for (name, fn) in migrations:
+            fullname = 'core.db.migration.' + name
+            if not self.app.variables.get(fullname, False):
+                fn()
+                self.app.variables.set(fullname, True)
 
-                if not migration_idx % 10:
-                    print("Migrating {model} {count} of {total}".format(
-                        model=model,
-                        count=migration_idx,
-                        total=migration_count))
+    def _migration_normalize_entities(self):
+        sess = self.app.db.session
 
-                if normalized not in entity_map:
-                    entity_map[normalized] = entity
+        qs = sess.query(models.Source)
+        count = qs.count()
 
-                elif normalized != getattr(entity, model_attr):
-                    for src in entity.sources:
-                        setattr(
-                            src,
-                            source_entity_attr,
-                            entity_map[normalized])
+        msg = "Rebuilding entities"
+        pbar = _tqdm(total=count, desc=msg)
 
-                    if entity.selection:
-                        setattr(
-                            entity.selection,
-                            selection_entity_attr,
-                            entity_map[normalized])
+        with _mute_logger(self.app.mediainfo.logger):
+            self.app.mediainfo.logger.setLevel(51)
 
-                    self.session.delete(entity)
+            for (idx, src) in enumerate(qs):
+                if src.entity:
+                    prev_entity = src.entity
+                    prev_selection = src.entity.selection
+                else:
+                    prev_entity = None
+                    prev_selection = None
 
-        fix_value = self.get(models.Variable, key='db.fixes.entity-case')
-        fix_value = 0 if fix_value is None else fix_value.value
+                self.app.mediainfo.process(src)
 
-        if fix_value > 1:
-            msg = 'Invalid value for {variable}: {value}'
-            msg = msg.format(variable='db.fixes.entity-case', value=fix_value)
-            raise ValueError(msg)
+                # Update previous selection if entity has changed
+                if prev_selection and prev_entity != src.entity:
+                    prev_selection.entity = src.entity
 
-        elif fix_value == 1:
-            return
+                pbar.update()
 
-        else:
-            _fix_entity_case(models.Episode, 'series', 'episode', 'episode')
-            _fix_entity_case(models.Movie, 'title', 'movie', 'movie')
+            sess.commit()
 
-            var = models.Variable(key='db.fixes.entity-case', value=1)
-            self.session.add(var)
-            self.session.commit()
+    def _migration_delete_entities_with_zero_sources(self):
+        sess = self.app.db.session
+
+        # EntitySupport
+        for model in [models.Episode, models.Movie]:
+            qs = sess.query(model)
+            count = qs.count()
+
+            msg = "Delete '{model}'s without sources"
+            msg = msg.format(model=model.__name__)
+            pbar = _tqdm(total=count, desc=msg)
+
+            deleted = 0
+            for (idx, entity) in enumerate(qs):
+                source_count = entity.sources.count()
+                if source_count == 0:
+                    sess.delete(entity)
+                    deleted += 1
+
+                pbar.update()
+
+            # qs = sess.query(model).filter(~model.sources.any())
+            # count = qs.count()
+            # qs.delete(synchronize_session=False)
+            msg = "Deleted {count} '{model}'s"
+            msg = msg.format(count=count, model=model.__name__)
+            print(msg)
+
+        sess.commit()
+
+    def _migration_delete_false_selections(self):
+        sess = self.app.db.session
+
+        source_ids = [x.id for x in sess.query(models.Source)]
+
+        # EntitySupport
+        for model in [models.Episode, models.Movie]:
+            msg = "Deleting false {model} selections from database"
+            msg = msg.format(model=model.__name__)
+            print(msg)
+
+            sess.query(model.SELECTION_MODEL).filter(
+                ~model.SELECTION_MODEL.source_id.in_(source_ids)
+            ).delete(synchronize_session='fetch')
+
+            entity_ids = [x.id for x in sess.query(model)]
+            for selection in sess.query(model.SELECTION_MODEL):
+                if (selection.entity is None or
+                        selection.entity.id not in entity_ids):
+                    sess.delete(selection)
+
+        sess.commit()

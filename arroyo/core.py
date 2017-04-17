@@ -228,7 +228,7 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         )
 
         # Built-in providers
-        self.db = db.Db(self.settings.get('db-uri'))
+        self.db = db.Db(self, self.settings.get('db-uri'))
         self.variables = keyvaluestore.KeyValueManager(models.Variable,
                                                        session=self.db.session)
         self.signals = signaler.Signaler()
@@ -242,6 +242,9 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         # Mediainfo instance is not never used directly, it can be considered
         # as a "service", but it's keep anyway
         self.mediainfo = mediainfo.Mediainfo(self)
+
+        # Once all core services are loaded do db migrations
+        self.db.migrations()
 
         # Load plugins
         plugins = [x[len('plugins.'):-len('.enabled')]

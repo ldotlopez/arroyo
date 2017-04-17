@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 
+import functools
 import re
 import sys
 
@@ -26,57 +27,127 @@ from sqlalchemy.orm import (
 )
 
 
-class _BaseModel:
-    REQUIRED_FIELDS = []
-    OPTIONAL_FIELDS = []
+@functools.lru_cache(maxsize=8)
+def _ensure_model_class(x):
 
-    class Formats:
-        DEFAULT = '{classname} at 0x{hexid}'
+    try:
+        if issubclass(x, sautils.Base):
+            return x
+    except TypeError:
+        pass
 
-    def __iter__(self):
-        yield from (
-            self.__class__._REQUIRED_FIELDS +
-            self.__class__._OPTIONAL_FIELDS
-        )
+    if '.' in x:
+        mod = sys.modules[x]
+        x = x.split('.')[-1]
 
-    def format(self, fmt=Formats.DEFAULT):
-        table = {
-            'classname': str(self.__class__),
-            'hexid': hex(id(self))
-        }
-        return fmt.format(**table)
+    else:
+        mod = sys.modules[__name__]
 
-    def asdict(self):
-        return {
-            attr: getattr(self, attr)
-            for attr in self
-        }
+    cls = getattr(mod, x)
+    issubclass(cls, sautils.Base)
 
-    def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError(other)
-
-        return self.id.__eq__(other.id)
-
-    def __lt__(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError(other)
-
-        return self.id.__lt__(other.id)
-
-    def __repr__(self):
-        return '<' + self.format() + '>'
-
-    def __str__(self):
-        return self.__unicode__()
+    return cls
 
 
-class _EntityMixin:
-    def is_confident(self):
-        raise NotImplementedError()
+# class _BaseModel:
+#     REQUIRED_FIELDS = []
+#     OPTIONAL_FIELDS = []
 
-    def is_complete(self):
-        raise NotImplementedError()
+#     class Formats:
+#         DEFAULT = '{classname} at 0x{hexid}'
+
+#     def __iter__(self):
+#         yield from (
+#             self.__class__._REQUIRED_FIELDS +
+#             self.__class__._OPTIONAL_FIELDS
+#         )
+
+#     def format(self, fmt=Formats.DEFAULT):
+#         table = {
+#             'classname': str(self.__class__),
+#             'hexid': hex(id(self))
+#         }
+#         return fmt.format(**table)
+
+#     def asdict(self):
+#         return {
+#             attr: getattr(self, attr)
+#             for attr in self
+#         }
+
+#     def __eq__(self, other):
+#         if not isinstance(other, self.__class__):
+#             raise TypeError(other)
+
+#         return self.id.__eq__(other.id)
+
+#     def __lt__(self, other):
+#         if not isinstance(other, self.__class__):
+#             raise TypeError(other)
+
+#         return self.id.__lt__(other.id)
+
+#     def __repr__(self):
+#         return '<' + self.format() + '>'
+
+#     def __str__(self):
+#         return self.__unicode__()
+
+
+# class _EntityMixin:
+#     REQUIRED_FIELDS = []
+#     OPTIONAL_FIELDS = []
+
+#     SELECTION_MODEL = None
+
+#     @classmethod
+#     def extract_relevant_data(cls, data):
+#         pass
+
+#     def is_confident(self):
+#         raise NotImplementedError()
+
+#     def is_complete(self):
+#         raise NotImplementedError()
+
+
+class EntityPropertyMixin:
+    """Adds support for `entity` property
+    Useful for Source and Selection
+
+    Classes using this mixin should define the class attribute ENTITY_MAP:
+    ENTITY_MAP = {
+        # Related class (as string or as class): attribute
+        'Episode': 'episode'
+    }
+    """
+
+    ENTITY_MAP = {}
+
+    @hybrid_property
+    def entity(self):
+        entity_attrs = self.ENTITY_MAP.values()
+
+        for attr in entity_attrs:
+            value = getattr(self, attr, None)
+            if value:
+                return value
+
+        return None
+
+    @entity.setter
+    def entity(self, entity):
+        m = {_ensure_model_class(k): v
+             for (k, v) in self.ENTITY_MAP.items()}
+
+        # Check for unknown entity type
+        if entity is not None and entity.__class__ not in m:
+            raise TypeError(entity)
+
+        # Set all entity-attributes correctly
+        for (model, attr) in m.items():
+            value = entity if isinstance(entity, model) else None
+            setattr(self, attr, value)
 
 
 Variable = keyvaluestore.keyvaluemodel('Variable', sautils.Base, dict({
@@ -112,15 +183,15 @@ class State:
     ARCHIVED = 7
 
 
-class Source(sautils.Base):
-    __tablename__ = 'source'
-
+class Source(EntityPropertyMixin, sautils.Base):
     class Formats:
         DEFAULT = '{name}'
         DETAIL = (
             "{name} "
             "(lang: {language}, size: {size}, ratio: {seeds}/{leechers})"
         )
+
+    __tablename__ = 'source'
 
     _SYMBOL_TABLE = {
         State.INITIALIZING: '⋯',
@@ -130,6 +201,11 @@ class Source(sautils.Base):
         State.SHARING: '⇅',
         State.DONE: '✓',
         State.ARCHIVED: '▣'
+    }
+
+    ENTITY_MAP = {  # EntityPropertyMixin
+        'Episode': 'episode',
+        'Movie': 'movie'
     }
 
     # Required
@@ -152,17 +228,18 @@ class Source(sautils.Base):
     type = Column(String, nullable=True)
     language = Column(String, nullable=True)
 
+    # EntitySupport
     episode_id = Column(Integer,
                         ForeignKey('episode.id', ondelete="SET NULL"),
                         nullable=True)
-    episode = relationship("Episode",
+    episode = relationship('Episode',
                            uselist=False,
                            backref=backref("sources", lazy='dynamic'))
 
     movie_id = Column(Integer,
                       ForeignKey('movie.id', ondelete="SET NULL"),
                       nullable=True)
-    movie = relationship("Movie",
+    movie = relationship('Movie',
                          uselist=False,
                          backref=backref("sources", lazy='dynamic'))
 
@@ -181,13 +258,6 @@ class Source(sautils.Base):
     @hybrid_property
     def age(self):
         return utils.now_timestamp() - self.created
-
-    @hybrid_property
-    def entity(self):
-        return (
-            self.episode or
-            self.movie
-        )
 
     @hybrid_property
     def needs_postprocessing(self):
@@ -333,15 +403,19 @@ class Source(sautils.Base):
         return self.format(self.Formats.DEFAULT)
 
 
-class Selection(sautils.Base):
+class Selection(EntityPropertyMixin, sautils.Base):
     __tablename__ = 'selection'
+    ENTITY_MAP = {
+        'Episode': 'episode',
+        'Movie': 'movie'
+    }
 
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
 
     source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
                        nullable=False)
-    source = relationship("Source")
+    source = relationship('Source')
 
     __mapper_args__ = {
         'polymorphic_on': 'type'
@@ -365,15 +439,35 @@ class EpisodeSelection(Selection):
         fmt = '<EpisodeSelection {id} episode:{episode} <-> source:{source}'
         return fmt.format(
             id=self.id,
-            episode=self.episode.__repr__(),
-            source=self.source.__repr__())
+            episode=repr(self.episode),
+            source=repr(self.source))
+
+
+class MovieSelection(Selection):
+    movie_id = Column(Integer,
+                      ForeignKey('movie.id', ondelete="CASCADE"),
+                      nullable=True)
+    movie = relationship("Movie",
+                         backref=backref("selection",
+                                         cascade="all, delete",
+                                         uselist=False))
+
+    __mapper_args__ = {
+        'polymorphic_identity': 'movie'
+    }
+
+    def __repr__(self):
+        fmt = '<MovieSelection {id} movie:{movie} <-> source:{source}'
+        return fmt.format(
+            id=self.id,
+            movie=repr(self.movie),
+            source=repr(self.source))
 
 
 class Episode(sautils.Base):
     __tablename__ = 'episode'
     __table_args__ = (
-        schema.UniqueConstraint('series', 'year', 'season',
-                                'number'),
+        schema.UniqueConstraint('series', 'year', 'season', 'number'),
     )
 
     id = Column(Integer, primary_key=True)
@@ -381,14 +475,14 @@ class Episode(sautils.Base):
     series = Column(String, nullable=False, index=True)
     year = Column(Integer, nullable=True)
     season = Column(Integer, nullable=False)
-    # guessit returns episodeList attribute if more than one episode is
+    # FIXME: guessit returns episodeList attribute if more than one episode is
     # detected, take care of this
     number = Column(Integer, nullable=False)
 
     SELECTION_MODEL = EpisodeSelection
 
     class Formats:
-        DEFAULT = '{series_with_year} S{season:02d}E{number:02d}'
+        DEFAULT = '{series_with_year} s{season:02d} e{number:02d}'
 
     @classmethod
     def normalize(cls, key, value):
@@ -417,14 +511,6 @@ class Episode(sautils.Base):
     def validate(self, key, value):
         return self.normalize(key, value)
 
-    def is_complete(self):
-        needed = ['series', 'season', 'number']
-        for attr in needed:
-            if not hasattr(self, attr) or getattr(self, attr) is None:
-                return False
-
-        return True
-
     def asdict(self):
         return {
             attr: getattr(self, attr)
@@ -448,41 +534,15 @@ class Episode(sautils.Base):
         yield from ['id', 'series', 'year', 'season', 'number']
 
     def __repr__(self):
-        d = {}
-        if self.year is None:
-            d['year'] = '----'
-
-        return self.format(
-            fmt=("<Episode #{id} {series} ({year}) "
-                 "S{season:02d}E{number:02d})>"),
-            extra_data=d)
+        return "<Episode #{id} {fmt}>".format(
+            id=self.id or '??',
+            fmt=self.format())
 
     def __str__(self):
         return self.__unicode__()
 
     def __unicode__(self):
         return self.format()
-
-
-class MovieSelection(Selection):
-    movie_id = Column(Integer,
-                      ForeignKey('movie.id', ondelete="CASCADE"),
-                      nullable=True)
-    movie = relationship("Movie",
-                         backref=backref("selection",
-                                         cascade="all, delete",
-                                         uselist=False))
-
-    __mapper_args__ = {
-        'polymorphic_identity': 'movie'
-    }
-
-    def __repr__(self):
-        fmt = '<MovieSelection {id} movie:{movie} <-> source:{source}'
-        return fmt.format(
-            id=self.id,
-            movie=self.movie.__repr__(),
-            source=self.source.__repr__())
 
 
 class Movie(sautils.Base):
@@ -527,14 +587,6 @@ class Movie(sautils.Base):
     def validate(self, key, value):
         return self.normalize(key, value)
 
-    def is_complete(self):
-        needed = ['title']
-        for attr in needed:
-            if not hasattr(self, attr) or getattr(self, attr) is None:
-                return False
-
-        return True
-
     def asdict(self):
         return {
             attr: getattr(self, attr)
@@ -558,13 +610,9 @@ class Movie(sautils.Base):
         yield from ['id', 'title', 'year']
 
     def __repr__(self):
-        d = {}
-        if self.year is None:
-            d['year'] = '----'
-
-        return self.format(
-            fmt="<Movie #{id} {title} ({year})>",
-            extra_data=d)
+        return "<Movie #{id} {fmt}>".format(
+            id=self.id or '??',
+            fmt=self.format())
 
     def __str__(self):
         return self.__unicode__()

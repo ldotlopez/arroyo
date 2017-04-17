@@ -27,10 +27,12 @@ class Tags:
     MEDIA_COUNTRY = _SOURCE_TAGS_PREFIX + 'media.country'
     MEDIA_LANGUAGE = _SOURCE_TAGS_PREFIX + 'media.language'
     MIMETYPE = _SOURCE_TAGS_PREFIX + 'mimetype'
+    MOVIE_EDITION = _SOURCE_TAGS_PREFIX + 'edition'
     RELEASE_DISTRIBUTORS = _SOURCE_TAGS_PREFIX + 'release.distributors'
     RELEASE_GROUP = _SOURCE_TAGS_PREFIX + 'release.group'
     RELEASE_PROPER = _SOURCE_TAGS_PREFIX + 'release.proper'
     STREAMING_SERVICE = _SOURCE_TAGS_PREFIX + 'streaming.service'
+    SUBTITLES_LANGUAGE = _SOURCE_TAGS_PREFIX + 'subtitles.language'
     VIDEO_CODEC = _SOURCE_TAGS_PREFIX + 'video.codec'
     VIDEO_FORMAT = _SOURCE_TAGS_PREFIX + 'video.format'
     VIDEO_SCREEN_SIZE = _SOURCE_TAGS_PREFIX + 'video.screen-size'
@@ -61,12 +63,14 @@ METADATA_RULES = [
     ('format', Tags.VIDEO_FORMAT),
     ('language', Tags.MEDIA_LANGUAGE),
     ('mimetype', Tags.MIMETYPE),
+    ('edition', Tags.MOVIE_EDITION),
     ('proper_count', Tags.RELEASE_PROPER, lambda x: int(x) > 0),
     ('other', Tags.GUESSIT_OTHER),
     ('release_distributors', Tags.RELEASE_DISTRIBUTORS),
     ('release_group', Tags.RELEASE_GROUP),
     ('screen_size', Tags.VIDEO_SCREEN_SIZE),
     ('streaming_service', Tags.STREAMING_SERVICE),
+    ('subtitle_language', Tags.SUBTITLES_LANGUAGE),
     ('uuid', Tags.GUESSIT_UUID),
     ('video_codec', Tags.VIDEO_CODEC),
 ]
@@ -81,21 +85,22 @@ KNOWN_DISTRIBUTORS = [
 
 
 class ParseError(Exception):
-    """
-    Exception raised for unparseable or unidentificable strings
-    """
-    pass
+    def __init__(self, msg, *args, **kwargs):
+        super().__init__(msg, *args, **kwargs)
+        self.message = msg
 
 
 class UnknownEntityTypeError(Exception):
-    """
-    Exception raised for entity datas with unsupported type field
-    """
-    pass
+    def __init__(self, name, *args, **kwargs):
+        super().__init__(name, *args, **kwargs)
+        self.name = name
 
 
 class IncompleteEntityDataError(Exception):
-    pass
+    def __init__(self, entity_class, msg=None, *args, **kwargs):
+        super().__init__(entity_class, msg, *args, **kwargs)
+        self.entity_class = entity_class
+        self.message = msg
 
 
 def extract_items(orig, rules):
@@ -119,45 +124,42 @@ def extract_items(orig, rules):
 
 
 def extract_entity_data_from_info(info):
+    # EntitySupport
     table = {
         'episode': (models.Episode, ['series', 'year', 'season', 'number']),
         'movie': (models.Movie, ['title', 'year'])
     }
 
+    assert 'type' in info
+
     try:
-        type_ = info['type']
+        model_class, model_attrs = table[info['type']]
     except KeyError as e:
-        msg = 'Missing type information'
-        raise UnknownEntityTypeError(msg)
+        raise UnknownEntityTypeError(info['type'])
 
-    if type_ not in table:
-        raise UnknownEntityTypeError(type_)
-
-    model_class, available_items = table[type_]
-
-    ret = {'type': info.pop('type')}
-    ret.update({
-        key: model_class.normalize(key, info.pop(key))
-        for key in available_items
-        if key in info
-    })
+    # Build a dict with model attributes from info (extracting them) and add
+    # type information
+    ret = {
+        attr: model_class.normalize(attr, info.pop(attr))
+        for attr in model_attrs
+        if attr in info
+    }
+    ret['type'] = info.pop('type')
 
     return ret
 
 
 def entity_data_has_fields(data, keys_map):
-    try:
-        type_ = data['type']
-    except KeyError as e:
-        msg = 'Missing type information'
-        raise UnknownEntityTypeError(msg)
+    assert 'type' in data
 
-    if type_ not in keys_map:
-        raise UnknownEntityTypeError(type_)
+    try:
+        items = keys_map[data['type']]
+    except KeyError as e:
+        raise UnknownEntityTypeError(data['type'])
 
     return all([
         x in data and data[x] != ''
-        for x in keys_map[type_]
+        for x in items
     ])
 
 
@@ -183,7 +185,7 @@ def entity_data_is_confident(data):
     return entity_data_has_fields(data, fields_map)
 
 
-def _guessit_parse(name, extra_tags=None, type_hint=None):
+def _guessit_parse(name, tags=None, type_hint=None):
     """
     Parse "backend using guessit"
     """
@@ -202,12 +204,16 @@ def _guessit_parse(name, extra_tags=None, type_hint=None):
 
     # Process via guessit (options.type is integrated into returned info by
     # guessit.guessit, no need to manually add it
-    info = guessit.guessit(name, options={'type': type_hint})
+    try:
+        info = guessit.guessit(name, options={'type': type_hint})
+    except guessit.api.GuessitException as e:
+        msg = "Internal error: {e}"
+        msg = msg.format(e=str(e))
+        raise ParseError(msg) from e
 
     # Errors: 'part' is not supported
     if 'part' in info:
-        msg = ("Name '{name}' has a 'part' component. This is unsupported due "
-               "to its complexity")
+        msg = ("Unsupported 'part'")
         msg = msg.format(name=name)
         raise ParseError(msg)
 
@@ -257,25 +263,44 @@ def _guessit_parse(name, extra_tags=None, type_hint=None):
     return info
 
 
-def parse(name, extra_tags=None, type_hint=None):
+def parse(name, tags=None, type_hint=None):
+    """Parse name to find relevart entity_data and other information (metadata)
+
+    Args:
+      name: String to parse
+      tags: Extra infomation that can be useful to parse `name`. dict(str->str)
+      type_hint: Hint about the type (episode, movie, book) of `name`
+
+    Returns:
+      A tuple of two dicts.
+      The first of them is the normalized entity_data which can be used
+      directly to instantiate the corresponding model.
+      The second is other metadata infered from name, tags and type_hint
+      dict(str->str)
+
+      If an error is found ParseError is raised
     """
-    Parse name and extra_tags to find entity_data and metadata
-    """
-    if extra_tags is None:
-        extra_tags = {}
+
+    if tags is None:
+        tags = {}
 
     # For now we only support one parser provider: guessit
-    info = _guessit_parse(name, extra_tags=extra_tags, type_hint=type_hint)
+    info = _guessit_parse(name, tags=tags, type_hint=type_hint)
 
-    # Extract two sets of information
+    # Extract entity_data from info
     try:
         entity_data = extract_entity_data_from_info(info)
     except UnknownEntityTypeError as e:
-        raise ParseError from e
+        msg = "Unknow type '{type}'"
+        msg = msg.format(type=e.name)
+        raise ParseError(msg) from e
 
     if not entity_data_is_confident(entity_data) and not type_hint:
-        raise ParseError('Incomplete data')
+        msg = "Non confident data for '{type}'"
+        msg = msg.format(type=entity_data['type'])
+        raise ParseError(msg)
 
+    # Extract metadata from info
     metadata = extract_items(info, METADATA_RULES)
 
     # FIXME: Using warnings module instead of logger
@@ -320,10 +345,10 @@ class Mediainfo:
         else:
             msg = "Unsupported entity type: '{type}'"
             msg = msg.format(type=entity_data['type'])
-            raise ValueError(msg)
+            raise UnknownEntityTypeError(entity_data['type'], msg)
 
         if not entity_data_is_complete(entity_data):
-            raise IncompleteEntityDataError()
+            raise IncompleteEntityDataError(model_class)
 
         # Complete data with NULLs before quering the database
         if model_class == models.Episode:
@@ -346,22 +371,6 @@ class Mediainfo:
 
         return model
 
-    def link_source_with_entity(self, source, entity):
-        attrs = ['episode', 'movie']
-
-        if source.type == 'episode':
-            attr = 'episode'
-        elif source.type == 'movie':
-            attr = 'movie'
-        else:
-            msg = "Unsupported entity type: '{type}'"
-            msg = msg.format(type=source.type)
-            raise ValueError(msg)
-
-        for x in attrs:
-            value = entity if x == attr else None
-            setattr(source, x, value)
-
     def process(self, *sources_and_tags):
         for x in sources_and_tags:
             if isinstance(x, models.Source):
@@ -377,20 +386,46 @@ class Mediainfo:
                 self.logger.error(msg)
                 src.type = None
 
+            # Cleanup source
+            src.entity = None
+
+            # Use delete bulk operation bypassing ORM. See URL below for more
+            # info. Warning: delete operation needs synchronize_session
+            # parameter. Possible values are 'fetch' or False, both work as
+            # expected but 'fetch' is slightly faster.
+            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
+            src.tags.filter(
+                models.SourceTag.key.in_(Tags.values())
+            ).delete(synchronize_session='fetch')
+
+            # Another method of deleting tags is this.
+            # Theorically it's slower than bulk operation
+            # tags = src.tags.filter(models.SourceTag.key.in_(Tags.values()))
+            # for tag in tags:
+            #     self.app.db.session.delete(tag)
+
             # Extract entity data
             try:
                 entity_data, metadata = parse(
-                    src.name, extra_tags=tags, type_hint=src.type)
-
+                    src.name, tags=tags, type_hint=src.type)
             except UnknownEntityTypeError as e:
-                msg = "Unknow entity type in '{source}': {e}"
-                msg = msg.format(source=src, e=str(e))
+                # msg = "Unknow entity type in '{source}': {e}"
+                # msg = msg.format(source=src, e=str(e))
+                # self.logger.warning(msg)
+                continue
+            except ParseError as e:
+                msg = "Unable to indentify entity in '{source}': {e}"
+                msg = msg.format(source=src, e=e.message)
                 self.logger.warning(msg)
                 continue
 
-            except ParseError as e:
-                msg = "Unable to indentify entity in '{source}': {e}"
-                msg = msg.format(source=src, e=str(e))
+            # Create entity from data
+            try:
+                src.entity = self.entity_from_data(entity_data)
+                self.app.db.session.add(src.entity)
+            except IncompleteEntityDataError as e:
+                msg = "Incomplete entity data for '{source}'"
+                msg = msg.format(source=src.name)
                 self.logger.warning(msg)
                 continue
 
@@ -400,26 +435,6 @@ class Mediainfo:
             # Update source type if it's missing
             if not src.language:
                 src.language = self.default_language_for_provider(src.provider)
-
-            # Create entity from data
-            try:
-                entity = self.entity_from_data(entity_data)
-                self.link_source_with_entity(src, entity)
-                self.app.db.session.add(entity)
-            except IncompleteEntityDataError as e:
-                msg = "Incomplete entity data for '{source}'"
-                msg = msg.format(source=src.name)
-                self.logger.warning(msg)
-
-            # Delete old tags
-            #
-            # Warning: delete operation needs synchronize_session parameter.
-            # Possible values are 'fetch' or False, both work as expected but
-            # 'fetch' is slightly faster.
-            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
-            src.tags.filter(
-                models.SourceTag.key.in_(Tags.values())
-            ).delete(synchronize_session='fetch')
 
             # Create new tags
             for (k, v) in metadata.items():

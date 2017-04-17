@@ -691,24 +691,30 @@ class Importer:
 
         for ctx in contexts:
             if _ProcessingTag.ADDED in ctx.tags:
-                added.append(ctx.source)
+                added.append(ctx)
 
             if _ProcessingTag.NAME_UPDATED in ctx.tags:
-                name_updated.append(ctx.source)
+                name_updated.append(ctx)
 
             if _ProcessingTag.UPDATED in ctx.tags:
-                updated.append(ctx.source)
+                updated.append(ctx)
 
         self.app.db.session.add_all(added)
 
-        sources_and_metas = [(ctx.source, ctx.meta) for ctx in contexts]
+        sources_and_metas = [(ctx.source, ctx.meta)
+                             for ctx in added + name_updated]
         self.app.mediainfo.process(*sources_and_metas)
 
+        # It's important to call commit here, Mediainfo.process doesn't do a
+        # commit
         self.app.db.session.commit()
 
-        self.app.signals.send('sources-added-batch', sources=added)
-        self.app.signals.send('sources-updated-batch',
-                              sources=name_updated + updated)
+        self.app.signals.send(
+            'sources-added-batch',
+            sources=[ctx.source for ctx in added])
+        self.app.signals.send(
+            'sources-updated-batch',
+            sources=[ctx.source for ctx in name_updated + updated])
 
         msg = '{n} sources {action}'
         self.logger.info(msg.format(n=len(added),
