@@ -706,10 +706,6 @@ class Importer:
             for ctx in set(added + name_updated)
         ]
 
-        msg = "Got {n} sources for processing"
-        msg = msg.format(n=len(sources_and_metas))
-        print(msg)
-
         if sources_and_metas:
             self.app.mediainfo.process(*sources_and_metas)
 
@@ -725,12 +721,14 @@ class Importer:
             sources=[ctx.source for ctx in name_updated + updated])
 
         msg = '{n} sources {action}'
-        self.logger.info(msg.format(n=len(added),
-                                    action='added'))
-        self.logger.info(msg.format(n=len(updated),
-                                    action='updated'))
-        self.logger.info(msg.format(n=len(sources_and_metas),
-                                    action='parsed'))
+        stats = [
+            ('added', added),
+            ('updated', updated),
+            ('parsed', sources_and_metas)
+        ]
+        for (action, group) in stats:
+            msg_ = msg.format(n=len(group), action=action)
+            self.logger.info(msg_)
 
         ret = [ctx.source for ctx in contexts]
         return ret
