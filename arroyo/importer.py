@@ -699,11 +699,19 @@ class Importer:
             if _ProcessingTag.UPDATED in ctx.tags:
                 updated.append(ctx)
 
-        self.app.db.session.add_all(added)
+        self.app.db.session.add_all([ctx.source for ctx in added])
 
-        sources_and_metas = [(ctx.source, ctx.meta)
-                             for ctx in added + name_updated]
-        self.app.mediainfo.process(*sources_and_metas)
+        sources_and_metas = [
+            (ctx.source, ctx.meta)
+            for ctx in set(added + name_updated)
+        ]
+
+        msg = "Got {n} sources for processing"
+        msg = msg.format(n=len(sources_and_metas))
+        print(msg)
+
+        if sources_and_metas:
+            self.app.mediainfo.process(*sources_and_metas)
 
         # It's important to call commit here, Mediainfo.process doesn't do a
         # commit
@@ -721,7 +729,7 @@ class Importer:
                                     action='added'))
         self.logger.info(msg.format(n=len(updated),
                                     action='updated'))
-        self.logger.info(msg.format(n=len(set(added+name_updated)),
+        self.logger.info(msg.format(n=len(sources_and_metas),
                                     action='parsed'))
 
         ret = [ctx.source for ctx in contexts]
