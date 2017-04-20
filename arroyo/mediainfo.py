@@ -323,12 +323,6 @@ class Mediainfo:
         self.app = app
         self.logger = app.logger.getChild('mediainfo')
 
-        app.signals.connect('sources-added-batch', self._on_source_batch)
-        app.signals.connect('sources-updated-batch', self._on_source_batch)
-
-    def _on_source_batch(self, sender, sources):
-        self.process(*sources)
-
     @functools.lru_cache(maxsize=16)
     def default_language_for_provider(self, provider):
         k = 'plugins.provider.' + provider + '.default-language'
