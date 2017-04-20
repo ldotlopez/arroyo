@@ -12,7 +12,6 @@ guessit==2.1.1
 humanfriendly==2.3.2
 lxml==3.7.2
 multidict==2.1.4
-pkg-resources==0.0.0
 python-dateutil==2.6.0
 PyYAML==3.12
 rebulk==0.8.2
