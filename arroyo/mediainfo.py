@@ -267,16 +267,20 @@ def _guessit_parse(name, tags=None, type_hint=None):
 
     # Fixes: Normalize language value
     if 'language' in info:
-        try:
-            info['language'] = '{}-{}'.format(
-                info['language'].alpha3,
-                info['language'].alpha2)
-        except babelfish.exceptions.LanguageConvertError as e:
-            # FIXME: Log this error
-            # msg = "Language error in '{name}': {msg}"
-            # msg = msg.format(name=name, msg=e)
-            # self.logger.warning(msg)
+        if info['language'] == 'und':
             del info['language']
+
+        else:
+            try:
+                info['language'] = '{}-{}'.format(
+                    info['language'].alpha3,
+                    info['language'].alpha2)
+            except babelfish.exceptions.LanguageConvertError as e:
+                # FIXME: Log this error
+                # msg = "Language error in '{name}': {msg}"
+                # msg = msg.format(name=name, msg=e)
+                # self.logger.warning(msg)
+                del info['language']
 
     return info
 
