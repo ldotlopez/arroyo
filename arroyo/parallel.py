@@ -1,22 +1,22 @@
+import builtins
 import math
 import multiprocessing
 from itertools import chain
 
 
-def cpu_parallelize(fn, items, n_cpus=None, use_star_args=False):
+def cpu_map(fn, items, n_cpus=None, bulk=False):
 	if n_cpus is None:
 		n_cpus = multiprocessing.cpu_count()
 
 	if n_cpus == 1:
-		if use_star_args:
+		if bulk:
 			results = fn(*items)
 		else:
-			import ipdb; ipdb.set_trace(); pass
 			results = [fn(item) for item in items]
 
 	else:
 		with multiprocessing.Pool(n_cpus) as p:
-			if use_star_args:
+			if bulk:
 				items = chunkify(items, n_chunks=n_cpus)
 				results = p.starmap(fn, items)
 				results = list(chain.from_iterable(results))
@@ -26,7 +26,7 @@ def cpu_parallelize(fn, items, n_cpus=None, use_star_args=False):
 	return results
 
 
-def star_args_helper(fn, *args):
+def bulk_helper(fn, *args):
 	"""
 	Allows fn to run with star arguments
 	"""

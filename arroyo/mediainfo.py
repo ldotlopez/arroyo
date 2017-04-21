@@ -321,14 +321,18 @@ def parse(name, tags=None, type_hint=None):
     return entity_data, metadata
 
 
-def parse_multi_process_wrapper(*args):
-    return [
-        parallel.exception_catcher_helper(
-            parse, src.name, tags=tags, type_hint=src.type
-        )
-        for (src, tags) in args
-    ]
+def parse_parallel_bulk(*args):
+    ret = []
 
+    for (src, tags) in args:
+        try:
+            ret.append(parse(src.name, tags=tags, type_hint=src.type))
+        except SyntaxError:
+            raise
+        except Exception as e:
+            ret.append(e)
+
+    return ret
 
 class Mediainfo:
     def __init__(self, app):
@@ -395,14 +399,9 @@ class Mediainfo:
                 src.type = None
 
             tmp.append((src, tags))
-
         sources_and_tags = tmp
 
-        results = parallel.cpu_parallelize(
-            parse_multi_process_wrapper,
-            sources_and_tags,
-            use_star_args=True)
-
+        results = parallel.cpu_map(parse_parallel_bulk, sources_and_tags, bulk=True)
         for ((src, tags), result) in zip(sources_and_tags, results):
             try:
                 entity_data, metadata = parallel.check_result(result)
