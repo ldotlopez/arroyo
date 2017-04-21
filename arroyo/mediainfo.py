@@ -334,6 +334,7 @@ def parse_parallel_bulk(*args):
 
     return ret
 
+
 class Mediainfo:
     def __init__(self, app):
         self.app = app
@@ -401,7 +402,8 @@ class Mediainfo:
             tmp.append((src, tags))
         sources_and_tags = tmp
 
-        results = parallel.cpu_map(parse_parallel_bulk, sources_and_tags, bulk=True)
+        results = parallel.cpu_map(
+            parse_parallel_bulk, sources_and_tags, bulk=True)
         for ((src, tags), result) in zip(sources_and_tags, results):
             try:
                 entity_data, metadata = parallel.check_result(result)

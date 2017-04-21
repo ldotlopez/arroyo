@@ -37,6 +37,7 @@ def bulk_helper(fn, *args):
 
     return ret
 
+
 def exception_catcher_helper(fn, *args, **kwargs):
     """
     Safe execution of fn.
@@ -77,44 +78,3 @@ def chunkify(list_, n_chunks):
         chunks.append(list_[start:end])
 
     return chunks
-
-
-if __name__ == '__main__':
-    import time
-
-    def _cpu_bound_func(x):
-        # Check if it's prime
-        for n in range(2, (x // 2) + 1):
-            if x % n == 0:
-                raise ValueError(x)
-
-        # Add some sleep
-        time.sleep(0.5)
-
-        return x*x
-
-
-    def cpu_bound_func(x):
-        return exception_catcher_helper(_cpu_bound_func, x)
-
-
-    def cpu_bound_func_star_compatible(*xs):
-        print ("Got {} items to process".format(len(xs)))
-        return star_args_helper(cpu_bound_func, *xs)
-
-    # Build some arguments
-    args = range(8)
-
-    # Simpliest case:
-    results = cpu_parallelize(cpu_bound_func, args)
-
-    # Use a multiprocessing function
-    results = cpu_parallelize(cpu_bound_func_star_compatible, args, use_star_args=True)
-
-    for (arg, res) in zip(args, results):
-        try:
-            res = check_result(res)
-            print("{} * {} = {}".format(arg, arg, res))
-
-        except Exception as e:
-            print('{} not prime, raises {}'.format(arg, repr(res)))
