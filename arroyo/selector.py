@@ -417,7 +417,7 @@ class Selector:
 
     def maybe_run_importer_process(self, query, value=None):
         if value is None:
-            configured_origins = self.app.importer.get_configured_origins()
+            configured_origins = self.app.importer.origins_from_config()
             value = not configured_origins
 
         if value:

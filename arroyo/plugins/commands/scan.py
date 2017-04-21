@@ -87,7 +87,7 @@ class ScanCommand(pluginlib.Command):
                 ('language', str)
             ]
 
-            origin_data = dict(display_name='command line')
+            origin_data = {}
             for (k, t) in keys:
                 v = getattr(arguments, k, None)
 

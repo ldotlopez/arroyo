@@ -100,7 +100,7 @@ class Provider(kit.Extension):
 
 
 class Origin:
-    def __init__(self, provider, display_name=None, uri=None, iterations=1,
+    def __init__(self, provider, uri=None, iterations=1,
                  overrides={}):
 
         if not isinstance(provider, Provider):
@@ -112,7 +112,6 @@ class Origin:
 
         # Check strs
         strs = [
-            ('display_name', display_name, True),
             ('uri', uri, True),
         ]
 
@@ -147,7 +146,6 @@ class Origin:
                     raise TypeError(msg)
 
         self.provider = provider
-        self.display_name = display_name
         self.uri = uritools.normalize(uri)
         self.iterations = iterations
         self.overrides = overrides.copy()
@@ -183,8 +181,8 @@ class Importer:
         """Validates settings"""
         return value
 
-    def origin_from_params(self, display_name=None, provider=None, uri=None,
-                           iterations=1, language=None, type=None):
+    def origin_from_params(self, provider=None, uri=None, iterations=1,
+                           language=None, type=None):
         extension = None
 
         if not provider and not uri:
@@ -230,16 +228,22 @@ class Importer:
         if type:
             overrides['type'] = type
 
-        return Origin(display_name=display_name, provider=extension, uri=uri,
-                      iterations=iterations, overrides=overrides)
+        return Origin(provider=extension, uri=uri, iterations=iterations,
+                      overrides=overrides)
 
-    def get_configured_origins(self):
+    def origins_from_config(self):
         specs = self.app.settings.get('origin', default={})
+        specs = [(name, params) for (name, params) in specs.items()]
+
         if not specs:
+            msg = "No origins defined"
+            self.logger.warning(msg)
             return []
 
-        return [self.origin_from_params(display_name=name, **params)
-                for (name, params) in specs.items()]
+        return [
+            (name, self.origin_from_params(**params))
+            for (name, params) in specs
+        ]
 
     @asyncio.coroutine
     def get_buffer_from_uri(self, origin, uri):
@@ -425,12 +429,13 @@ class Importer:
         return source
 
     def run(self):
-        origins = self.get_configured_origins()
+        origins = self.origins_from_config()
         if not origins:
             msg = "No origins defined"
             self.logger.warning(msg)
             return []
 
+        origins = (origin for (dummy, origin) in origins)
         return self.process(*origins)
 
     def _normalize_source_data(self, origin, *psrcs):
