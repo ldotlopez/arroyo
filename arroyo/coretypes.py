@@ -131,6 +131,11 @@ class SourceQuery(BaseQuery):
 
 
 class EpisodeQuery(BaseQuery):
+    def __init__(self, *args, **kwargs):
+        kwargs_ = {'year': None}
+        kwargs_.update(kwargs)
+        super().__init__(*args, **kwargs_)
+
     @property
     def base_string(self):
         ret = self._get_base_string('series')
@@ -157,6 +162,11 @@ class EpisodeQuery(BaseQuery):
 
 
 class MovieQuery(BaseQuery):
+    def __init__(self, *args, **kwargs):
+        kwargs_ = {'year': None}
+        kwargs_.update(kwargs)
+        super().__init__(*args, **kwargs_)
+
     @property
     def base_string(self):
         ret = self._get_base_string('title')
