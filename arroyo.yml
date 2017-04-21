@@ -24,6 +24,9 @@ auto-cron: True
 # Auto import feature (leave empty for intelligent detection)
 auto-import:
 
+# Enable multiprocess features
+multiprocess: False
+
 # Fetcher options
 fetcher:
     enable-cache: True

@@ -50,6 +50,7 @@ _defaults = {
     'importer.parser': 'auto',
     'log-format': '[%(levelname)s] [%(name)s] %(message)s',
     'log-level': 'WARNING',
+    'multiprocess': False,
     'selector.query-defaults.age-min': '2H',
     'selector.sorter': 'basic'
 }
@@ -69,6 +70,7 @@ _defaults_types = {
     'importer.parser': str,
     'log-format': str,
     'log-level': str,
+    'multiprocess': bool,
     'selector': dict,
     'selector.sorter': str,
     'selector.query-defaults': str

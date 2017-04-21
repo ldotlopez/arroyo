@@ -382,14 +382,12 @@ class Mediainfo:
 
         return model
 
-    def process_multi_process(self, *sources_and_tags):
-        # Normalize input data
-        tmp = []
-        for x in sources_and_tags:
-            if isinstance(x, models.Source):
-                src, tags = x, None
+    def process(self, *sources_and_tags):
+        def _normalize(args):
+            if isinstance(args, models.Source):
+                src, tags = args, None
             else:
-                src, tags = x[0], x[1]
+                src, tags = args[0], args[1]
 
             # Check for older "APIs"
             if src.type == 'unknown':
@@ -399,11 +397,40 @@ class Mediainfo:
                 self.logger.error(msg)
                 src.type = None
 
-            tmp.append((src, tags))
-        sources_and_tags = tmp
+            return src, tags
 
+        # Normalize input data
+        sources_and_tags = [_normalize(x) for x in sources_and_tags]
+
+        if not self.app.settings.get('multiprocess', default=False):
+            return self._process_single(*sources_and_tags)
+        else:
+            print("Use multiprocess")
+            return self._process_multi(*sources_and_tags)
+
+    def _process_single(self, *sources_and_tags):
+        for (src, tags) in sources_and_tags:
+            # Extract entity data
+            try:
+                entity_data, metadata = parse(
+                    src.name, tags=tags, type_hint=src.type)
+            except UnknownEntityTypeError as e:
+                # msg = "Unknow entity type in '{source}': {e}"
+                # msg = msg.format(source=src, e=str(e))
+                # self.logger.warning(msg)
+                continue
+            except ParseError as e:
+                msg = "Unable to indentify entity in '{source}': {e}"
+                msg = msg.format(source=src, e=e.message)
+                self.logger.warning(msg)
+                continue
+
+            self._process_finalize(src, entity_data, metadata)
+
+    def _process_multi(self, *sources_and_tags):
         results = parallel.cpu_map(
             parse_parallel_bulk, sources_and_tags, bulk=True)
+
         for ((src, tags), result) in zip(sources_and_tags, results):
             try:
                 entity_data, metadata = parallel.check_result(result)
@@ -420,112 +447,44 @@ class Mediainfo:
                 self.logger.warning(msg)
                 continue
 
-            # Cleanup source
-            src.entity = None
+            self._process_finalize(src, entity_data, metadata)
 
-            # Use delete bulk operation bypassing ORM. See URL below for more
-            # info. Warning: delete operation needs synchronize_session
-            # parameter. Possible values are 'fetch' or False, both work as
-            # expected but 'fetch' is slightly faster.
-            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
-            src.tags.filter(
-                models.SourceTag.key.in_(Tags.values())
-            ).delete(synchronize_session='fetch')
+    def _process_finalize(self, src, entity_data, metadata):
+        # Cleanup source
+        src.entity = None
 
-            # Another method of deleting tags is this.
-            # Theorically it's slower than bulk operation
-            # tags = src.tags.filter(models.SourceTag.key.in_(Tags.values()))
-            # for tag in tags:
-            #     self.app.db.session.delete(tag)
+        # Use delete bulk operation bypassing ORM. See URL below for more
+        # info. Warning: delete operation needs synchronize_session
+        # parameter. Possible values are 'fetch' or False, both work as
+        # expected but 'fetch' is slightly faster.
+        # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
+        src.tags.filter(
+            models.SourceTag.key.in_(Tags.values())
+        ).delete(synchronize_session='fetch')
 
-            # Create entity from data
-            try:
-                src.entity = self.entity_from_data(entity_data)
-                self.app.db.session.add(src.entity)
-            except IncompleteEntityDataError as e:
-                msg = "Incomplete entity data for '{source}'"
-                msg = msg.format(source=src.name)
-                self.logger.warning(msg)
-                continue
+        # Another method of deleting tags is this.
+        # Theorically it's slower than bulk operation
+        # tags = src.tags.filter(models.SourceTag.key.in_(Tags.values()))
+        # for tag in tags:
+        #     self.app.db.session.delete(tag)
 
-            # Update source type
-            src.type = entity_data['type']
+        # Create entity from data
+        try:
+            src.entity = self.entity_from_data(entity_data)
+            self.app.db.session.add(src.entity)
+        except IncompleteEntityDataError as e:
+            msg = "Incomplete entity data for '{source}'"
+            msg = msg.format(source=src.name)
+            self.logger.warning(msg)
+            return
 
-            # Update source type if it's missing
-            if not src.language:
-                src.language = self.default_language_for_provider(src.provider)
+        # Update source type
+        src.type = entity_data['type']
 
-            # Create new tags
-            for (k, v) in metadata.items():
-                src.tags.append(models.SourceTag(k, v))
+        # Update source type if it's missing
+        if not src.language:
+            src.language = self.default_language_for_provider(src.provider)
 
-    def process_single_process(self, *sources_and_tags):
-        for x in sources_and_tags:
-            if isinstance(x, models.Source):
-                src, tags = x, None
-            else:
-                src, tags = x[0], x[1]
-
-            # Check for older "APIs"
-            if src.type == 'unknown':
-                msg = ("Deprecated API: source from {provider} "
-                       "with type 'unknow', use (None)")
-                msg = msg.format(provider=src.provider)
-                self.logger.error(msg)
-                src.type = None
-
-            # Extract entity data
-            try:
-                entity_data, metadata = parse(
-                    src.name, tags=tags, type_hint=src.type)
-            except UnknownEntityTypeError as e:
-                # msg = "Unknow entity type in '{source}': {e}"
-                # msg = msg.format(source=src, e=str(e))
-                # self.logger.warning(msg)
-                continue
-            except ParseError as e:
-                msg = "Unable to indentify entity in '{source}': {e}"
-                msg = msg.format(source=src, e=e.message)
-                self.logger.warning(msg)
-                continue
-
-            # Cleanup source
-            src.entity = None
-
-            # Use delete bulk operation bypassing ORM. See URL below for more
-            # info. Warning: delete operation needs synchronize_session
-            # parameter. Possible values are 'fetch' or False, both work as
-            # expected but 'fetch' is slightly faster.
-            # http://docs.sqlalchemy.org/en/latest/orm/query.html#sqlalchemy.orm.query.Query.delete
-            src.tags.filter(
-                models.SourceTag.key.in_(Tags.values())
-            ).delete(synchronize_session='fetch')
-
-            # Another method of deleting tags is this.
-            # Theorically it's slower than bulk operation
-            # tags = src.tags.filter(models.SourceTag.key.in_(Tags.values()))
-            # for tag in tags:
-            #     self.app.db.session.delete(tag)
-
-            # Create entity from data
-            try:
-                src.entity = self.entity_from_data(entity_data)
-                self.app.db.session.add(src.entity)
-            except IncompleteEntityDataError as e:
-                msg = "Incomplete entity data for '{source}'"
-                msg = msg.format(source=src.name)
-                self.logger.warning(msg)
-                continue
-
-            # Update source type
-            src.type = entity_data['type']
-
-            # Update source type if it's missing
-            if not src.language:
-                src.language = self.default_language_for_provider(src.provider)
-
-            # Create new tags
-            for (k, v) in metadata.items():
-                src.tags.append(models.SourceTag(k, v))
-
-    process = process_multi_process
+        # Create new tags
+        for (k, v) in metadata.items():
+            src.tags.append(models.SourceTag(k, v))

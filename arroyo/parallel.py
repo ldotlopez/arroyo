@@ -1,4 +1,3 @@
-import builtins
 import math
 import multiprocessing
 from itertools import chain
@@ -6,7 +5,7 @@ from itertools import chain
 
 def cpu_map(fn, items, n_cpus=None, bulk=False):
     if n_cpus is None:
-        n_cpus = multiprocessing.cpu_count()
+        n_cpus = min(1, multiprocessing.cpu_count() - 1)
 
     if n_cpus == 1:
         if bulk:
