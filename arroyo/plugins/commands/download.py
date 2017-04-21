@@ -216,7 +216,7 @@ class DownloadCommand(pluginlib.Command):
                              'Seed ratio'])
                 print(formated_table)
 
-        for (name, query) in queries.items():
+        for (name, query) in queries:
             try:
                 srcs = app.selector.matches(
                     query,

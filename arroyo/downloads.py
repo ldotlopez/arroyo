@@ -250,8 +250,9 @@ class DownloadQueriesCronTask(kit.Task):
 
     def execute(self, app):
         queries = app.selector.queries_from_config()
-        for q in queries:
-            matches = app.selector.matches(q)
+
+        for (name, query) in queries:
+            matches = app.selector.matches(query)
             srcs = app.selector.select(matches)
 
             if srcs is None:

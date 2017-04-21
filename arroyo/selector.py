@@ -141,15 +141,17 @@ class Selector:
 
     def queries_from_config(self):
         specs = self.app.settings.get('query', default={})
+        specs = [(name, params) for (name, params) in specs.items()]
+
         if not specs:
             msg = "No queries defined"
             self.logger.warning(msg)
             return []
 
-        ret = {name: self.query_from_args(
-            keyword=None,
-            params=params
-        ) for (name, params) in specs.items()}
+        ret = [
+            (name, self.query_from_args(keyword=None, params=params))
+            for (name, params) in specs
+        ]
 
         return ret
 

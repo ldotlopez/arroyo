@@ -31,6 +31,7 @@ class QueryBuilderTest(unittest.TestCase):
         q1 = app.selector.query_from_args(keyword='the oa 3x02')
         q2 = app.selector.query_from_args(keyword='the oa s03e02')
         q3 = app.selector.query_from_args(keyword='the oa s03 e02')
+
         self.assertEqual(q1.asdict(), dict(
             type='episode',
             series='the oa',
@@ -41,7 +42,10 @@ class QueryBuilderTest(unittest.TestCase):
         self.assertEqual(q1, q2)
         self.assertEqual(q1, q3)
 
-        q_as_source = app.selector.query_from_args(keyword='the oa   3x02  ', params={'type': 'source'})
+        q_as_source = app.selector.query_from_args(
+            keyword='the oa   3x02  ',
+            params={'type': 'source'}
+        )
         self.assertEqual(
             q_as_source.asdict(),
             {'name-glob': '*the*oa*3x02*', 'type': 'source', 'state': 'none'}
@@ -88,7 +92,11 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'foo',
             })
 
-        queries = app.selector.queries_from_config()
+        queries = {
+            name: query
+            for (name, query) in
+            app.selector.queries_from_config()
+        }
 
         self.assertTrue('test1' in queries)
         self.assertTrue('test2' in queries)
@@ -106,7 +114,12 @@ class SelectorInterfaceTest(unittest.TestCase):
             'query.test2.title': 'bar'
         })
 
-        queries = app.selector.queries_from_config()
+        queries = {
+            name: query
+            for (name, query) in
+            app.selector.queries_from_config()
+        }
+
         self.assertEqual(
             queries['test1'].get('language', None),
             'eng-us')
@@ -413,10 +426,13 @@ class EpisodeSelectorTest(SelectorTestCase):
             'plugins.filters.episodefields.enabled': True,
             'plugins.filters.mediainfo.enabled': True,
             'plugins.sorters.basic.enabled': True,
+            'log-level': 'DEBUG'
         })
+
         app.insert_sources(*srcs)
         query = app.selector.query_from_args(
-            params=dict(type='episode', series='true detective', quality='720p', language='eng-us'))
+            params=dict(type='episode', series='true detective',
+                        quality='720p', language='eng-us'))
 
         matches = list(app.selector.matches(query))
         self.assertEqual(len(matches), 4)
