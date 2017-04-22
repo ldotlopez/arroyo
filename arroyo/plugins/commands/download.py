@@ -26,7 +26,7 @@ import sys
 import humanfriendly
 import tabulate
 from appkit import (
-    logging,
+    loggertools,
     utils
 )
 from arroyo import (
@@ -128,7 +128,7 @@ class DownloadCommand(pluginlib.Command):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('download')
+        self.logger = loggertools.getLogger('download')
 
     def execute(self, app, arguments):
         # Direct download management:
@@ -171,7 +171,7 @@ class DownloadCommand(pluginlib.Command):
             query = app.selector.query_from_args(
                 keyword=keyword,
                 params=arguments.filters)
-            queries = {'command-line': query}
+            queries = [('command-line', query)]
 
         if arguments.from_config:
             queries = app.selector.queries_from_config()
@@ -216,6 +216,7 @@ class DownloadCommand(pluginlib.Command):
                              'Seed ratio'])
                 print(formated_table)
 
+        import ipdb; ipdb.set_trace(); pass
         for (name, query) in queries:
             try:
                 srcs = app.selector.matches(
