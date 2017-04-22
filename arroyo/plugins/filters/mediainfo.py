@@ -22,7 +22,6 @@
 # Keep in sync with method Selector._query_params_from_keyword
 
 import re
-from appkit import logging
 from arroyo import (
     mediainfo,
     pluginlib
@@ -157,10 +156,6 @@ class RipFormatFilter(pluginlib.IterableFilter):
     APPLIES_TO = models.Source
     HANDLES = ['rip-format']
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('kickass')
-
     def filter(self, key, value, item):
         if not isinstance(value, str):
             raise TypeError(value)
@@ -174,8 +169,7 @@ class RipFormatFilter(pluginlib.IterableFilter):
         if not isinstance(itemformat, str):
             msg = "Item {item} has multiple formats ({formats}). Not supported"
             msg = msg.format(item=item, formats=repr(itemformat))
-            self.logger.error(msg)
-            return False
+            raise ValueError(msg)
 
         return itemformat.lower() == value.lower()
 

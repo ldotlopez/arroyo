@@ -25,7 +25,7 @@ import re
 from urllib import parse
 
 
-from appkit import logging
+from appkit import loggertools
 
 
 class Provider(pluginlib.Provider):
@@ -38,7 +38,7 @@ class Provider(pluginlib.Provider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger(self.__extension_name__)
+        self.logger = loggertools.getLogger(self.__extension_name__)
 
     def parse(self, buff, parser):
         buff = buff.decode('utf-8')

@@ -29,7 +29,7 @@ from urllib import parse
 
 import humanfriendly
 from appkit import (
-    logging,
+    loggertools,
     utils
 )
 
@@ -61,7 +61,7 @@ class KickAss(pluginlib.Provider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('kickass')
+        self.logger = loggertools.getLogger('kickass')
 
     def paginate(self, uri):
         parsed = parse.urlparse(uri)

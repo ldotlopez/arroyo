@@ -28,7 +28,7 @@ from appkit import (
     cache,
     keyvaluestore,
     network,
-    logging,
+    loggertools,
     store,
     utils
 )
@@ -203,10 +203,10 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         self.settings = settings or build_basic_settings([])
 
         # Build and configure logger
-        self.logger = logging.getLogger('arroyo')
+        self.logger = loggertools.getLogger('arroyo')
 
         lvlname = self.settings.get('log-level')
-        lvl = getattr(logging.Level, lvlname)
+        lvl = getattr(loggertools.Level, lvlname)
         self.logger.setLevel(lvl.value)  # Modify level on on the handler
 
         # Auto setting: importer parser

@@ -29,7 +29,7 @@ from urllib import parse
 
 import humanfriendly
 from appkit import (
-    logging,
+    loggertools,
     utils
 )
 
@@ -142,7 +142,7 @@ class ThePirateBay(pluginlib.Provider):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('thepiratebay')
+        self.logger = loggertools.getLogger('thepiratebay')
 
     def paginate(self, uri):
         # Add leading '/'

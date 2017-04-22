@@ -30,7 +30,7 @@ from urllib import parse
 
 import bs4
 from appkit import (
-    logging,
+    loggertools,
     uritools,
     utils
 )
@@ -149,7 +149,7 @@ class Origin:
         self.uri = uritools.normalize(uri)
         self.iterations = iterations
         self.overrides = overrides.copy()
-        self.logger = logging.getLogger(
+        self.logger = loggertools.getLogger(
             '{}-origin'.format(provider.__extension_name__))
 
     def __unicode__(self):
@@ -168,7 +168,7 @@ class Origin:
 class Importer:
     def __init__(self, app):
         self.app = app
-        self.logger = logging.getLogger('importer')
+        self.logger = loggertools.getLogger('importer')
 
         app.signals.register('source-added')
         app.signals.register('source-updated')

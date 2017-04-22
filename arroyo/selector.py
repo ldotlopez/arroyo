@@ -25,7 +25,7 @@ import itertools
 import types
 
 
-from appkit import logging
+from appkit import loggertools
 
 
 import arroyo.exc
@@ -49,7 +49,7 @@ class FilterCollissionError(Exception):
 class Selector:
     def __init__(self, app):
         self.app = app
-        self.logger = logging.getLogger('selector')
+        self.logger = loggertools.getLogger('selector')
         self.app.register_extension_point(Filter)
         self.app.register_extension_point(Sorter)
 

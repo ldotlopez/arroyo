@@ -33,7 +33,7 @@ from urllib import parse
 
 import transmissionrpc
 from appkit import (
-    logging,
+    loggertools,
     store
 )
 from sqlalchemy import orm
@@ -82,7 +82,7 @@ class TransmissionDownloader(pluginlib.Downloader):
         super().__init__(app, *args, **kwargs)
         settings = app.settings
 
-        self.logger = logging.getLogger('transmission')
+        self.logger = loggertools.getLogger('transmission')
         settings.add_validator(self.settings_validator)
 
         try:

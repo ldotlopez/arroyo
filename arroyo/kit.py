@@ -21,7 +21,10 @@
 import argparse
 
 
-from appkit import application
+from appkit import (
+    application,
+    loggertools
+)
 from appkit.application import (
     commands,
     cron,
@@ -172,3 +175,14 @@ class Application(application.BaseApplication):
 
         return super().get_extension(extension_point, name,
                                      self, *args, **kwargs)
+
+
+class LoggingFormatter(loggertools.DefaultFormatter):
+    def __init__(self, fmt=None, datefmt=None, *args, **kwargs):
+        fmt = '%(asctime)s [%(levelname)-8s] [%(name)s] %(msg)s'
+        datefmt = '%Y.%m.%d %H:%M:%S'
+
+        super().__init__(*args, fmt=fmt, datefmt=datefmt, **kwargs)
+
+
+loggertools.setFormatter(LoggingFormatter)

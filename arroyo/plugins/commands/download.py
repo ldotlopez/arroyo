@@ -216,7 +216,6 @@ class DownloadCommand(pluginlib.Command):
                              'Seed ratio'])
                 print(formated_table)
 
-        import ipdb; ipdb.set_trace(); pass
         for (name, query) in queries:
             try:
                 srcs = app.selector.matches(
@@ -245,6 +244,7 @@ class DownloadCommand(pluginlib.Command):
         if not sources:
             self.logger.info("No sources found")
             return
+
         assert isinstance(sources, list)
         assert all([isinstance(x, models.Source) for x in sources])
 

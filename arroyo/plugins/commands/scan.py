@@ -21,7 +21,7 @@
 from arroyo import pluginlib
 
 
-from appkit import logging
+from appkit import loggertools
 
 
 class ScanCommand(pluginlib.Command):
@@ -67,7 +67,7 @@ class ScanCommand(pluginlib.Command):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('scan')
+        self.logger = loggertools.getLogger('scan')
 
     def execute(self, app, arguments):
         importer = app.importer

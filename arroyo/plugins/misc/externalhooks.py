@@ -27,7 +27,7 @@ import subprocess
 
 
 from appkit import (
-    logging,
+    loggertools,
     store
 )
 
@@ -53,7 +53,7 @@ class ExternalHooks(pluginlib.Service):
         signals = app.signals
         settings = app.settings
 
-        self.logger = logging.getLogger('externalhooks')
+        self.logger = loggertools.getLogger('externalhooks')
         self.settings = settings
 
         signals.connect('source-state-change', self.on_source_state_change)

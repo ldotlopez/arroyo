@@ -18,7 +18,7 @@
 # USA.
 
 
-from appkit import logging
+from appkit import loggertools
 
 
 import arroyo.exc
@@ -49,7 +49,7 @@ class Downloads:
         app.signals.register('source-state-change')
 
         self.app = app
-        self.logger = logging.getLogger('downloads')
+        self.logger = loggertools.getLogger('downloads')
 
     @property
     def backend(self):

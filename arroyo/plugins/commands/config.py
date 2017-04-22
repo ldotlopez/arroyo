@@ -25,7 +25,7 @@ import sys
 import yaml
 
 
-from appkit import logging
+from appkit import loggertools
 
 
 class ConfigCommand(pluginlib.Command):
@@ -51,7 +51,7 @@ class ConfigCommand(pluginlib.Command):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = logging.getLogger('config')
+        self.logger = loggertools.getLogger('config')
 
     def execute(self, app, arguments):
         types_map = {
