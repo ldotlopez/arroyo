@@ -57,7 +57,7 @@ def normalize_urn(urn):
         hash = base64.b32decode(hash)
         hash = binascii.hexlify(hash)
         hash = hash.decode('ascii')
-        hash = hash.upper()
+        hash = hash.lower()
         return '{prefix}:{func}:{hash}'.format(
             prefix=prefix,
             func=func,
@@ -91,9 +91,10 @@ def magnet_from_torrent_data(torrent_data):
         'dn': metadata.get(b'info', {}).get(b'name', b'').decode('utf-8'),
         'xl': metadata.get(b'info', {}).get(b'length')
     }
+
     try:
         info['xl'] = int(info['xl'])
-    except ValueError:
+    except (TypeError, ValueError):
         del info['xl']
 
     magnet = 'magnet:?xt=urn:btih:{b32hash}&{params}'.format(

@@ -545,6 +545,7 @@ class Importer:
                 qs = parse.urlparse(psrc['uri']).query
                 urn = parse.parse_qs(qs)['xt'][-1]
                 normalized_urn = bittorrentlib.normalize_urn(urn)
+
                 # FIXME: This is a hack, fix uritools.alter_query_params
                 psrc['uri'] = psrc['uri'].replace(
                     'xt=' + urn, 'xt=' + normalized_urn)
