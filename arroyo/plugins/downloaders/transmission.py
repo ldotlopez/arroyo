@@ -39,19 +39,7 @@ from appkit import (
 from sqlalchemy import orm
 
 
-models = pluginlib.models
-
-
-SETTINGS_NS = 'plugins.downloaders.transmission'
-STATE_MAP = {
-    'checking': models.State.INITIALIZING,
-    'check pending': models.State.INITIALIZING,
-    'download pending': models.State.QUEUED,
-    'downloading': models.State.DOWNLOADING,
-    'seeding': models.State.SHARING,
-    # other states need more logic
-}
-
+# Support for monkey patch transmissionrpc
 
 def tranmissionrpc_torrent_files(torrent):
     files = torrent.files().values()
@@ -71,8 +59,24 @@ def tranmissionrpc_torrent___str__(torrent):
     return root
 
 
-# monkeypatch transmissionrpc
 transmissionrpc.torrent.Torrent.__str__ = tranmissionrpc_torrent___str__
+
+
+models = pluginlib.models
+
+
+SETTINGS_NS = 'plugins.downloaders.transmission'
+STATE_MAP = {
+    'checking': models.State.INITIALIZING,
+    'check pending': models.State.INITIALIZING,
+    'download pending': models.State.QUEUED,
+    'downloading': models.State.DOWNLOADING,
+    'seeding': models.State.SHARING,
+    # other states need more logic
+}
+TRANSMISSION_API_ERROR_MSG = (
+    "Error while trying to communicate with transmission: '{message}'"
+)
 
 
 class TransmissionDownloader(pluginlib.Downloader):
@@ -98,29 +102,37 @@ class TransmissionDownloader(pluginlib.Downloader):
                 for x in self.api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
-            msg = "Unable to connect to transmission daemon: '{message}'"
-            msg = msg.format(message=e.original.message)
-            raise pluginlib.exc.BackendError(msg)
+            msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
+            raise pluginlib.exc.PluginError(msg, e) from e
 
     def add(self, source, **kwargs):
         urn = bittorrentlib.normalize_urn(source.urn)
 
+        # FIXME: Should we raise DuplicatedDownloadError?
         if urn in self.shield:
-            self.logger.warning('Avoid duplicate')
             return self.shield[urn]
 
         try:
             ret = self.api.add_torrent(source.uri)
+
         except transmissionrpc.error.TransmissionError as e:
-            raise pluginlib.exc.BackendError(e)
+            msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
+            raise pluginlib.exc.PluginError(msg, e) from e
 
         self.shield[urn] = ret
         return ret
 
     def remove(self, item):
-        self.shield = {
-            urn: i for (urn, i) in self.shield.items() if i != item}
-        return self.api.remove_torrent(item.id, delete_data=True)
+        self.shield = {urn: i for (urn, i) in self.shield.items() if i != item}
+
+        # FIXME: Should we raise DownloadNotFoundError if item is not found?
+
+        try:
+            return self.api.remove_torrent(item.id, delete_data=True)
+
+        except transmissionrpc.error.TransmissionError as e:
+            msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
+            raise pluginlib.exc.PluginError(msg, e) from e
 
     def list(self):
         return self.api.get_torrents()
@@ -138,10 +150,12 @@ class TransmissionDownloader(pluginlib.Downloader):
 
         state = tr_obj.status
 
-        if state in STATE_MAP:
-            return STATE_MAP[state]
-        else:
-            raise pluginlib.exc.NoMatchingState(state)
+        if state not in STATE_MAP:
+            msg = "Unknown state «{state}»."
+            msg = msg.format(state=state)
+            raise pluginlib.exc.SelfCheckError(msg)
+
+        return STATE_MAP[state]
 
     def get_info(self, tr_obj):
         ret = {
