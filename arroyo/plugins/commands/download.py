@@ -38,34 +38,8 @@ from arroyo import (
 models = pluginlib.models
 
 
-class DownloadCommand(pluginlib.Command):
-    __extension_name__ = 'download'
-
-    HELP = 'Download (and search)'
+class CommonMixin:
     ARGUMENTS = (
-        # Downloads management
-        pluginlib.cliargument(
-            '-a', '--add-id',
-            dest='add',
-            default=[],
-            type=int,
-            action='append',
-            help='Download from a source ID'),
-
-        pluginlib.cliargument(
-            '-r', '--remove-id',
-            dest='remove',
-            default=[],
-            type=int,
-            action='append',
-            help='Cancel a download from its source ID'),
-
-        pluginlib.cliargument(
-            '-l', '--list',
-            dest='list',
-            action='store_true',
-            help='Show current downloads'),
-
         # Selecting
         pluginlib.cliargument(
             '--from-config',
@@ -108,13 +82,6 @@ class DownloadCommand(pluginlib.Command):
                   "are displayed).")),
 
         pluginlib.cliargument(
-            '-n', '--dry-run',
-            dest='dry_run',
-            action='store_true',
-            help=("Dry run mode. Don't download anything, just show what "
-                  "will be downloaded.")),
-
-        pluginlib.cliargument(
             '--explain',
             dest='explain',
             action='store_true',
@@ -128,50 +95,40 @@ class DownloadCommand(pluginlib.Command):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.logger = loggertools.getLogger('download')
+        self.logger = loggertools.getLogger(self.__extension_name__)
 
     def execute(self, app, arguments):
-        # Direct download management:
-        # --add / --remove / --list
-        # Conflicts with:
-        # --filter / keywords
-
         # FIXME: Deprecated code
         if arguments.everything:
             msg = "--all flag is deprecated. Use -f state=all"
             self.logger.warning(msg)
             arguments.filters['state'] = 'all'
 
+        queries = []
+
         #
         # Build queries from configuration, filter arguments or keywords
         #
-        queries = {}
+        if arguments.keywords:
+            # Check for missuse of keywords
+            if any([re.search(r'^([a-z]+)=(.+)$', x)
+                    for x in arguments.keywords]):
+                msg = ("Found a filter=value argument without -f/--filter "
+                       "flag")
+                self.logger.warning(msg)
 
-        if arguments.filters or arguments.keywords:
-            if arguments.keywords:
-                # Check for missuse of keywords
-                if any([re.search(r'^([a-z]+)=(.+)$', x)
-                        for x in arguments.keywords]):
-                    msg = ("Found a filter=value argument without -f/--filter "
-                           "flag")
-                    self.logger.warning(msg)
+            # FIXME: Do this with arguments
+            # Join keywords
+            arguments.keywords = ' '.join([x.strip()
+                                           for x in arguments.keywords])
 
-                # Check for dangling filters
-                if ('-f' in arguments.keywords or
-                        '--filter' in arguments.keywords):
-                    msg = "-f/--filter must be used *before* keywords"
-                    self.logger.warning(msg)
-
-                # Transform keywords into a usable query
-                keyword = ' '.join([x.strip() for x in arguments.keywords])
-
-            else:
-                keyword = None
-
-            query = app.selector.query_from_args(
-                keyword=keyword,
-                params=arguments.filters)
-            queries = [('command-line', query)]
+        if arguments.keywords or arguments.filters:
+            queries = [
+                ('command-line',
+                 app.selector.query_from_args(
+                    keyword=arguments.keywords,
+                    params=arguments.filters))
+            ]
 
         if arguments.from_config:
             queries = app.selector.queries_from_config()
@@ -180,133 +137,182 @@ class DownloadCommand(pluginlib.Command):
                 self.logger.error(msg)
                 raise pluginlib.ConfigurationError(msg)
 
-        #
-        # Handle user will
-        #
+        delattr(arguments, 'keywords')
+        delattr(arguments, 'filters')
+        delattr(arguments, 'from_config')
+        setattr(arguments, 'queries', queries)
 
-        if arguments.add:
-            sources = [self.source_from_id(x)
-                       for x in arguments.add]
-            sources = [x for x in sources if x]
-            self.add_downloads(sources,
-                               dry_run=arguments.dry_run)
+    def search(self, query, auto_import=None):
+        srcs = self.app.selector.matches(
+            query,
+            auto_import=auto_import)
 
-        if arguments.remove:
-            sources = [self.source_from_id(x)
-                       for x in arguments.remove]
-            sources = [x for x in sources if x]
-            self.remove_downloads(sources,
-                                  dry_run=arguments.dry_run)
+        if not srcs:
+            msg = "No matches found"
+            print(msg, file=sys.stderr)
+            return []
 
-        if arguments.list:
-            downloads = app.downloads.list()
-            if not downloads:
-                msg = "No downloads"
-                print(msg)
+        # Build selections
+        selections = []
+        for (entity, sources) in self.app.selector.group(srcs):
+            selected = self.app.selector.select(sources)
+            selections.append((entity, sources, selected))
 
-            else:
-                rows = [tabulated_data_from_source(src)
-                        for src in sorted(downloads, key=lambda x: x.name)]
+        return selections
 
-                formated_table = filtered_tabulate(
-                    rows,
-                    keys=['state_symbol', 'id', 'name', 'size', 'language',
-                          'ratio'],
-                    headers=['State', 'ID', 'Name', 'Size', 'Language',
-                             'Seed ratio'])
-                print(formated_table)
 
-        for (name, query) in queries:
+class SearchCommand(CommonMixin, pluginlib.Command):
+    __extension_name__ = 'search'
+    ARGUMENTS = CommonMixin.ARGUMENTS
+    HELP = 'Search stuff'
+
+    def execute(self, app, arguments):
+        super().execute(app, arguments)
+
+        if not arguments.queries:
+            msg = "Nothing to search"
+            self.logger.error(msg)
+            return
+
+        for (name, query) in arguments.queries:
             try:
-                srcs = app.selector.matches(
-                    query,
-                    auto_import=arguments.scan)
-
+                results = self.search(query, auto_import=arguments.scan)
             except (selector.FilterNotFoundError,
                     selector.FilterCollissionError) as e:
                 print(e, file=sys.stderr)
                 continue
 
-            # Build selections
-            selections = []
-            for (entity, sources) in app.selector.group(srcs):
-                selected = app.selector.select(sources)
-                selections.append((entity, sources, selected))
-
             if arguments.explain:
-                explain(selections)
+                explain(results)
+            else:
+                for (dummy, dummy, selected) in results:
+                    print(selected)
+
+
+class DownloadCommand(CommonMixin, pluginlib.Command):
+    __extension_name__ = 'download'
+
+    HELP = 'Control downloads'
+    ARGUMENTS = CommonMixin.ARGUMENTS + (
+        pluginlib.cliargument(
+            '-a', '--add-id',
+            dest='add',
+            default=[],
+            type=int,
+            action='append',
+            help='Download from a source ID'),
+
+        pluginlib.cliargument(
+            '-r', '--remove-id',
+            dest='remove',
+            default=[],
+            type=int,
+            action='append',
+            help='Cancel a download from its source ID'),
+
+        pluginlib.cliargument(
+            '-l', '--list',
+            dest='list',
+            action='store_true',
+            help='Show current downloads'),
+
+        pluginlib.cliargument(
+            '-n', '--dry-run',
+            dest='dry_run',
+            action='store_true',
+            help=("Dry run mode. Don't download anything, just show what "
+                  "will be downloaded.")),
+
+    )
+
+    def ensure_sources(self, objs):
+        ret = []
+        for obj in objs:
+            if isinstance(obj, models.Source):
+                ret.append(obj)
+
+            else:
+                source = self.app.db.get(models.Source, id=obj)
+                if not source:
+                    msg = "No source found for '{id}'"
+                    msg = msg.format(id=obj)
+                    self.logger.error(msg)
+                    continue
+
+                ret.append(source)
+
+        return ret
+
+    def _fn_download(self, fn, verb, ids, dry_run=False):
+        def _fake_op(*args):
+            return [None] * len(args)
+
+        sources = self.ensure_sources(ids)
+        if dry_run:
+            fn_ = _fake_op
+        else:
+            fn_ = fn
+
+        ok_msg = "Download {verb}: «{source}»"
+        error_msg = "{source}: {e}"
+
+        for (src, ret) in zip(sources, fn_(sources)):
+            if isinstance(ret, Exception):
+                msg = error_msg.format(source=src, e=ret)
+                self.logger.error(msg)
+                continue
+
+            msg = ok_msg.format(source=src, verb=verb)
+            print(msg)
+
+    def add_downloads(self, ids, dry_run=False):
+        return self._fn_download(self.app.downloads.add_all, 'added', ids,
+                                 dry_run=dry_run)
+
+    def remove_downloads(self, ids, dry_run=False):
+        return self._fn_download(self.app.downloads.remove_all, 'removed', ids,
+                                 dry_run=dry_run)
+
+    def list_downloads(self):
+        downloads = self.app.downloads.list()
+        if not downloads:
+            msg = "No downloads"
+            print(msg)
+
+        else:
+            rows = [tabulated_data_from_source(src)
+                    for src in sorted(downloads, key=lambda x: x.name)]
+
+            formated_table = filtered_tabulate(
+                rows,
+                keys=['state_symbol', 'id', 'name', 'size', 'language',
+                      'ratio'],
+                headers=['State', 'ID', 'Name', 'Size', 'Language',
+                         'Seed ratio'])
+            print(formated_table)
+
+    def execute(self, app, arguments):
+        super().execute(app, arguments)
+
+        if arguments.add:
+            self.add_downloads(arguments.add,
+                               dry_run=arguments.dry_run)
+
+        if arguments.remove:
+            self.remove_downloads(arguments.remove,
+                                  dry_run=arguments.dry_run)
+
+        if arguments.list:
+            self.list_downloads()
+
+        for (name, query) in arguments.queries:
+            results = self.search(query, auto_import=arguments.scan)
+            if arguments.explain:
+                explain(results)
 
             self.add_downloads(
-                [selected for (dummy, dummy, selected) in selections],
+                [selected for (dummy, dummy, selected) in results],
                 dry_run=arguments.dry_run)
-
-    def add_downloads(self, sources, dry_run=False):
-        if not sources:
-            self.logger.info("No sources found")
-            return
-
-        assert isinstance(sources, list)
-        assert all([isinstance(x, models.Source) for x in sources])
-
-        for src in sources:
-            msg = "Download added: «{source}»"
-            msg = msg.format(source=src.name)
-
-            if dry_run:
-                print(msg)
-            else:
-                self.app.downloads.add(src)
-                self.logger.info(msg)
-
-    def remove_downloads(self, sources, dry_run=False):
-        assert sources
-        assert isinstance(sources, list)
-        assert all([isinstance(x, models.Source) for x in sources])
-
-        for src in sources:
-            msg = "Download removed: «{source}»"
-            msg = msg.format(source=src.name)
-
-            if dry_run:
-                print(msg)
-            else:
-                self.app.downloads.remove(src)
-                self.logger.info(msg)
-
-    def source_from_id(self, id):
-        source = self.app.db.get(models.Source, id=id)
-        if not source:
-            msg = "Source with ID={id} not found"
-            msg = msg.format(id=id)
-            self.logger.error(msg)
-            return None
-
-        return source
-
-    def query_from_arguments(self, filters, keywords):
-        if keywords:
-            # Check for missuse of keywords
-            if any([re.search(r'^([a-z]+)=(.+)$', x)
-                    for x in keywords]):
-                msg = ("Found a filter=value argument without -f/--filter "
-                       "flag")
-                self.logger.warning(msg)
-
-            # Check for dangling filters
-            if '-f' in keywords or '--filter' in keywords:
-                msg = "-f/--filter must be used *before* keywords"
-                self.logger.warning(msg)
-
-            # Transform keywords into a usable query
-            keyword = ' '.join([x.strip() for x in keywords])
-        else:
-            keyword = None
-
-        query = self.app.selector.query_from_args(
-            keyword=keyword,
-            parms=filters)
-
-        return query
 
 
 def explain(selections):
@@ -391,5 +397,6 @@ def filtered_tabulate(rows, *args, keys=None, **kwargs):
     return tabulate.tabulate(data, *args, **kwargs)
 
 __arroyo_extensions__ = [
-    DownloadCommand
+    DownloadCommand,
+    SearchCommand
 ]
