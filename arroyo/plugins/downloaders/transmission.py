@@ -110,7 +110,8 @@ class TransmissionDownloader(pluginlib.Downloader):
 
         # FIXME: Should we raise DuplicatedDownloadError?
         if urn in self.shield:
-            return self.shield[urn]
+            # return self.shield[urn]
+            return
 
         try:
             ret = self.api.add_torrent(source.uri)
@@ -120,7 +121,7 @@ class TransmissionDownloader(pluginlib.Downloader):
             raise pluginlib.exc.PluginError(msg, e) from e
 
         self.shield[urn] = ret
-        return ret
+        # return ret
 
     def remove(self, item):
         self.shield = {urn: i for (urn, i) in self.shield.items() if i != item}

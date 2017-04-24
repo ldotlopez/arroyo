@@ -19,6 +19,7 @@
 
 
 from arroyo import (
+    downloads,
     selector,
     pluginlib
 )
@@ -129,8 +130,8 @@ class CommonMixin:
             queries = [
                 ('command-line',
                  app.selector.query_from_args(
-                    keyword=arguments.keywords,
-                    params=arguments.filters))
+                     keyword=arguments.keywords,
+                     params=arguments.filters))
             ]
 
         if arguments.from_config:
@@ -246,6 +247,9 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
         def _fake_op(args):
             return [None] * len(args)
 
+        if not ids:
+            return []
+
         sources = self.ensure_sources(ids)
         if dry_run:
             fn_ = _fake_op
@@ -253,13 +257,28 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
             fn_ = fn
 
         ok_msg = "Download {verb}: «{source}»"
-        error_msg = "{source}: {e}"
 
         for (src, ret) in zip(sources, fn_(sources)):
-            if isinstance(ret, Exception):
-                msg = error_msg.format(source=src, e=ret)
+            if isinstance(ret, downloads.DuplicatedDownloadError):
+                msg = "Duplicated download: {src}"
+                msg = msg.format(src=src)
                 self.logger.error(msg)
                 continue
+
+            elif isinstance(ret, downloads.DownloadNotFoundError):
+                msg = "Missing download: {src}"
+                msg = msg.format(src=src)
+                self.logger.error(msg)
+                continue
+
+            elif isinstance(ret, downloads.ResolveLazySourceError):
+                msg = "Unable to resolve «{src}» (uri: «{uri}»)"
+                msg = msg.format(src=src, uri=src.uri)
+                self.logger.error(msg)
+                continue
+
+            elif isinstance(ret, Exception):
+                raise ret
 
             msg = ok_msg.format(source=src, verb=verb)
             print(msg)

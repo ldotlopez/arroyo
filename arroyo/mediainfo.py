@@ -24,8 +24,10 @@ from arroyo import models
 import functools
 import warnings
 
+
 import babelfish
 import guessit
+from appkit import loggertools
 
 
 _SOURCE_TAGS_PREFIX = 'core.'
@@ -343,7 +345,7 @@ def parse(name, tags=None, type_hint=None):
 class Mediainfo:
     def __init__(self, app):
         self.app = app
-        self.logger = app.logger.getChild('mediainfo')
+        self.logger = loggertools.getLogger('mediainfo')
 
     @functools.lru_cache(maxsize=16)
     def default_language_for_provider(self, provider):

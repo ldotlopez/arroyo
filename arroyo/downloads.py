@@ -21,7 +21,7 @@
 from appkit import loggertools
 
 
-from arroyo.exc import PluginError
+import arroyo.exc
 from arroyo import (
     kit,
     models
@@ -87,9 +87,9 @@ class Downloads:
         ret = self.backend.add(source)
         if ret is not None:
             msg = ("Invalid API usage from downloader plugin «{name}». "
-                   "Should return 'None'")
-            msg = msg.format(name=self.backend_name)
-            raise exc.PluginError(msg, None)
+                   "Should return 'None' but got '{ret}'")
+            msg = msg.format(name=self.backend_name, ret=repr(ret))
+            raise arroyo.exc.PluginError(msg, None)
 
         source.state = models.State.INITIALIZING
 
@@ -142,7 +142,8 @@ class Downloads:
             try:
                 foreign_obj = translations[src]
             except KeyError as e:
-                raise DownloadNotFoundError(src) from e
+                ret.append(DownloadNotFoundError(src))
+                continue
 
             try:
                 ret.append(self.backend.remove(foreign_obj))
@@ -152,6 +153,7 @@ class Downloads:
 
             except Exception as e:
                 ret.append(e)
+                continue
 
         return ret
 
@@ -299,6 +301,9 @@ class DownloadQueriesCronTask(kit.Task):
                 continue
 
             downloads.extend(srcs)
+
+        if not downloads:
+            return
 
         for ret in app.downloads.add_all(downloads):
             if isinstance(ret, Exception):
