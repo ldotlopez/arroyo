@@ -21,18 +21,34 @@
 from appkit import loggertools
 
 
-import arroyo.exc
+from arroyo.exc import PluginError
 from arroyo import (
     kit,
     models
 )
 
 
-class BackendError(arroyo.exc._BaseException):
+class DuplicatedDownloadError(Exception):
+    """Requested download already exists
+
+    Raised by downloader plugins
+    """
     pass
 
 
-class ResolveError(arroyo.exc._BaseException):
+class DownloadNotFoundError(Exception):
+    """Requested download already exists
+
+    Raised by downloader plugins
+    """
+    pass
+
+
+class ResolveLazySourceError(Exception):
+    """Lazy source can't be resolves
+
+    Raised by arroyo.downloads
+    """
     pass
 
 
@@ -63,14 +79,17 @@ class Downloads:
         assert isinstance(source, models.Source)
 
         if source.needs_postprocessing:
-            self.app.importer.resolve_source(source)
+            try:
+                self.app.importer.resolve_source(source)
+            except ValueError as e:
+                raise ResolveLazySourceError(source) from e
 
-        try:
-            self.backend.add(source)
-        except Exception as e:
-            msg = "Downloader '{name}' error: {e}"
-            msg = msg.format(name=self.backend_name, e=e)
-            raise BackendError(msg, original_exception=e) from e
+        ret = self.backend.add(source)
+        if ret is not None:
+            msg = ("Invalid API usage from downloader plugin «{name}». "
+                   "Should return 'None'")
+            msg = msg.format(name=self.backend_name)
+            raise exc.PluginError(msg, None)
 
         source.state = models.State.INITIALIZING
 
@@ -94,7 +113,11 @@ class Downloads:
             try:
                 self.add(src)
                 ret.append((src, True, None))
-            except arroyo.exc_BaseException as e:
+
+            except SyntaxError:
+                raise
+
+            except Exception as e:
                 ret.append((src, False, e))
 
         return ret

@@ -281,9 +281,7 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         try:
             return self.commands.execute(*args)
 
-        except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError,
-                arroyo.exc.FatalError) as e:
+        except arroyo.exc.FatalError as e:
             self.logger.critical(e)
 
 
