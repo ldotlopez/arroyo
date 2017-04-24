@@ -22,8 +22,10 @@ import unittest
 import time
 
 from testapp import TestApp, mock_source
-from arroyo import models
-
+from arroyo import (
+    downloads,
+    models
+)
 
 class BaseTest:
     slowdown = None
@@ -82,7 +84,8 @@ class BaseTest:
         self.app.downloads.add(src1)
 
         self.wait()
-        self.app.downloads.remove(src2)
+        with self.assertRaises(downloads.DownloadNotFoundError):
+            self.app.downloads.remove(src2)
 
     def test_duplicates(self):
         src1 = mock_source('foo')
