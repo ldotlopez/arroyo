@@ -34,11 +34,7 @@ class TestProvider:
     QUERY_TESTS = []
 
     def setUp(self):
-        settings = {
-            'plugins.queries.source.enabled': True,
-            'plugins.queries.episode.enabled': True,
-            'plugins.queries.movie.enabled': True
-        }
+        settings = {}
         settings.update(
             {'plugins.' + x + '.enabled': True
              for x in self.PLUGINS}
@@ -96,11 +92,16 @@ class TestProvider:
         )
 
         for (query, uri) in self.QUERY_TESTS:
-            if not isinstance(query, dict):
-                words = [x for x in query.split(' ') if x]
-                query = {'name-glob': '*' + '*'.join(words) + '*'}
+            keyword = None
+            params = None
 
-            query = self.app.selector.query_from_params(query)
+            if isinstance(query, dict):
+                params = query
+            else:
+                keyword = query
+
+            query = self.app.selector.query_from_args(keyword=keyword,
+                                                      params=params)
 
             self.assertEqual(
                 uri,
@@ -166,8 +167,8 @@ class EztvTest(TestProvider, unittest.TestCase):
 
     QUERY_TESTS = [
         ('foo', None),
-        (dict(kind='episode', series='lost'), 'https://eztv.ag/search/lost'),  # nopep8
-        (dict(kind='episode', series='youre the worst'), 'https://eztv.ag/search/youre-the-worst')  # nopep8
+        (dict(type='episode', series='lost'), 'https://eztv.ag/search/lost'),  # nopep8
+        (dict(type='episode', series='youre the worst'), 'https://eztv.ag/search/youre-the-worst')  # nopep8
     ]
 
 
@@ -225,7 +226,7 @@ class KickassTest(TestProvider, unittest.TestCase):
             'https://kickass.cd/usearch/the+big+bang+theory/?field=time_add&sorder=desc'  # nopep8
         ),
         (
-            dict(kind='episode', series='the big bang theory'),
+            dict(type='episode', series='the big bang theory'),
             'https://kickass.cd/usearch/the+big+bang+theory+category%3Atv/?field=time_add&sorder=desc'  # nopep8
         )
     ]
@@ -237,7 +238,7 @@ class NyaaTest(TestProvider, unittest.TestCase):
 
     PAGINATION_TESTS = [
         (None, [
-            'https://www.nyaa.se/?sort=0&order=1',
+            'https://www.nyaa.se/?sort=0&order=1&offset=1',
             'https://www.nyaa.se/?sort=0&order=1&offset=2']),
     ]
 
@@ -268,9 +269,9 @@ class ThepiratebayTest(TestProvider, unittest.TestCase):
 
         # Category pagination
         ('https://thepiratebay.cr/browse/605/', [
-                'https://thepiratebay.cr/browse/605/',
-                'https://thepiratebay.cr/browse/605/1/3',
-                'https://thepiratebay.cr/browse/605/2/3',
+            'https://thepiratebay.cr/browse/605/',
+            'https://thepiratebay.cr/browse/605/1/3',
+            'https://thepiratebay.cr/browse/605/2/3',
         ])
     ]
 
