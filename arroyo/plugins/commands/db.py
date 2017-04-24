@@ -21,7 +21,29 @@
 from arroyo import pluginlib
 
 
+import contextlib
+
+
+import tqdm
+
+
 models = pluginlib.models
+
+
+@contextlib.contextmanager
+def _mute_logger(logger):
+    mute = 51
+    prev = logger.getEffectiveLevel()
+    logger.setLevel(mute)
+    yield
+    logger.setLevel(prev)
+
+
+def _tqdm(*args, **kwargs):
+    kwargs_ = dict(dynamic_ncols=True, disable=not sys.stderr.isatty())
+    kwargs_.update(kwargs)
+
+    return tqdm.tqdm(*args, **kwargs_)
 
 
 class Command(pluginlib.Command):
@@ -108,7 +130,6 @@ class Command(pluginlib.Command):
             msg = "Just one option can be specified at one time"
             raise pluginlib.exc.ArgumentsError(msg)
 
-
         if archive_all:
             db.update_all_states(models.State.ARCHIVED)
 
@@ -154,7 +175,6 @@ class Command(pluginlib.Command):
             # prevent future mistakes
             msg = "Incorrect usage"
             raise pluginlib.exc.ArgumentsError(msg)
-
 
     def migrations(self):
         migrations = [

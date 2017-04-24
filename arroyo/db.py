@@ -21,27 +21,8 @@
 from arroyo import models
 
 
-import contextlib
 import sys
-
-import tqdm
 from appkit.db import sqlalchemyutils as sautils
-
-
-@contextlib.contextmanager
-def _mute_logger(logger):
-    mute = 51
-    prev = logger.getEffectiveLevel()
-    logger.setLevel(mute)
-    yield
-    logger.setLevel(prev)
-
-
-def _tqdm(*args, **kwargs):
-    kwargs_ = dict(dynamic_ncols=True, disable=not sys.stderr.isatty())
-    kwargs_.update(kwargs)
-
-    return tqdm.tqdm(*args, **kwargs_)
 
 
 class Db:
@@ -130,4 +111,3 @@ class Db:
         )
 
         return qs
-

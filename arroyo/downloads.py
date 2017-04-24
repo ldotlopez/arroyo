@@ -155,7 +155,6 @@ class Downloads:
 
         return ret
 
-
     def get_translations(self):
         """Build a dict with bidirectional mapping between known sources and
         backend objects.
