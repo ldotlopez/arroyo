@@ -84,7 +84,7 @@ class Downloads:
         self.app.db.session.commit()
         self.app.signals.send('source-state-change', source=source)
 
-    def add_all(self, *sources):
+    def add_all(self, sources):
         assert isinstance(sources, list)
         assert len(sources) > 0
         assert all([isinstance(x, models.Source) for x in sources])
@@ -99,7 +99,10 @@ class Downloads:
 
         return ret
 
-    def remove(self, *sources):
+    def remove(self, source):
+        self.remove_all([source])
+
+    def remove_all(self, sources):
         """Remove (and delete from disk) one or more sources from backend."""
 
         assert \

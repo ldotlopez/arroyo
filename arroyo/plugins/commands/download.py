@@ -18,7 +18,14 @@
 # USA.
 
 
+from arroyo import (
+    selector,
+    pluginlib
+)
+
+
 import itertools
+import functools
 import re
 import sys
 
@@ -28,10 +35,6 @@ import tabulate
 from appkit import (
     loggertools,
     utils
-)
-from arroyo import (
-    selector,
-    pluginlib
 )
 
 
@@ -153,12 +156,12 @@ class CommonMixin:
             return []
 
         # Build selections
-        selections = []
+        results = []
         for (entity, sources) in self.app.selector.group(srcs):
             selected = self.app.selector.select(sources)
-            selections.append((entity, sources, selected))
+            results.append((entity, sources, selected))
 
-        return selections
+        return results
 
 
 class SearchCommand(CommonMixin, pluginlib.Command):
@@ -182,11 +185,7 @@ class SearchCommand(CommonMixin, pluginlib.Command):
                 print(e, file=sys.stderr)
                 continue
 
-            if arguments.explain:
-                explain(results)
-            else:
-                for (dummy, dummy, selected) in results:
-                    print(selected)
+            print(explain(results))
 
 
 class DownloadCommand(CommonMixin, pluginlib.Command):
@@ -244,7 +243,7 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
         return ret
 
     def _fn_download(self, fn, verb, ids, dry_run=False):
-        def _fake_op(*args):
+        def _fake_op(args):
             return [None] * len(args)
 
         sources = self.ensure_sources(ids)
@@ -283,13 +282,12 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
             rows = [tabulated_data_from_source(src)
                     for src in sorted(downloads, key=lambda x: x.name)]
 
-            formated_table = filtered_tabulate(
+            print(tabulate_(
                 rows,
                 keys=['state_symbol', 'id', 'name', 'size', 'language',
                       'ratio'],
                 headers=['State', 'ID', 'Name', 'Size', 'Language',
-                         'Seed ratio'])
-            print(formated_table)
+                         'Seed ratio']))
 
     def execute(self, app, arguments):
         super().execute(app, arguments)
@@ -315,86 +313,112 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
                 dry_run=arguments.dry_run)
 
 
-def explain(selections):
-    # Generate data for tabulate
-    rows = []
-
-    for (entity, sources, selected) in selections:
-        for src in sources:
-            # srcdata = tabulated_data_from_source(src)
-            # srcdata['selected'] = '→' if src == selected else ''
-            # rows.append(srcdata)
-
-            rows.append((entity, (
-                # Source ID
-                src.id,
-                # This this source the selected one?
-                '→' if src == selected else '',
-                # Source state
-                '[{}]'.format(src.state_symbol),
-                # Source name
-                src.name,
-                # Souce size
-                humanfriendly.format_size(src.size) if src.size else '',
-                # Source language if applicable
-                src.language or '',
-                # s/l ratio
-                '{}/{}'.format(src.seeds or '-', src.leechers or '-'),
-            )))
-
-    # headers = ['ID', 'selected', 'state', 'name', 'size', 'language',
-    #            'ratio']
-    groupped_rows = tabulate_groups(rows)
-    for (entity, rows) in groupped_rows:
-        header = "[{type}] {entity}"
-        header = header.format(
-            type=entity.__class__.__name__.capitalize(),
-            entity=entity)
-
-        print("{header}\n{rows}\n".format(header=header,
-                                          rows="\n".join(rows)))
-
-
-def tabulate_groups(groups, *args, headers=None, **kwargs):
-    if headers is None:
-        headers = []
-
-    data_rows = [x[1] for x in groups]
-
-    table_str = tabulate.tabulate(data_rows)
-    formated_rows = table_str.split("\n")
-
-    # dummy = formated_rows[0]
-    # dummy = formated_rows[-1]
-    formated_rows = formated_rows[1:-1]
-
-    idx = 0
-    for (entity, group) in itertools.groupby(groups, lambda x: x[0]):
-        data = list([x[1] for x in group])
-
-        yield (entity, formated_rows[idx:idx+len(data)])
-        idx = idx + len(data)
-
-
-def tabulated_data_from_source(source):
+def tabulated_data_from_source(source, selected=False):
     ret = source.asdict()
-
     ret.update({
         'state_symbol': '[{}]'.format(source.state_symbol),
         'size': humanfriendly.format_size(source.size)if source.size else '',
         'language': source.language or ' ',
         'ratio': '{}/{}'.format(source.seeds or '-', source.leechers or '-'),
+        'selected': '*' if selected else ''
     })
 
     return ret
 
 
-def filtered_tabulate(rows, *args, keys=None, **kwargs):
-    data = []
-    for row in rows:
-        data.append([row[k] for k in keys])
+def explain(results):
+    """Wrapper around display_groupped
+    """
+    groups = []
+    for (entity, sources, selected_source) in results:
+        group_data = []
 
-    return tabulate.tabulate(data, *args, **kwargs)
+        for source in sources:
+            source_data = tabulated_data_from_source(
+                source,
+                selected=(source == selected_source))
+            group_data.append(source_data)
+
+        groups.append((entity, group_data))
+
+    keys = ['id', 'selected', 'name', 'size', 'language',  'ratio']
+    headers = ['ID', '', 'Name', 'Size', 'Language', 'Seed ratio']
+
+    display_groupped(groups, keys=keys, headers=headers)
+
+
+def display_groupped(groups, keys, headers):
+    # Unroll groups
+    data = []
+    for (master, row_group) in groups:
+        for row in row_group:
+            data.append((master, row))
+
+    formatted = tabulate_(
+        (x[1] for x in data),
+        keys=keys,
+        headers=headers)
+    rows = formatted.split('\n')
+    text_header, text_separator, text_rows = (rows[0], rows[1], rows[2:])
+
+    masters_and_text_rows = zip(
+        (x[0] for x in data),  # master of each group
+        text_rows              # Rows relative to that master
+    )
+
+    it = sorted(
+        masters_and_text_rows,
+        key=functools.cmp_to_key(lambda a, b: cmp_entities(a[0], b[0]))
+    )
+    it = itertools.groupby(it, lambda x: x[0])
+
+    for (master, group) in it:
+        master_type = camel_case(master.__class__.__name__)
+        master_text = camel_case(str(master))
+
+        print("» [{type} - {master}]".format(
+            type=master_type,
+            master=master_text
+        ))
+        print("   "+text_header)
+        print("   "+text_separator)
+        for (dummy, text_row) in group:
+            print("   "+text_row)
+        print("   "+text_separator)
+        print("")
+
+
+def tabulate_(rows, *args, keys=None, **kwargs):
+    """Wrapper function for tabulate.tabule
+
+    Adds keys paramter.
+    """
+    if keys is None:
+        keys = []
+
+    return tabulate.tabulate(
+        [[row[k] for k in keys] for row in rows],
+        *args, **kwargs
+    )
+
+
+def camel_case(s):
+    return ' '.join(x.capitalize() for x in s.split())
+
+
+def cmp_entities(a, b):
+    # Check different class
+    if a.__class__ is not b.__class__:
+        if a.__class__ is models.Source:
+            return -1
+
+        if b.__class__ is models.Source:
+            return 1
+
+        return a.__class__.__name__ < b.__class__.__name__
+
+    return str(a) < str(b)
+
 
 __arroyo_extensions__ = [
     DownloadCommand,

@@ -73,6 +73,7 @@ class MediainfoCommand(pluginlib.Command):
             srcs = db.session.query(models.Source)
 
         mediainfo.process(*srcs)
+        self.app.db.session.commit()
 
 
 __arroyo_extensions__ = [
