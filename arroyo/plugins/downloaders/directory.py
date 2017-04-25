@@ -92,9 +92,8 @@ class DirectoryDownloader(pluginlib.Downloader):
             models.Source.urn == urn
         ).one()
 
-    # Keep this method static and stateless for future parallelization
-    @staticmethod
-    def _torrent_file_for_magnet(magnet):
+    # FIXME: Make this method stateless for future parallelization
+    def _torrent_file_for_magnet(self, magnet):
         parsed = parse.urlparse(magnet)
         params = parse.parse_qs(parsed.query)
         urn = bittorrentlib.normalize_urn(params['xt'][0])
