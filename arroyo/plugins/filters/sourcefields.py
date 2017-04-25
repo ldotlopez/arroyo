@@ -53,7 +53,7 @@ class SourceFieldsFilter(pluginlib.QuerySetFilter):
             try:
                 value = func(value)
             except ValueError as e:
-                raise pluginlib.exc.SettingError(key, value, e)
+                raise
 
         if key == 'size' or key.startswith('size-'):
             _convert_value(utils.parse_size)

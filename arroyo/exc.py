@@ -18,101 +18,53 @@
 # USA.
 
 
-from appkit import application
-
-
-class _BaseException(Exception):
-    def __init__(self, msg, **kwargs):
-        super().__init__(msg)
-        for (k, v) in kwargs.items():
-            setattr(self, k, v)
-
-
-class SettingError(_BaseException):
-    def __init__(self, key, value, original=None):
-        msg = "Invalid setting '{key}': '{value}'"
-        msg = msg.format(key=key, value=value)
-
-        super().__init__(msg, key=key, value=value, original=original)
-
-
-# Origin related
-class OriginParseError(_BaseException):
-    pass
-
-
-class SourceResolveError(_BaseException):
-    pass
-
-
-class ArgumentsError(application.ArgumentsError, _BaseException):
-    pass
-
+# Reviewed with git grep
 
 # Other
 
-class FatalError(_BaseException):
+class FatalError(Exception):
     """
     Used to stop arroyo
     """
     pass
 
 
-#
-# The following exceptions aren't reviewed
-#
-
-
-class NoMatchingState(Exception):
+class SelfCheckError(Exception):
+    """Assert-like error"""
     pass
 
 
-class NoMatchingItem(Exception):
-    pass
-
-
-class BackendError(Exception):
-    def __init__(self, message, original=None):
-        self.message = message
-        self.original = original
-        super().__init__(message)
+class PluginError(Exception):
+    """Delegated plugin had unexpected error"""
+    def __init__(self, msg, original_exception=None):
+        super().__init__(msg)
+        self.msg = msg
+        self.original_exception = original_exception
 
     def __unicode__(self):
-        return self.message
+        return self.msg
 
-    def __str__(self):
-        return self.__unicode__()
+    __str__ = __unicode__
 
 
-class SourceNotFound(Exception):
+# /End reviewd exceptions
+
+
+class ArgumentsError(Exception):
     pass
 
 
-class ReadOnlyProperty(Exception):
+class ConfigurationError(Exception):
     pass
 
 
-class InvalidInstanceType(Exception):
-    pass
+class SettingError(ValueError):
+    MSG = "Invalid setting for '{key}': '{value}'"
 
+    def __init__(self, key, value):
+        super().__init__(
+            self.MSG.format(key=key, value=repr(value))
+        )
 
-class InvalidBackend(Exception):
-    pass
-
-
-class UrlGeneratorException(Exception):
-    pass
-
-
-class ProcessException(Exception):
-    def __init__(self, *args, **kwargs):
-        super(ProcessException, self).__init__()
-        self.args = args
-        self.kwargs = kwargs
-
-
-class NoImplementationError(Exception):
-    def __init__(self, extension_point, name):
-        msg = "No such implementation {name} for {extension_point}"
-        msg = msg.format(name=name, extension_point=extension_point)
-        super(NoImplementationError, self).__init__(msg)
+        self.key = key
+        self.value = value

@@ -343,12 +343,6 @@ class Importer:
             try:
                 res = origin.provider.parse(res)
 
-            except arroyo.exc.OriginParseError as e:
-                msg = "Error parsing «{uri}»: {e}"
-                msg = msg.format(uri=uri, e=e)
-                self.logger.error(msg)
-                continue
-
             except Exception as e:
                 print(traceback.format_exc(), file=sys.stderr)
                 msg = "Unhandled exception {type}: {e}"
@@ -424,7 +418,7 @@ class Importer:
         self._process_finalize(contexts)
 
         if not source.urn:
-            raise arroyo.exc.SourceResolveError(source)
+            raise ValueError(source)
 
         return source
 
