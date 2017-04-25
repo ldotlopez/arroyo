@@ -1,19 +1,41 @@
-FROM debian:stable
+# python3 is removable?
+# Add certify into requirements.txt
+
+FROM alpine:latest
 
 LABEL description="arroyo container"
 LABEL maintainer="ldotlopez@gmail.com"
 LABEL version="0"
 
 COPY . /app/arroyo
-RUN apt-get update
-RUN apt-get install -y python3 python3-dev virtualenv git build-essential zlib1g-dev libyaml-dev libxml2-dev libxslt1-dev
-RUN /usr/bin/virtualenv -p python3 /app/env
-RUN /app/env/bin/pip install -r /app/arroyo/requirements.txt 
-RUN adduser --home /app/data --disabled-password --gecos '' arroyo
-RUN apt-get autoremove --purge -y python3-dev git build-essential zlib1g-dev libyaml-dev libxml2-dev libxslt1-dev
-RUN rm /var/cache/apt/*.deb
+RUN                                             \
+    rm -rf /app/arroyo/.git*                    \
+    && apk add --no-cache  --update             \
+        ca-certificates                         \
+        python3                                 \
+        openssl                                 \
+        libxml2                                 \
+        libxslt                                 \
+        libffi                                  \
+    && apk add --no-cache --virtual .build-deps \
+        python3-dev                             \
+        py-pip                                  \
+        git                                     \
+        build-base                              \
+        openssl-dev                             \
+        libxml2-dev                             \
+        libxslt-dev                             \
+        libffi-dev                              \
+    && pip3 install virtualenv                  \
+    && /usr/bin/virtualenv -p python3 /app/env  \
+    && /app/env/bin/pip install                 \
+        --upgrade pip                           \
+    && /app/env/bin/pip install                 \
+        -r /app/arroyo/requirements.txt         \
+        certify                                 \
+    && apk del --no-cache .build-deps           \
+    && adduser -h /app/data -D -g '' arroyo
 
 USER arroyo
-ENV LANG C.UTF-8
 ENTRYPOINT ["/app/arroyo/entrypoint.sh"]
 CMD ["--help"]
