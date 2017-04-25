@@ -53,31 +53,6 @@ class DirectoryDownloader(pluginlib.Downloader):
         self.storage_path = storage_path
 
         self.sess = self.app.db.session
-        self.vars = self.app.variables
-
-    def _torrent_file_for_magnet(self, magnet):
-        def _wrapper():
-            return self.app.fetcher.fetch(url)
-
-        parsed = parse.urlparse(magnet)
-        params = parse.parse_qs(parsed.query)
-        urn = bittorrentlib.normalize_urn(params['xt'][0])
-        if not bittorrentlib.is_sha1_urn(urn):
-            raise ValueError(urn)
-
-        sha1hash = urn.split(':')[2]
-
-        api = 'http://itorrents.org/torrent/{uc_hash}.torrent'
-        url = api.format(uc_hash=sha1hash.upper())
-
-        fut = asyncio.ensure_future(self.app.fetcher.fetch(url))
-        loop = asyncio.get_event_loop()
-        loop.run_until_complete(fut)
-
-        if not fut.done():
-            raise Exception()
-
-        return fut.result()
 
     def add(self, source, **kwargs):
         filepath = self.storage_path + '/' + source.name + '.torrent'
@@ -117,6 +92,26 @@ class DirectoryDownloader(pluginlib.Downloader):
         ).filter(
             models.Source.urn == urn
         ).one()
+
+    # Keep this method static and stateless for future parallelization
+    @staticmethod
+    def _torrent_file_for_magnet(magnet):
+        parsed = parse.urlparse(magnet)
+        params = parse.parse_qs(parsed.query)
+        urn = bittorrentlib.normalize_urn(params['xt'][0])
+        if not bittorrentlib.is_sha1_urn(urn):
+            raise ValueError(urn)
+
+        sha1hash = urn.split(':')[2]
+
+        api = 'http://itorrents.org/torrent/{uc_hash}.torrent'
+        url = api.format(uc_hash=sha1hash.upper())
+
+        fut = asyncio.ensure_future(self.app.fetcher.fetch(url))
+        loop = asyncio.get_event_loop()
+        loop.run_until_complete(fut)
+
+        return fut.result()
 
 
 __arroyo_extensions__ = [
