@@ -59,10 +59,8 @@ class DirectoryDownloader(pluginlib.Downloader):
         with open(filepath, 'wb') as fh:
             fh.write(self._torrent_file_for_magnet(source.uri))
 
-        return filepath
-
     def remove(self, item):
-        raise NotImplementedError()
+        os.unlink(item)
 
     def list(self):
         torrents = os.listdir(self.storage_path)

@@ -28,11 +28,27 @@ from arroyo import (
 )
 
 
-class BackendError(arroyo.exc._BaseException):
+class DuplicatedDownloadError(Exception):
+    """Requested download already exists
+
+    Raised by downloader plugins
+    """
     pass
 
 
-class ResolveError(arroyo.exc._BaseException):
+class DownloadNotFoundError(Exception):
+    """Requested download already exists
+
+    Raised by downloader plugins
+    """
+    pass
+
+
+class ResolveLazySourceError(Exception):
+    """Lazy source can't be resolves
+
+    Raised by arroyo.downloads
+    """
     pass
 
 
@@ -63,14 +79,17 @@ class Downloads:
         assert isinstance(source, models.Source)
 
         if source.needs_postprocessing:
-            self.app.importer.resolve_source(source)
+            try:
+                self.app.importer.resolve_source(source)
+            except ValueError as e:
+                raise ResolveLazySourceError(source) from e
 
-        try:
-            self.backend.add(source)
-        except Exception as e:
-            msg = "Downloader '{name}' error: {e}"
-            msg = msg.format(name=self.backend_name, e=e)
-            raise BackendError(msg, original_exception=e) from e
+        ret = self.backend.add(source)
+        if ret is not None:
+            msg = ("Invalid API usage from downloader plugin «{name}». "
+                   "Should return 'None' but got '{ret}'")
+            msg = msg.format(name=self.backend_name, ret=repr(ret))
+            raise arroyo.exc.PluginError(msg, None)
 
         source.state = models.State.INITIALIZING
 
@@ -84,7 +103,7 @@ class Downloads:
         self.app.db.session.commit()
         self.app.signals.send('source-state-change', source=source)
 
-    def add_all(self, *sources):
+    def add_all(self, sources):
         assert isinstance(sources, list)
         assert len(sources) > 0
         assert all([isinstance(x, models.Source) for x in sources])
@@ -92,14 +111,24 @@ class Downloads:
         ret = []
         for src in sources:
             try:
-                self.add(src)
-                ret.append((src, True, None))
-            except arroyo.exc_BaseException as e:
-                ret.append((src, False, e))
+                ret.append(self.add(src))
+
+            except SyntaxError:
+                raise
+
+            except Exception as e:
+                ret.append(e)
 
         return ret
 
-    def remove(self, *sources):
+    def remove(self, source):
+        ret = self.remove_all([source])[0]
+        if isinstance(ret, Exception):
+            raise ret
+
+        return ret
+
+    def remove_all(self, sources):
         """Remove (and delete from disk) one or more sources from backend."""
 
         assert \
@@ -108,14 +137,25 @@ class Downloads:
 
         translations = self.get_translations()
 
+        ret = []
         for src in sources:
             try:
-                self.backend.remove(translations[src])
-            except KeyError:
-                msg = "'{source}' is not in downloads"
-                msg = msg.format(source=src)
-                self.logger.warning(msg)
+                foreign_obj = translations[src]
+            except KeyError as e:
+                ret.append(DownloadNotFoundError(src))
                 continue
+
+            try:
+                ret.append(self.backend.remove(foreign_obj))
+
+            except SyntaxError:
+                raise
+
+            except Exception as e:
+                ret.append(e)
+                continue
+
+        return ret
 
     def get_translations(self):
         """Build a dict with bidirectional mapping between known sources and
@@ -124,21 +164,21 @@ class Downloads:
 
         table = {}
 
-        for dler_item in self.backend.list():
-            source = self.backend.translate_item(dler_item, self.app.db)
+        for foreign_obj in self.backend.list():
+            source = self.backend.translate_item(foreign_obj, self.app.db)
 
             # The downloader backend can have unrelated items
             # with nothing in common with us!
             if not source:
                 msg = "Unrelated item found: '{item}'"
-                msg = msg.format(item=str(dler_item))
+                msg = msg.format(item=str(foreign_obj))
                 self.logger.debug(msg)
                 continue
 
             assert source not in table
 
-            table[source] = dler_item
-            table[dler_item] = source
+            table[source] = foreign_obj
+            table[foreign_obj] = source
 
         return table
 
@@ -251,6 +291,8 @@ class DownloadQueriesCronTask(kit.Task):
     def execute(self, app):
         queries = app.selector.queries_from_config()
 
+        downloads = []
+
         for (name, query) in queries:
             matches = app.selector.matches(query)
             srcs = app.selector.select(matches)
@@ -258,8 +300,11 @@ class DownloadQueriesCronTask(kit.Task):
             if srcs is None:
                 continue
 
-            for src in srcs:
-                try:
-                    app.downloads.add(src)
-                except Exception as e:
-                    app.logger.error(str(e))
+            downloads.extend(srcs)
+
+        if not downloads:
+            return
+
+        for ret in app.downloads.add_all(downloads):
+            if isinstance(ret, Exception):
+                app.logger.error(str(ret))

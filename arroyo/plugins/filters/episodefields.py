@@ -33,7 +33,8 @@ class Filter(pluginlib.QuerySetFilter):
         'series', 'series-glob',
         'year', 'year-min', 'year-max',
         'season', 'season-min', 'season-max',
-        'episode', 'episode-min', 'episode-max'
+        'episode', 'episode-min', 'episode-max',
+        'number', 'number-min', 'number-max'
     ]
 
     def alter(self, key, value, qs):

@@ -261,9 +261,6 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         # as a "service", but it's keep anyway
         self.mediainfo = mediainfo.Mediainfo(self)
 
-        # Once all core services are loaded do db migrations
-        self.db.migrations()
-
         # Load plugins
         plugins = [x[len('plugins.'):-len('.enabled')]
                    for x in self.settings.all_keys()
@@ -281,9 +278,7 @@ class Arroyo(services.ApplicationMixin, kit.Application):
         try:
             return self.commands.execute(*args)
 
-        except (arroyo.exc.BackendError,
-                arroyo.exc.NoImplementationError,
-                arroyo.exc.FatalError) as e:
+        except arroyo.exc.FatalError as e:
             self.logger.critical(e)
 
 
