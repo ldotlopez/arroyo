@@ -8,7 +8,7 @@ DATADIR="$D/data"
 if [ ! -f "$DATADIR/arroyo.yml" ]; then
 	cat > "$DATADIR/arroyo.yml" <<-EOF
 	downloader: directory
-	db-uri: sqlite://///app/data/arroyo.db
+	db-uri: sqlite:////$DATADIR/arroyo.db
 	plugins:
 	  downloaders.directory:
 	    enabled: True
