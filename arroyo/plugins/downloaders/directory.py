@@ -81,8 +81,9 @@ class DirectoryDownloader(pluginlib.Downloader):
 
     def add(self, source, **kwargs):
         filepath = self.storage_path + '/' + source.name + '.torrent'
+        buff = self._torrent_file_for_magnet(source.uri)
         with open(filepath, 'wb') as fh:
-            fh.write(self._torrent_file_for_magnet(source.uri))
+            fh.write(buff)
 
     def remove(self, item):
         os.unlink(item)
