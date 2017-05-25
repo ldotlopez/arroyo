@@ -2,7 +2,6 @@
 
 D="/app"
 APPDIR="$D/arroyo"
-ENVDIR="$D/env"
 DATADIR="$D/data"
 
 if [ ! -f "$DATADIR/arroyo.yml" ]; then
@@ -20,4 +19,4 @@ export LANG="C.UTF-8"
 export LC_ALL="C.UTF-8"
 export PYTHONPATH="$APPDIR"
 
-exec "$ENVDIR/bin/python" "$APPDIR/arroyo" -c "$DATADIR/arroyo.yml" "$@"
+exec "python3" "$APPDIR/arroyo" -c "$DATADIR/arroyo.yml" "$@"
