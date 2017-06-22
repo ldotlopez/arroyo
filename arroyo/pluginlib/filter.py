@@ -27,7 +27,7 @@ from appkit.db import sqlalchemyutils as sautils
 def alter_query_for_model_attr(q, model, key, value):
     # Get possible modifier from key
     m = re.search(
-        r'(?P<key>(.+?))-(?P<mod>(glob|in|min|max))$', key)
+        r'(?P<key>(.+?))-(?P<mod>(regexp|glob|in|min|max))$', key)
 
     if m:
         key = m.group('key')
@@ -48,6 +48,9 @@ def alter_query_for_model_attr(q, model, key, value):
 
     if mod is None:
         q = q.filter(attr == value)
+
+    elif mod == 'regexp':
+        q = q.filter(attr.op('regexp')(value))
 
     elif mod == 'glob':
         q = q.filter(attr.like(sautils.glob_to_like(value)))
