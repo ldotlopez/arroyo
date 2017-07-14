@@ -37,10 +37,10 @@ async-timeout: 10
 downloader: mock
 
 # Execute crontask at startup
-auto-cron: False
+auto-cron: True
 
 # Auto import feature (leave empty for intelligent detection)
-auto-import:
+auto-import: null
 
 # Fetcher options
 fetcher:
