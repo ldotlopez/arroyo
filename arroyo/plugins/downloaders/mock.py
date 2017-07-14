@@ -27,8 +27,12 @@ models = pluginlib.models
 VARIABLES_NS = 'downloader.mock'
 
 
-def key(urn):
-    return '{}.{}'.format(VARIABLES_NS, urn)
+def id_(source):
+    return source.urn
+
+
+def key(sid):
+    return '{}.{}'.format(VARIABLES_NS, sid)
 
 
 class MockDownloader(pluginlib.Downloader):
@@ -39,28 +43,43 @@ class MockDownloader(pluginlib.Downloader):
         self.variables = app.variables
 
     def add(self, source, **kwargs):
-        self.variables.set(
-            key(source.urn),
-            {
-                'state': models.State.INITIALIZING,
-                'info': {
-                    'files': None,
-                    'eta': None,
-                    'progress': '0.0'
-                }
-            })
+        sid = id_(source)
+        k = key(sid)
+        v = {
+            'state': models.State.INITIALIZING,
+            'info': {
+                'files': None,
+                'eta': None,
+                'progress': '0.0'
+            }
+        }
 
-    def remove(self, urn):
-        self.variables.reset(
-            key(urn))
+        self.variables.set(k, v)
+        return sid
+
+    def remove(self, id_):
+        self.variables.reset(key(id_))
+        return True
+
+    cancel = remove
+    archive = remove
 
     def list(self):
         idx = len(VARIABLES_NS) + 1
         return [var[idx:] for var in
                 self.variables.children(VARIABLES_NS)]
 
-    def translate_item(self, urn, db):
-        return db.get(models.Source, urn=urn)
+    def get_state(self, id_):
+        try:
+            return self._get_prop(id_, 'state')
+        except KeyError:
+            return None
+
+    def get_info(self, id_):
+        try:
+            return self._get_prop(id_, 'info')
+        except KeyError:
+            return None
 
     def _get_prop(self, urn, prop):
         return self.variables.get(key(urn))[prop]
@@ -71,21 +90,6 @@ class MockDownloader(pluginlib.Downloader):
         self.variables.reset(key(urn))
         self.variables.set(key(urn), data)
 
-    def get_state(self, urn):
-        try:
-            return self._get_prop(urn, 'state')
-        except KeyError:
-            return None
-
-    def get_info(self, urn):
-        try:
-            return self._get_prop(urn, 'info')
-        except KeyError:
-            return None
-
-    def _update_state(self, source, state):
-        self._set_prop(source.urn, 'state', state)
-
     def _update_info(self, source, info):
         src_info = self._get_prop(source.urn, 'info')
         src_info.update(info)
@@ -93,6 +97,11 @@ class MockDownloader(pluginlib.Downloader):
 
         self._set_prop(source.urn, 'info', src_info)
 
+    def _update_state(self, source, state):
+        self._set_prop(source.urn, 'state', state)
+
+    def id_for_source(self, source):
+        return id_(source)
 
 __arroyo_extensions__ = [
     MockDownloader

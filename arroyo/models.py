@@ -200,7 +200,7 @@ SourceTag = keyvaluestore.keyvaluemodel(
 
 
 class State:
-    NONE = 0
+    # NONE = 0
     INITIALIZING = 1
     QUEUED = 2
     PAUSED = 3
@@ -208,6 +208,18 @@ class State:
     SHARING = 5
     DONE = 6
     ARCHIVED = 7
+
+
+STATE_SYMBOLS = {
+    # State.NONE: ' ',
+    State.INITIALIZING: '⋯',
+    State.QUEUED: '⋯',
+    State.PAUSED: '‖',
+    State.DOWNLOADING: '↓',
+    State.SHARING: '⇅',
+    State.DONE: '✓',
+    State.ARCHIVED: '▣'
+}
 
 
 class Source(EntityPropertyMixin, sautils.Base):
@@ -219,16 +231,6 @@ class Source(EntityPropertyMixin, sautils.Base):
         )
 
     __tablename__ = 'source'
-
-    _SYMBOL_TABLE = {
-        State.INITIALIZING: '⋯',
-        State.QUEUED: '⋯',
-        State.PAUSED: '‖',
-        State.DOWNLOADING: '↓',
-        State.SHARING: '⇅',
-        State.DONE: '✓',
-        State.ARCHIVED: '▣'
-    }
 
     ENTITY_MAP = {  # EntityPropertyMixin
         'Episode': 'episode',
@@ -250,7 +252,7 @@ class Source(EntityPropertyMixin, sautils.Base):
     size = Column(Integer, nullable=True)
     seeds = Column(Integer, nullable=True)
     leechers = Column(Integer, nullable=True)
-    state = Column(Integer, nullable=False, default=State.NONE)
+    # state = Column(Integer, nullable=False, default=State.NONE)
 
     type = Column(String, nullable=True)
     language = Column(String, nullable=True)
@@ -310,16 +312,16 @@ class Source(EntityPropertyMixin, sautils.Base):
 
         return seeds / leechers
 
-    @property
-    def state_name(self):
-        for attr in [x for x in dir(State)]:
-            if getattr(State, attr) == self.state:
-                return attr.lower()
-        return "unknow-{}".format(self.state)
+    # @property
+    # def state_name(self):
+    #     for attr in [x for x in dir(State)]:
+    #         if getattr(State, attr) == self.state:
+    #             return attr.lower()
+    #     return "unknow-{}".format(self.state)
 
-    @property
-    def state_symbol(self):
-        return self._SYMBOL_TABLE.get(self.state, ' ')
+    # @property
+    # def state_symbol(self):
+    #     return self._SYMBOL_TABLE.get(self.state, ' ')
 
     @classmethod
     def normalize(cls, key, value):
@@ -414,8 +416,8 @@ class Source(EntityPropertyMixin, sautils.Base):
         yield from [
             'age', 'created', 'entity', 'episode', 'episode_id', 'id',
             'language', 'last_seen', 'leechers', 'movie', 'movie_id', 'name',
-            'provider', 'seeds', 'share_ratio', 'size', 'state',
-            'state_symbol', 'tags', 'type', 'type', 'uri', 'urn'
+            'provider', 'seeds', 'share_ratio', 'size', 'tags', 'type', 'type',
+            'uri', 'urn'
         ]
 
     def __str__(self):
@@ -428,6 +430,51 @@ class Source(EntityPropertyMixin, sautils.Base):
 
     def __unicode__(self):
         return self.format(self.Formats.DEFAULT)
+
+
+class Download(EntityPropertyMixin, sautils.Base):
+    __tablename__ = 'download'
+    __table_args__ = (
+        # schema.UniqueConstraint('plugin', 'foreign_id'),
+        schema.UniqueConstraint('foreign_id'),
+    )
+
+    source_id = Column(Integer, ForeignKey("source.id", ondelete="CASCADE"),
+                       primary_key=True, nullable=False)
+    source = relationship("Source", backref=backref("download",
+                                                    cascade="all, delete",
+                                                    uselist=False))
+    foreign_id = Column(String, nullable=False)
+
+    # state = Column(Integer, nullable=False, default=State.NONE)
+    state = Column(Integer, nullable=False)
+
+    @classmethod
+    def normalize(cls, key, value):
+        if key in ('plugin', 'foreign_id'):
+            if not isinstance(value, str):
+                value = str(value)
+            if value == '':
+                raise ValueError(value)
+
+        elif key == 'state':
+            valid_states = [
+                State.INITIALIZING,
+                State.QUEUED, State.PAUSED, State.DOWNLOADING,
+                State.SHARING, State.DONE, State.ARCHIVED]
+            if not isinstance(value, int):
+                value = int(value)
+            if value not in valid_states:
+                raise ValueError(value)
+
+        else:
+            raise NotImplementedError(key)
+
+        return value
+
+    @validates('plugin', 'foreign_id', 'state')
+    def validate(self, key, value):
+        return self.normalize(key, value)
 
 
 class Selection(EntityPropertyMixin, sautils.Base):

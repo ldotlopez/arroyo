@@ -54,14 +54,31 @@ class DirectoryDownloader(pluginlib.Downloader):
 
         self.sess = self.app.db.session
 
-    def add(self, source, **kwargs):
-        filepath = self.storage_path + '/' + source.name + '.torrent'
-        buff = self._torrent_file_for_magnet(source.uri)
-        with open(filepath, 'wb') as fh:
-            fh.write(buff)
+    def id_for_source(self, source):
+        return "{name}-{urn}".format(
+            name=source.name,
+            urn=source.urn.split(':')[2])
 
-    def remove(self, item):
-        os.unlink(item)
+    def filepath_for_id(self, id_):
+        return "{storage}/{id}.torrent".format(
+            storage=self.storage_path,
+            id=id_)
+
+    def add(self, source):
+        id_ = self.id_for_source(source)
+
+        buff = self._fetch_torrent(source.uri)
+        self._write_torrent(id_, buff)
+
+        return id_
+
+    def cancel(self, id_):
+        self._remove_torrent(id_)
+        return True
+
+    def archive(self, id_):
+        self._remove_torrent(id_)
+        return True
 
     def list(self):
         torrents = os.listdir(self.storage_path)
@@ -69,31 +86,22 @@ class DirectoryDownloader(pluginlib.Downloader):
         torrents = filter(
             lambda path: os.path.isfile(path) and path.endswith('torrent'),
             torrents)
-
+        torrents = map(
+            lambda x: x.split('/')[-1][:-8],
+            torrents)  # Basename without extension
         return list(torrents)
 
-    def get_state(self, native_item):
-        if os.path.exists(native_item):
+    def get_state(self, id_):
+        if os.path.exists(self.filepath_for_id(id_)):
             return models.State.INITIALIZING
         else:
             return models.State.ARCHIVED
 
     def get_info(self, tr_obj):
-        raise NotImplementedError()
-
-    def translate_item(self, native_item, db):
-        uri = bittorrentlib.magnet_from_torrent_file(native_item)
-        params = parse.parse_qs(parse.urlparse(uri).query)
-        urn = bittorrentlib.normalize_urn(params['xt'][-1])
-
-        return db.session.query(
-            models.Source
-        ).filter(
-            models.Source.urn == urn
-        ).one()
+        return {}
 
     # FIXME: Make this method stateless for future parallelization
-    def _torrent_file_for_magnet(self, magnet):
+    def _fetch_torrent(self, magnet):
         parsed = parse.urlparse(magnet)
         params = parse.parse_qs(parsed.query)
         urn = bittorrentlib.normalize_urn(params['xt'][0])
@@ -111,6 +119,14 @@ class DirectoryDownloader(pluginlib.Downloader):
 
         return fut.result()
 
+    def _write_torrent(self, id_, buff):
+        filepath = self.filepath_for_id(id_)
+        with open(filepath, 'wb') as fh:
+            fh.write(buff)
+
+    def _remove_torrent(self, id_):
+        filepath = self.filepath_for_id(id_)
+        os.unlink(filepath)
 
 __arroyo_extensions__ = [
     DirectoryDownloader

@@ -1,5 +1,7 @@
 # python3 is removable?
 # Add certify into requirements.txt
+#    git reset HEAD --hard /app/arroyo
+#    git clean -f -d /app/arroyo
 
 FROM alpine:latest
 
@@ -8,7 +10,7 @@ LABEL maintainer="ldotlopez@gmail.com"
 LABEL version="0"
 
 COPY . /app/arroyo
-RUN                                             \
+RUN \
     rm -rf /app/arroyo/.git*                    \
     && apk add --no-cache  --update             \
         ca-certificates                         \

@@ -21,7 +21,6 @@
 from arroyo import models
 
 
-import sys
 from appkit.db import sqlalchemyutils as sautils
 
 
@@ -86,12 +85,12 @@ class Db:
                 self.session.delete(src)
         self.session.commit()
 
-    def update_all_states(self, state):
-        for src in self.session.query(models.Source):
-            src.state = state
-        if state == models.State.NONE:
-            self.session.query(models.Selection).delete()
-        self.session.commit()
+    # def update_all_states(self, state):
+    #     for src in self.session.query(models.Source):
+    #         src.state = state
+    #     if state == models.State.NONE:
+    #         self.session.query(models.Selection).delete()
+    #     self.session.commit()
 
     def search(self, all_states=False, **kwargs):
         query = sautils.query_from_params(self.session, models.Source,
@@ -102,12 +101,12 @@ class Db:
 
         return query
 
-    def get_active(self):
-        qs = self.session.query(models.Source)
-        qs = qs.filter(
-            ~models.Source.state.in_(
-                (models.State.NONE, models.State.ARCHIVED)
-            )
-        )
+    # def get_active(self):
+    #     qs = self.session.query(models.Source)
+    #     qs = qs.filter(
+    #         ~models.Source.state.in_(
+    #             (models.State.NONE, models.State.ARCHIVED)
+    #         )
+    #     )
 
-        return qs
+    #     return qs

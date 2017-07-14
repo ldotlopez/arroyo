@@ -81,7 +81,7 @@ class Selector:
             (mediainfo.Tags.MIMETYPE, 'mimetype'),
             (mediainfo.Tags.RELEASE_GROUP, 'release-group'),
             (mediainfo.Tags.VIDEO_CODEC, 'codec'),
-            (mediainfo.Tags.VIDEO_FORMAT, 'format'),
+            (mediainfo.Tags.VIDEO_FORMAT, 'quality'),
             (mediainfo.Tags.VIDEO_SCREEN_SIZE, 'quality'),
         ]
 
