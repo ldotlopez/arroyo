@@ -139,7 +139,7 @@ class CommonMixin:
             if not queries:
                 msg = "No configured queries"
                 self.logger.error(msg)
-                raise pluginlib.ConfigurationError(msg)
+                raise pluginlib.exc.ConfigurationError(msg)
 
         delattr(arguments, 'keywords')
         delattr(arguments, 'filters')
