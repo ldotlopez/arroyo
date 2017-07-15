@@ -403,9 +403,15 @@ class Source(EntityPropertyMixin, sautils.Base):
         return fmt.format(**data)
 
     def __eq__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError(self.__class__, other.__class__)
+
         return self.id.__eq__(other.id)
 
     def __lt__(self, other):
+        if not isinstance(other, self.__class__):
+            raise TypeError()
+
         return self.id.__lt__(other.id)
 
     # FIXME: Delete this method
@@ -475,6 +481,10 @@ class Download(EntityPropertyMixin, sautils.Base):
     @validates('plugin', 'foreign_id', 'state')
     def validate(self, key, value):
         return self.normalize(key, value)
+
+    def __repr__(self):
+        fmt = '<arroyo.models.Download object at {id:x} state=({state})>'
+        return fmt.format(id=id(self), state=STATE_SYMBOLS[self.state])
 
 
 class Selection(EntityPropertyMixin, sautils.Base):

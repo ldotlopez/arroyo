@@ -197,6 +197,7 @@ class Selector:
 
         # Get base query set from query
         qs = self.app.db.session.query(models.Source)
+
         if isinstance(query, coretypes.SourceQuery):
             pass
         elif isinstance(query, coretypes.EpisodeQuery):

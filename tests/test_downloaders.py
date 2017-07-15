@@ -213,6 +213,9 @@ class TransmissionTest(BaseTest, unittest.TestCase):
 
 
 class DirectoryTest(BaseTest, unittest.TestCase):
+    # TODO:
+    # - Set storage path to tmpdir
+
     PLUGINS = ['downloaders.directory']
     DOWNLOADER = 'directory'
     SLOWDOWN = 0.2

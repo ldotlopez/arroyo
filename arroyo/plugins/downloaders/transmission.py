@@ -136,7 +136,11 @@ class TransmissionDownloader(pluginlib.Downloader):
         raise downloads.DownloadNotFoundError(hash_string)
 
     def remove(self, hash_string, delete_data):
-        # self.shield = {urn: i for (urn, i) in self.shield.items() if i != item}
+        # self.shield = {
+        #     urn: i for (urn, i) in
+        #     self.shield.items()
+        #     if i != item
+        # }
         torrent = self._torrent_for_hash_string(hash_string)
 
         try:
