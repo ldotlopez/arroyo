@@ -18,6 +18,11 @@
 # USA.
 
 
+# References:
+# Validors (reciving deletes)
+# http://docs.sqlalchemy.org/en/latest/orm/mapped_attributes.html#simple-validators
+
+
 import functools
 import re
 import sys
@@ -252,7 +257,6 @@ class Source(EntityPropertyMixin, sautils.Base):
     size = Column(Integer, nullable=True)
     seeds = Column(Integer, nullable=True)
     leechers = Column(Integer, nullable=True)
-    # state = Column(Integer, nullable=False, default=State.NONE)
 
     type = Column(String, nullable=True)
     language = Column(String, nullable=True)
@@ -312,16 +316,12 @@ class Source(EntityPropertyMixin, sautils.Base):
 
         return seeds / leechers
 
-    # @property
-    # def state_name(self):
-    #     for attr in [x for x in dir(State)]:
-    #         if getattr(State, attr) == self.state:
-    #             return attr.lower()
-    #     return "unknow-{}".format(self.state)
-
-    # @property
-    # def state_symbol(self):
-    #     return self._SYMBOL_TABLE.get(self.state, ' ')
+    @hybrid_property
+    def selected(self):
+        return (
+            self.entity and
+            self.entity.selection and
+            self.entity.selection.source == self)
 
     @classmethod
     def normalize(cls, key, value):
@@ -441,7 +441,6 @@ class Source(EntityPropertyMixin, sautils.Base):
 class Download(EntityPropertyMixin, sautils.Base):
     __tablename__ = 'download'
     __table_args__ = (
-        # schema.UniqueConstraint('plugin', 'foreign_id'),
         schema.UniqueConstraint('foreign_id'),
     )
 
@@ -452,7 +451,6 @@ class Download(EntityPropertyMixin, sautils.Base):
                                                     uselist=False))
     foreign_id = Column(String, nullable=False)
 
-    # state = Column(Integer, nullable=False, default=State.NONE)
     state = Column(Integer, nullable=False)
 
     @classmethod

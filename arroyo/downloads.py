@@ -19,7 +19,6 @@
 
 
 from appkit import loggertools
-from appkit.db import sqlalchemyutils as sautils
 
 
 import arroyo.exc
@@ -131,25 +130,24 @@ class Downloads:
             models.Download.foreign_id.startswith(self.plugin_name + ':'))
         qs = qs.filter(models.Download.state != models.State.ARCHIVED)
         db_sources = [x.source for x in qs]
-        db_ids = [src.download.foreign_id for src in db_sources]
 
         plugin_ids = [self.add_plugin_prefix(x) for x in self.plugin.list()]
 
         # Warn about unknow plugin IDs
         # msg = "Unknow download detected in downloader plugin: {pid}"
+        # db_ids = [src.download.foreign_id for src in db_sources]
         # for pid in set(plugin_ids) - set(db_ids):
         #     msg_ = msg.format(pid=pid)
         #     self.logger.warning(msg_)
 
         # Update state on db sources with info from plugin
-        # TODO: notify about cancels
         state_changes = []
         for src in db_sources:
             if src.download.foreign_id in plugin_ids:
                 # src is present in downloader plugin
                 plugin_id = self.strip_plugin_prefix(src.download.foreign_id)
                 plugin_state = self.plugin.get_state(plugin_id)
-                if plugin_state != src.download.state:
+                if plugin_state == src.download.state:
                     src.download.state = plugin_state
                     state_changes.append(src)
 
@@ -174,7 +172,7 @@ class Downloads:
         ]
 
     def add(self, source):
-        downloads = self.sync()
+        self.sync()
 
         if source.download:
             raise DuplicatedDownloadError()

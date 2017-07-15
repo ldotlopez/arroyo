@@ -18,11 +18,15 @@
 # USA.
 
 
+# TODO:
+# - Remove tqdm code and move to alembic
+
+
 from arroyo import pluginlib
 
 
 import contextlib
-
+import sys
 
 import tqdm
 
@@ -44,6 +48,34 @@ def _tqdm(*args, **kwargs):
     kwargs_.update(kwargs)
 
     return tqdm.tqdm(*args, **kwargs_)
+
+
+def update_all_states(session, state):
+    for src in session.query(models.Source):
+        if state:
+            if not src.download:
+                src.download = models.Download()
+
+            src.download.state = state
+
+        else:
+            if src.selected:
+                session.delete(src.entity.selection)
+                src.entity.selection = None
+
+            if src.download:
+                session.delete(src.download)
+                src.download = None
+
+    session.commit()
+
+
+def reset_db(session):
+    session.query(models.Download).delete()
+    session.query(models.Selection).delete()
+    session.query(models.Episode).delete()
+    session.query(models.Movie).delete()
+    session.query(models.Source).delete()
 
 
 class Command(pluginlib.Command):
@@ -131,7 +163,7 @@ class Command(pluginlib.Command):
             raise pluginlib.exc.ArgumentsError(msg)
 
         if archive_all:
-            db.update_all_states(models.State.ARCHIVED)
+            update_all_states(self.app.db.session, models.State.ARCHIVED)
 
         elif archive_source_id or reset_source_id:
             source_id = reset_source_id or archive_source_id
@@ -162,10 +194,10 @@ class Command(pluginlib.Command):
             ipdb.set_trace()
 
         elif reset:
-            db.reset()
+            reset_db(self.app.db.session)
 
         elif reset_states:
-            db.update_all_states(models.State.NONE)
+            update_all_states(self.app, None)
 
         elif arguments.upgrade:
             self.migrations()
