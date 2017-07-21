@@ -36,7 +36,6 @@ from appkit import (
 )
 
 
-import arroyo.exc
 from arroyo import (
     bittorrentlib,
     kit,

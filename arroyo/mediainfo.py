@@ -70,6 +70,7 @@ class Tags:
 
             yield value
 
+
 METADATA_RULES = [
     ('audio_channels', Tags.AUDIO_CHANNELS),
     ('audio_codec', Tags.AUDIO_CODEC),
