@@ -10,16 +10,16 @@
     ],
     "SublimeLinter":
     {
-        "@python": 3,
+        "@python": 2.7,
         "linters":
         {
             "flake8":
             {
-                "@disable": true,
+                "@disable": false,
             },
             "pep8":
             {
-                "@disable": false,
+                "@disable": true,
             }
         }
     }
