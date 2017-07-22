@@ -1,6 +1,8 @@
 #!/bin/bash
 
-D="$(dirname "$(realpath "$0")")"
+D="$(realpath "$0")"
+D="$(dirname "$D")"
+D="$(dirname "$D")"
 source "$D/env/bin/activate"
 export PYTHONPATH="$PWD"
 
