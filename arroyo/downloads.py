@@ -147,7 +147,7 @@ class Downloads:
                 # src is present in downloader plugin
                 plugin_id = self.strip_plugin_prefix(src.download.foreign_id)
                 plugin_state = self.plugin.get_state(plugin_id)
-                if plugin_state == src.download.state:
+                if plugin_state != src.download.state:
                     src.download.state = plugin_state
                     state_changes.append(src)
 
@@ -156,10 +156,16 @@ class Downloads:
                 if src.download.state >= models.State.SHARING:
                     src.download.state = models.State.ARCHIVED
                 else:
+                    if src.selected:
+                        self.app.db.session.delete(src.entity.selection)
+                        src.entity.selection = None
+
                     self.app.db.session.delete(src.download)
                     src.download = None
 
                 state_changes.append(src)
+
+        self.app.db.session.commit()
 
         # Notify about state changes
         for source in state_changes:
