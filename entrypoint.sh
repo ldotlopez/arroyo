@@ -1,10 +1,16 @@
 #!/bin/sh
 
-D="/app"
-APPDIR="$D/arroyo"
-ENVDIR="$D/env"
-DATADIR="$D/data"
+# Configurable stuff
+PY3="/usr/bin/python3"
+U="arroyo"
+G="$U"
+APPDIR="/app"
+DATADIR="/data"
 
+# Setup permissions
+[ -d "$DATADIR" ] || mkdir -p "$DATADIR"
+
+# Setup config
 if [ ! -f "$DATADIR/arroyo.yml" ]; then
 	cat > "$DATADIR/arroyo.yml" <<-EOF
 	downloader: directory
@@ -16,8 +22,12 @@ if [ ! -f "$DATADIR/arroyo.yml" ]; then
 	EOF
 fi
 
-export LANG="C.UTF-8"
-export LC_ALL="C.UTF-8"
-export PYTHONPATH="$APPDIR"
+chown -R "$U":"$G" "$DATADIR"
 
-exec "$ENVDIR/bin/python" "$APPDIR/arroyo" -c "$DATADIR/arroyo.yml" "$@"
+# Run arroyo
+exec sudo \
+	-u "$U"              \
+	LANG="C.UTF-8"       \
+	LC_ALL="C.UTF-8"     \
+	PYTHONPATH="$APPDIR" \
+	"$PY3" "$APPDIR/arroyo" -c "$DATADIR/arroyo.yml" "$@"

@@ -1,43 +1,47 @@
-# python3 is removable?
-# Add certify into requirements.txt
-#    git reset HEAD --hard /app/arroyo
-#    git clean -f -d /app/arroyo
-
 FROM alpine:latest
 
 LABEL description="arroyo container"
 LABEL maintainer="ldotlopez@gmail.com"
 LABEL version="0"
 
-COPY . /app/arroyo
+# Install required packages
 RUN \
-    rm -rf /app/arroyo/.git*                    \
-    && apk add --no-cache  --update             \
+    apk add --no-cache  --update                \
         ca-certificates                         \
         python3                                 \
         openssl                                 \
         libxml2                                 \
         libxslt                                 \
         libffi                                  \
+        sudo                                    \
     && apk add --no-cache --virtual .build-deps \
         python3-dev                             \
-        py-pip                                  \
         git                                     \
         build-base                              \
         openssl-dev                             \
         libxml2-dev                             \
         libxslt-dev                             \
-        libffi-dev                              \
-    && pip3 install virtualenv                  \
-    && /usr/bin/virtualenv -p python3 /app/env  \
-    && /app/env/bin/pip install                 \
-        --upgrade pip                           \
-    && /app/env/bin/pip install                 \
-        -r /app/arroyo/requirements.txt         \
-        certify                                 \
-    && apk del --no-cache .build-deps           \
-    && adduser -h /app/data -D -g '' arroyo
+        libffi-dev
 
-USER arroyo
-ENTRYPOINT ["/app/arroyo/entrypoint.sh"]
+# Copy and clean arroyo code
+COPY . /app
+RUN \
+    cd /app               && \
+    rm .gitignore         && \
+    git reset HEAD --hard && \
+    git clean -f -d       && \
+    rm -rf .git
+
+# Install requirements
+RUN pip3 install --upgrade -r /app/requirements.txt
+
+# Remove leftovers
+RUN apk del --no-cache .build-deps
+
+RUN adduser -h "/app" -D -g '' arroyo
+RUN mkdir /data
+RUN chown -R arroyo:arroyo /app /data
+
+# Point entrypoint to our script
+ENTRYPOINT ["/app/entrypoint.sh"]
 CMD ["--help"]
