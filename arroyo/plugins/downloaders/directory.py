@@ -50,8 +50,8 @@ class DirectoryDownloader(pluginlib.Downloader):
                                            name='downloads')
 
         os.makedirs(storage_path, exist_ok=True)
-        self.storage_path = storage_path
 
+        self.storage_path = storage_path
         self.sess = self.app.db.session
 
     def id_for_source(self, source):
@@ -127,6 +127,7 @@ class DirectoryDownloader(pluginlib.Downloader):
     def _remove_torrent(self, id_):
         filepath = self.filepath_for_id(id_)
         os.unlink(filepath)
+
 
 __arroyo_extensions__ = [
     DirectoryDownloader
