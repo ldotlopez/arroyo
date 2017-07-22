@@ -1,11 +1,19 @@
 #!/bin/bash
 
-D="$(dirname "$(realpath "$0")")"
+D="$(realpath "$0")"
+D="$(dirname "$D")"
+D="$(dirname "$D")"
 source "$D/env/bin/activate"
 export PYTHONPATH="$PWD"
 
-python3 -c 'import arroyo' || exit 1
-[ ! -z "$(which sqlite3)" ] || exit 1
+function die() {
+	echo "Error: $@" 2>/dev/null
+	exit 1
+}
+
+python3 -c 'import arroyo' || die "arroyo module not available"
+[ ! -z "$(which sqlite3)" ] || die "sqlite3 executable not available"
+[ ! -z "$(which alembic)" ] || die "alembic executable not available"
 
 cp "$D/arroyo.db" "$D/arroyo.db.bak"
 
