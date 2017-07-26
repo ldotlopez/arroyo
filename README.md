@@ -12,7 +12,7 @@ Install
 
 * Download arroyo
 
-    ```$ git clone https://bitbucket.org/ldotlopez/arroyo.git && cd "arroyo"```
+    ```$ git clone https://github.org/ldotlopez/arroyo.git && cd "arroyo"```
 
 * Create a python3 virtualenv (substitute virtualenv with whatever suits your system) and install python deps
 
