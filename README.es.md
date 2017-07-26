@@ -23,11 +23,11 @@ Para que Arroyo sea útil necesita tener información sobre enlaces en su base d
 
 Este proceso se lleva a cabo con el comando 'import'. Un ejemplo:
 
-> $ arroyo import --backend kickass
+> $ arroyo scan --provider kickass
 
 En este caso estamos importando enlances usando el backend 'kickass' el cual analiza la pagina principal de dicha pagina y extrae la información relevante.
 
-El comando 'import' acepta las siguientes opciones:
+El comando 'scan' acepta las siguientes opciones:
 
   * **--provider <provider>** Especifica el backend a utilizar.
   
@@ -37,7 +37,7 @@ El comando 'import' acepta las siguientes opciones:
 
   * **-t <tipo>, --type <tipo>** Arroyo analiza los contenidos de forma inteligente detectando el tipo de contenido al que se refieren los enlaces (episodio, pelicula, libro, audio) pero en ocasiones es deseable forzar este tipo. Este parámetro fuerza el tipo para todo el material encontrado.
 
-  * -l <xx-XX>, --language <xx-XX> **De forma analoga al parametro type pero para el idioma del contenido.**
+  * **-l <xx-XX>, --language <xx-XX>** De forma analoga al parametro type pero para el idioma del contenido.
 
 El comando 'import' puede usar el archivo de configuracion para obtener los parámetros anteriores. Para ello se pueden definir una o varias secciones siguendo el siguiente esquema. (Únicamente el parámetro 'backend' es obligatorio)
 
@@ -51,7 +51,7 @@ origin:
 
 Para que el comando 'import' importe todas las páginas especificadas en las secciones 'source' del archivo de configuración se ha de usar la siguiente linea de comandos:
 
-> $ arroyo import --from-config
+> $ arroyo scan --from-config
 
 Búsqueda
 --------
@@ -115,7 +115,8 @@ Para que el comando 'download' aplique estas consultas y comience a descargar el
 Adicionalmente el comando 'download' permite gestionar las descargas en curso usando los siguientes parámetros:
 
   * **-a, --add**
-  * **-r, --remove**
+  * **-c, --cancel**
+  * **-x, --archive**
   * **-l, --list**
 
 Automatizando el proceso
