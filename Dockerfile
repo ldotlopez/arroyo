@@ -4,24 +4,43 @@ LABEL description="arroyo container"
 LABEL maintainer="ldotlopez@gmail.com"
 LABEL version="0"
 
+# Point entrypoint to our script
+ENTRYPOINT ["/app/entrypoint.sh"]
+CMD ["--help"]
+
+# Setup app and data dirs
+RUN \
+    adduser -h "/app" -D -g '' arroyo && \
+    mkdir /data                       && \
+    chown -R arroyo:arroyo /app /data
+
 # Install required packages
 RUN \
     apk add --no-cache  --update                \
         ca-certificates                         \
-        python3                                 \
-        openssl                                 \
+        libffi                                  \
         libxml2                                 \
         libxslt                                 \
-        libffi                                  \
+        openssl                                 \
+        python3                                 \
         sudo                                    \
     && apk add --no-cache --virtual .build-deps \
-        python3-dev                             \
-        git                                     \
         build-base                              \
-        openssl-dev                             \
+        git                                     \
+        libffi-dev                              \
         libxml2-dev                             \
         libxslt-dev                             \
-        libffi-dev
+        openssl-dev                             \
+        python3-dev
+
+# Install requirements
+COPY requirements.txt /tmp/requirements.txt
+RUN \
+    pip3 install --upgrade -r /tmp/requirements.txt && \
+    rm /tmp/requirements.txt
+
+# Remove leftovers
+RUN apk del --no-cache .build-deps
 
 # Copy and clean arroyo code
 COPY . /app
@@ -32,16 +51,3 @@ RUN \
     git clean -f -d       && \
     rm -rf .git
 
-# Install requirements
-RUN pip3 install --upgrade -r /app/requirements.txt
-
-# Remove leftovers
-RUN apk del --no-cache .build-deps
-
-RUN adduser -h "/app" -D -g '' arroyo
-RUN mkdir /data
-RUN chown -R arroyo:arroyo /app /data
-
-# Point entrypoint to our script
-ENTRYPOINT ["/app/entrypoint.sh"]
-CMD ["--help"]
