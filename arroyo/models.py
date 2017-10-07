@@ -43,12 +43,7 @@ from sqlalchemy import (
     schema
 )
 from sqlalchemy.ext.hybrid import hybrid_property
-from sqlalchemy.orm import (
-    backref,
-    relationship,
-    validates
-)
-
+from sqlalchemy import orm
 
 sautils.Base.metadata.naming_convention = {
     "ix": 'ix_%(column_0_label)s',
@@ -195,12 +190,9 @@ SourceTag = keyvaluestore.keyvaluemodel(
         '__doc__': "Define custom data attached to a source.",
         '__tablename__': 'sourcetag',
         '__table_args__': (schema.UniqueConstraint('source_id', 'key'),),
-        'source_id': Column(Integer, ForeignKey('source.id',
-                                                ondelete="CASCADE")),
-        'source': relationship("Source",
-                               backref=backref("tags",
-                                               lazy='dynamic',
-                                               cascade="all, delete, delete-orphan")),  # nopep8
+        'source_id': Column(Integer,
+                            ForeignKey('source.id', ondelete="cascade")),
+        'source': orm.relationship("Source", back_populates="tags", uselist=False)
     }))
 
 
@@ -251,7 +243,7 @@ class Source(EntityPropertyMixin, sautils.Base):
 
     # Real ID
     urn = Column(String, nullable=True, unique=True, index=True)
-    uri = Column(String, nullable=True, unique=True, index=True)
+    uri = Column(String, nullable=False, unique=True, index=True)
 
     # Other data
     size = Column(Integer, nullable=True)
@@ -265,16 +257,40 @@ class Source(EntityPropertyMixin, sautils.Base):
     episode_id = Column(Integer,
                         ForeignKey('episode.id', ondelete="SET NULL"),
                         nullable=True)
-    episode = relationship('Episode',
-                           uselist=False,
-                           backref=backref("sources", lazy='dynamic'))
+    episode = orm.relationship('Episode',
+                               uselist=False,
+                               backref=orm.backref("sources", lazy='dynamic'))
 
     movie_id = Column(Integer,
                       ForeignKey('movie.id', ondelete="SET NULL"),
                       nullable=True)
-    movie = relationship('Movie',
-                         uselist=False,
-                         backref=backref("sources", lazy='dynamic'))
+    movie = orm.relationship('Movie',
+                             uselist=False,
+                             backref=orm.backref("sources", lazy='dynamic'))
+
+    # FIXME: change lazy to 'subquery' for simplicty or use dict-like
+    # collections
+    tags = orm.relationship("SourceTag",
+                            uselist=True,
+                            back_populates="source",
+                            lazy='dynamic',
+                            cascade="all, delete, delete-orphan")
+
+    def __init__(self, **kwargs):
+        for x in ['provider', 'name', 'uri']:
+            if x not in kwargs:
+                msg = '{name} is required'
+                msg = msg.format(name=x)
+                raise TypeError(msg)
+
+        now = utils.now_timestamp()
+        if 'last_seen' not in kwargs:
+            kwargs['last_seen'] = now
+
+        if 'created' not in kwargs:
+            kwargs['created'] = now
+
+        super().__init__(**kwargs)
 
     @property
     def tag_dict(self):
@@ -323,63 +339,84 @@ class Source(EntityPropertyMixin, sautils.Base):
             self.entity.selection and
             self.entity.selection.source == self)
 
-    @classmethod
-    def normalize(cls, key, value):
-        if key in ['name', 'provider', 'urn', 'uri']:
-            value = str(value)
-            if not value:
-                raise ValueError(value)
+    @staticmethod
+    def normalize(key, value):
+        def _normalize():
+            nonlocal key
+            nonlocal value
 
-            return value
+            # Those keys must be a non empty strings
+            if key in ['name', 'provider', 'urn', 'uri']:
+                if value == '':
+                    raise ValueError()
 
-        elif key in ['created', 'last_seen']:
-            return int(value)
+                return str(value)
 
-        elif key in ['size', 'seeds', 'leechers']:
-            if value is None:
-                return None
+            # Those keys must be an integer (not None)
+            elif key in ['created', 'last_seen']:
+                return int(value)
 
-            return int(key)
+            # Those keys must be an integer or None
+            elif key in ['size', 'seeds', 'leechers']:
+                if value is None:
+                    return None
 
-        elif key == 'language':
-            if value is None:
-                return None
+                return int(key)
 
-            value = str(value)
+            # language must be in form of xxx-xx or None
+            elif key == 'language':
+                if value is None:
+                    return None
 
-            if not re.match(r'^...(\-..)?$', value):
-                raise ValueError(value)
+                value = str(value)
 
-            return value
+                if not re.match(r'^...(\-..)?$', value):
+                    raise ValueError()
 
-        elif key == 'type':
-            if value is None:
-                return None
-
-            value = str(value)
-
-            if value in (
-                    'application',
-                    'book',
-                    'episode',
-                    'game',
-                    'movie',
-                    'music',
-                    'other',
-                    'xxx'):
                 return value
 
-            raise ValueError(value)
+            # type is limited to some strings or None
+            elif key == 'type':
+                if value is None:
+                    return None
 
-        else:
-            raise Exception(key)
+                value = str(value)
 
-    @validates('language', 'type')
+                if value in (
+                        'application',
+                        'book',
+                        'episode',
+                        'game',
+                        'movie',
+                        'music',
+                        'other',
+                        'xxx'):
+                    return value
+
+                raise ValueError()
+
+            else:
+                raise KeyError()
+
+        # Wrap the whole process for easy exception handling
+        try:
+            return _normalize()
+
+        except TypeError as e:
+            msg = 'invalid type for {key}: {type}'
+            msg = msg.format(key=key, type=type(value))
+            raise TypeError(msg) from e
+
+        except ValueError as e:
+            msg = 'invalid value for {key}: {value}'
+            msg = msg.format(key=key, value=repr(value))
+            raise ValueError(msg) from e
+
+    @orm.validates('name', 'provider', 'urn', 'uri', 'language', 'type')
     def validate(self, key, value):
-        if (key == 'urn' and self.uri or
-                key == 'uri' and self.urn):
-            raise ValueError(value)
-
+        """
+        Wrapper around static method normalize
+        """
         return self.normalize(key, value)
 
     def asdict(self):
@@ -403,10 +440,9 @@ class Source(EntityPropertyMixin, sautils.Base):
         return fmt.format(**data)
 
     def __eq__(self, other):
-        if not isinstance(other, self.__class__):
-            raise TypeError(self.__class__, other.__class__)
-
-        return self.id.__eq__(other.id)
+        return (
+            isinstance(other, self.__class__) and
+            self.id.__eq__(other.id))
 
     def __lt__(self, other):
         if not isinstance(other, self.__class__):
@@ -430,9 +466,8 @@ class Source(EntityPropertyMixin, sautils.Base):
         return self.__unicode__()
 
     def __repr__(self):
-        return "<Source {id} ('{name}')>".format(
-            id=self.id,
-            name=self.name)
+        msg = "<Source (id={sid}, name='{name}') object at 0x{id:x}>"
+        return msg.format(name=self.name, sid=self.id or '-', id=id(self))
 
     def __unicode__(self):
         return self.format(self.Formats.DEFAULT)
@@ -446,9 +481,10 @@ class Download(EntityPropertyMixin, sautils.Base):
 
     source_id = Column(Integer, ForeignKey("source.id", ondelete="CASCADE"),
                        primary_key=True, nullable=False)
-    source = relationship("Source", backref=backref("download",
-                                                    cascade="all, delete",
-                                                    uselist=False))
+    source = orm.relationship("Source",
+                              backref=orm.backref("download",
+                                                  cascade="all, delete",
+                                                  uselist=False))
     foreign_id = Column(String, nullable=False)
 
     state = Column(Integer, nullable=False)
@@ -476,7 +512,7 @@ class Download(EntityPropertyMixin, sautils.Base):
 
         return value
 
-    @validates('plugin', 'foreign_id', 'state')
+    @orm.validates('plugin', 'foreign_id', 'state')
     def validate(self, key, value):
         return self.normalize(key, value)
 
@@ -495,9 +531,10 @@ class Selection(EntityPropertyMixin, sautils.Base):
     id = Column(Integer, primary_key=True)
     type = Column(String(50))
 
-    source_id = Column(Integer, ForeignKey('source.id', ondelete="CASCADE"),
+    source_id = Column(Integer,
+                       ForeignKey('source.id', ondelete="cascade"),
                        nullable=False)
-    source = relationship('Source')
+    source = orm.relationship('Source')
 
     __mapper_args__ = {
         'polymorphic_on': 'type'
@@ -508,10 +545,10 @@ class EpisodeSelection(Selection):
     episode_id = Column(Integer,
                         ForeignKey('episode.id', ondelete="CASCADE"),
                         nullable=True)
-    episode = relationship("Episode",
-                           backref=backref("selection",
-                                           cascade="all, delete",
-                                           uselist=False))
+    episode = orm.relationship("Episode",
+                               backref=orm.backref("selection",
+                                                   cascade="all, delete",
+                                                   uselist=False))
 
     __mapper_args__ = {
         'polymorphic_identity': 'episode'
@@ -529,10 +566,10 @@ class MovieSelection(Selection):
     movie_id = Column(Integer,
                       ForeignKey('movie.id', ondelete="CASCADE"),
                       nullable=True)
-    movie = relationship("Movie",
-                         backref=backref("selection",
-                                         cascade="all, delete",
-                                         uselist=False))
+    movie = orm.relationship("Movie",
+                             backref=orm.backref("selection",
+                                                 cascade="all, delete",
+                                                 uselist=False))
 
     __mapper_args__ = {
         'polymorphic_identity': 'movie'
@@ -589,7 +626,7 @@ class Episode(sautils.Base):
 
         return value
 
-    @validates('series', 'year', 'season', 'number')
+    @orm.validates('series', 'year', 'season', 'number')
     def validate(self, key, value):
         return self.normalize(key, value)
 
@@ -665,7 +702,7 @@ class Movie(sautils.Base):
 
         return value
 
-    @validates('title', 'year')
+    @orm.validates('title', 'year')
     def validate(self, key, value):
         return self.normalize(key, value)
 
