@@ -40,7 +40,7 @@ downloader: mock
 auto-cron: True
 
 # Auto import feature (leave empty for intelligent detection)
-auto-import:
+auto-import: null
 
 # Fetcher options
 fetcher:
@@ -86,6 +86,12 @@ plugins:
 
     providers.kickass:
         default-language: eng-us
+
+    downloaders.directory:
+        enabled: True
+        # Linux: ~/.local/share/arroyo/downloads
+        # OSX: ~/Library/Application\ Support/Arroyo/Downloads
+        storage-path:
 
     downloaders.transmission:
         enabled: False

@@ -128,7 +128,7 @@ class TorrentAPI(pluginlib.Provider):
                 'name': e.get('title') or e.get('filename'),
                 'uri': e['download'],
                 'created': self.parse_created(e.get('pubdate', None)),
-                'seeds': e.get('seeds', None),
+                'seeds': e.get('seeders', None),
                 'leechers': e.get('leechers', None),
                 'size': e.get('size', None),
                 'type': self.parse_category(e['category'])

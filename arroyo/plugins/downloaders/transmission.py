@@ -24,6 +24,7 @@
 
 from arroyo import (
     bittorrentlib,
+    downloads,
     pluginlib
 )
 
@@ -97,22 +98,18 @@ class TransmissionDownloader(pluginlib.Downloader):
                 user=s.get('user', None),
                 password=s.get('password', None)
             )
-            self.shield = {
-                'urn:btih:' + x.hashString: x
-                for x in self.api.get_torrents()}
+            # self.shield = {
+            #     'urn:btih:' + x.hashString: x
+            #     for x in self.api.get_torrents()}
 
         except transmissionrpc.error.TransmissionError as e:
             msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
             raise pluginlib.exc.PluginError(msg, e) from e
 
-    def add(self, source, **kwargs):
-        urn = bittorrentlib.normalize_urn(source.urn)
+    def id_for_source(self, source):
+        return source.urn.split(':')[2]
 
-        # FIXME: Should we raise DuplicatedDownloadError?
-        if urn in self.shield:
-            # return self.shield[urn]
-            return
-
+    def add(self, source):
         try:
             ret = self.api.add_torrent(source.uri)
 
@@ -120,36 +117,56 @@ class TransmissionDownloader(pluginlib.Downloader):
             msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
             raise pluginlib.exc.PluginError(msg, e) from e
 
-        self.shield[urn] = ret
-        # return ret
+        # self.shield[urn] = ret
+        return ret.hashString
 
-    def remove(self, item):
-        self.shield = {urn: i for (urn, i) in self.shield.items() if i != item}
+    def cancel(self, hash_string):
+        return self.remove(hash_string, delete_data=True)
 
-        # FIXME: Should we raise DownloadNotFoundError if item is not found?
+    def archive(self, hash_string):
+        return self.remove(hash_string, delete_data=False)
+
+    def _torrent_for_hash_string(self, hash_string):
+        g = (x for x in self.api.get_torrents() if x.hashString == hash_string)
+        try:
+            return next(g)
+        except StopIteration:
+            pass
+
+        raise downloads.DownloadNotFoundError(hash_string)
+
+    def remove(self, hash_string, delete_data):
+        # self.shield = {
+        #     urn: i for (urn, i) in
+        #     self.shield.items()
+        #     if i != item
+        # }
+        torrent = self._torrent_for_hash_string(hash_string)
 
         try:
-            return self.api.remove_torrent(item.id, delete_data=True)
-
+            self.api.remove_torrent(torrent.id, delete_data=delete_data)
+            return True
         except transmissionrpc.error.TransmissionError as e:
             msg = TRANSMISSION_API_ERROR_MSG.format(message=e.original.message)
             raise pluginlib.exc.PluginError(msg, e) from e
 
     def list(self):
-        return self.api.get_torrents()
+        return [x.hashString for x in self.api.get_torrents()]
 
-    def get_state(self, tr_obj):
+    def get_state(self, hash_string):
+        torrent = self._torrent_for_hash_string(hash_string)
+
         # stopped status can mean:
         # - if progress is less that 100, source is paused
         # - if progress is 100, source can be paused or seeding completed
         #   isFinished attr can handle this
-        if tr_obj.status == 'stopped':
-            if tr_obj.progress < 100:
+        if torrent.status == 'stopped':
+            if torrent.progress < 100:
                 return models.State.PAUSED
             else:
                 return models.State.DONE
 
-        state = tr_obj.status
+        state = torrent.status
 
         if state not in STATE_MAP:
             msg = "Unknown state «{state}»."
@@ -158,81 +175,23 @@ class TransmissionDownloader(pluginlib.Downloader):
 
         return STATE_MAP[state]
 
-    def get_info(self, tr_obj):
+    def get_info(self, hash_string):
+        torrent = self._torrent_for_hash_string(hash_string)
         ret = {
-            'files': tranmissionrpc_torrent_files(tr_obj)
+            'files': tranmissionrpc_torrent_files(torrent)
         }
+
         if ret['files']:
-            ret['location'] = tr_obj.downloadDir + \
+            ret['location'] = torrent.downloadDir + \
                 ret['files'][0].split('/')[0]
 
         for attr in ['eta', 'progress']:
             try:
-                value = getattr(tr_obj, attr)
+                value = getattr(torrent, attr)
             except ValueError:
                 value = None
 
             ret[attr] = value
-
-        return ret
-
-    def translate_item(self, tr_obj, db):
-        urn = parse.parse_qs(
-            parse.urlparse(tr_obj.magnetLink).query).get('xt')[0]
-
-        urn = bittorrentlib.normalize_urn(urn)
-
-        # Try to match urn in any form
-        ret = None
-        try:
-            # Use like here for case-insensitive filter
-            q = db.session.query(models.Source)
-            q = q.filter(models.Source.urn.like(urn))
-            ret = q.one()
-
-        except orm.exc.MultipleResultsFound:
-            msg = "Multiple results found for urn '{urn}'"
-            msg = msg.format(urn=urn)
-            self.logger.critical(msg)
-            raise
-
-            # # This code was used to workaroung this exception.
-            # # Delete it since its better to fix this bug!
-            # # There shouldn't be multiple results !!
-            # # Trying to do my best
-            # by_state = q.filter(models.Source.is_active is True)
-            # if by_state.count() == 1:
-            #     msg = ("Exception saved using state property but this "
-            #            "is a bug")
-            #     self.logger.error(msg)
-            #     ret = by_state.first()
-            #     break
-            # else:
-            #     msg = ("Unable to rescue invalid state. Multiple "
-            #            "sources found, fix this.")
-            #     self.logger.error(msg)
-
-        except orm.exc.NoResultFound:
-            pass
-
-        if not ret:
-            # Important note here
-            # We ended here because backend returned an unknow item from its
-            # list method. This is *NOT A BUG*. User can have another
-            # downloads, get over it.
-
-            # msg = ("Missing urn '{urn}'\n"
-            #        "This is a bug, a real bug. Fix it. Now")
-            # msg = msg.format(urn=urns[0])
-            # self.logger.error(msg)
-            return None
-
-        # Attach some fields to item
-        for k in ('progress', ):
-            try:
-                setattr(ret, k, getattr(tr_obj, k))
-            except:
-                setattr(ret, k, None)
 
         return ret
 

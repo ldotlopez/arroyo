@@ -40,7 +40,7 @@ class Provider(pluginlib.Provider):
         super().__init__(*args, **kwargs)
         self.logger = loggertools.getLogger(self.__extension_name__)
 
-    def parse(self, buff, parser):
+    def parse(self, buff):
         buff = buff.decode('utf-8')
 
         matches = re.findall(

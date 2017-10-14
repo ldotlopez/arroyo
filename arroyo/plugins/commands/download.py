@@ -139,7 +139,7 @@ class CommonMixin:
             if not queries:
                 msg = "No configured queries"
                 self.logger.error(msg)
-                raise pluginlib.ConfigurationError(msg)
+                raise pluginlib.exc.ConfigurationError(msg)
 
         delattr(arguments, 'keywords')
         delattr(arguments, 'filters')
@@ -203,8 +203,16 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
             help='Download from a source ID'),
 
         pluginlib.cliargument(
-            '-r', '--remove-id',
-            dest='remove',
+            '-c', '--cancel-id',
+            dest='cancel',
+            default=[],
+            type=int,
+            action='append',
+            help='Cancel a download from its source ID'),
+
+        pluginlib.cliargument(
+            '-x', '--archive-id',
+            dest='archive',
             default=[],
             type=int,
             action='append',
@@ -284,12 +292,16 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
             print(msg)
 
     def add_downloads(self, ids, dry_run=False):
-        return self._fn_download(self.app.downloads.add_all, 'added', ids,
-                                 dry_run=dry_run)
+        return self._fn_download(
+            self.app.downloads.add_all, 'added', ids, dry_run=dry_run)
 
-    def remove_downloads(self, ids, dry_run=False):
-        return self._fn_download(self.app.downloads.remove_all, 'removed', ids,
-                                 dry_run=dry_run)
+    def archive_downloads(self, ids, dry_run=False):
+        return self._fn_download(
+            self.app.downloads.archive_all, 'removed', ids, dry_run=dry_run)
+
+    def cancel_downloads(self, ids, dry_run=False):
+        return self._fn_download(
+            self.app.downloads.cancel_all, 'removed', ids, dry_run=dry_run)
 
     def list_downloads(self):
         downloads = self.app.downloads.list()
@@ -315,8 +327,12 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
             self.add_downloads(arguments.add,
                                dry_run=arguments.dry_run)
 
-        if arguments.remove:
-            self.remove_downloads(arguments.remove,
+        if arguments.archive:
+            self.archive_downloads(arguments.archive,
+                                   dry_run=arguments.dry_run)
+
+        if arguments.cancel:
+            self.cancel_downloads(arguments.cancel,
                                   dry_run=arguments.dry_run)
 
         if arguments.list:
@@ -334,8 +350,14 @@ class DownloadCommand(CommonMixin, pluginlib.Command):
 
 def tabulated_data_from_source(source, selected=False):
     ret = source.asdict()
+
+    if source.download:
+        state_symbol = models.STATE_SYMBOLS[source.download.state]
+    else:
+        state_symbol = ' '
+
     ret.update({
-        'state_symbol': '[{}]'.format(source.state_symbol),
+        'state_symbol': '[{}]'.format(state_symbol),
         'size': humanfriendly.format_size(source.size)if source.size else '',
         'language': source.language or ' ',
         'ratio': '{}/{}'.format(source.seeds or '-', source.leechers or '-'),

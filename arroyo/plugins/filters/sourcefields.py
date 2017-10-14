@@ -112,8 +112,8 @@ class CompatFilter(pluginlib.IterableFilter):
         if state == 'all':
             return True
 
-        # If state is not NONE drop it
-        if item.state != models.State.NONE:
+        # If download is not None drop it
+        if item.download is not None:
             return False
 
         # State can be None but we have to check if matching entity has no

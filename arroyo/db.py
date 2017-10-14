@@ -21,8 +21,10 @@
 from arroyo import models
 
 
-import sys
 from appkit.db import sqlalchemyutils as sautils
+from sqlalchemy import orm
+from sqlalchemy.engine import reflection
+from sqlalchemy.orm import util
 
 
 class Db:
@@ -75,6 +77,64 @@ class Db:
         else:
             return model(**kwargs), True
 
+    def reconciliate(self, obj_or_data, model=None):
+        def _is_sa_mapped_cls(cls):
+            try:
+                util.class_mapper(cls)
+                return True
+            except:
+                return False
+
+        def _is_sa_mapped_obj(obj):
+            try:
+                util.object_mapper(obj)
+                return True
+            except:
+                return False
+
+        def _extract_from_model_instance(keys):
+            return {k: getattr(obj_or_data, k) for k in keys}
+
+        def _extract_from_dict(key):
+            return {k: obj_or_data[k] for k in keys}
+
+        # Check arguments.
+        if _is_sa_mapped_obj(obj_or_data):
+            tablename = obj_or_data.__tablename__
+            model = obj_or_data.__class__
+            extract_fn = _extract_from_model_instance
+
+        elif isinstance(obj_or_data, dict):
+            if not _is_sa_mapped_cls(model):
+                raise TypeError('model missing for dicts')
+
+            tablename = model.__tablename__
+            extract_fn = _extract_from_dict
+        else:
+            raise TypeError('obj_or_data neither model instance or dict')
+
+        ins = reflection.Inspector(self.session.get_bind())
+        for uniq in ins.get_unique_constraints(tablename):
+            keys = uniq['column_names']
+
+            try:
+                data = extract_fn(keys)
+            except (KeyError, AttributeError):
+                pass
+
+            try:
+                return self.session.query(model).filter_by(**data).one()
+            except orm.exc.NoResultFound:
+                continue
+
+        if isinstance(obj_or_data, dict):
+            return model(**obj_or_data)
+        else:
+            return obj_or_data
+
+    def reconciliate_all(self, objs_or_datas, model=None):
+        return [self.reconciliate(x, model) for x in objs_or_datas]
+
     def delete(self, model, **kwargs):
         objs = self.get(model, **kwargs)
         self.session.delete(*objs)
@@ -86,13 +146,6 @@ class Db:
                 self.session.delete(src)
         self.session.commit()
 
-    def update_all_states(self, state):
-        for src in self.session.query(models.Source):
-            src.state = state
-        if state == models.State.NONE:
-            self.session.query(models.Selection).delete()
-        self.session.commit()
-
     def search(self, all_states=False, **kwargs):
         query = sautils.query_from_params(self.session, models.Source,
                                           **kwargs)
@@ -101,13 +154,3 @@ class Db:
                 models.Source.state == models.State.NONE)
 
         return query
-
-    def get_active(self):
-        qs = self.session.query(models.Source)
-        qs = qs.filter(
-            ~models.Source.state.in_(
-                (models.State.NONE, models.State.ARCHIVED)
-            )
-        )
-
-        return qs

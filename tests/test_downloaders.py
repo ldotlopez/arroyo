@@ -19,7 +19,9 @@
 
 
 import unittest
+from unittest import mock
 import time
+
 
 from testapp import TestApp, mock_source
 from arroyo import (
@@ -27,130 +29,161 @@ from arroyo import (
     models
 )
 
+
 class BaseTest:
-    slowdown = None
+    SLOWDOWN = None
 
     def wait(self):
-        if self.slowdown:
-            time.sleep(self.slowdown)
+        if self.SLOWDOWN:
+            time.sleep(self.SLOWDOWN)
 
     def setUp(self):
-        settings = {'plugins.' + k + '.enabled': True for k in self.plugins}
-        # settings['log-level'] = 'CRITICAL'
-        settings['downloader'] = self.downloader
+        settings = {'plugins.' + k + '.enabled': True
+                    for k in self.PLUGINS}
+        settings['downloader'] = self.DOWNLOADER
         self.app = TestApp(settings)
-
-    def tearDown(self):
-        for src in self.app.downloads.list():
-            self.app.downloads.remove(src)
-        self.wait()
 
     def test_add(self):
         src1 = mock_source('foo')
         self.app.insert_sources(src1)
-
         self.app.downloads.add(src1)
-
         self.wait()
+
+        self.assertTrue(
+            src1.download.state >= models.State.INITIALIZING
+        )
         self.assertEqual(
             set(self.app.downloads.list()),
-            set([src1]))
+            set([src1])
+        )
 
-    def test_remove(self):
-        src1 = mock_source('foo')
-        src2 = mock_source('bar')
-        self.app.insert_sources(src1, src2)
-
-        self.app.downloads.add(src1)
-        self.app.downloads.add(src2)
-
-        self.wait()
-        self.assertEqual(
-            set(self.app.downloads.list()),
-            set([src1, src2]))
-
-        self.app.downloads.remove(src1)
-
-        self.wait()
-        self.assertEqual(
-            set(self.app.downloads.list()),
-            set([src2]))
-
-    def test_fail_remove(self):
-        src1 = mock_source('foo')
-        src2 = mock_source('bar')
-        self.app.insert_sources(src1, src2)
-
-        self.app.downloads.add(src1)
-
-        self.wait()
-        with self.assertRaises(downloads.DownloadNotFoundError):
-            self.app.downloads.remove(src2)
-
-    def test_duplicates(self):
+    def test_add_duplicated(self):
         src1 = mock_source('foo')
         self.app.insert_sources(src1)
-
         self.app.downloads.add(src1)
-        self.app.downloads.add(src1)
-
         self.wait()
+
+        with self.assertRaises(downloads.DuplicatedDownloadError):
+            self.app.downloads.add(src1)
+
         self.assertEqual(
             set(self.app.downloads.list()),
             set([src1]))
 
-    def test_unexpected_add(self):
+    def test_add_duplicated_archived(self):
         src1 = mock_source('foo')
-        src2 = mock_source('bar')
-
-        # Important: src2 is not added because it should
-        # be really unexpected. Adding a known source is another test
         self.app.insert_sources(src1)
-
         self.app.downloads.add(src1)
-        self.app.downloads.backend.add(src2)
-
+        self.app.downloads.archive(src1)
         self.wait()
-        self.assertEqual(
-            set(self.app.downloads.list()),
-            set([src1]))
 
-    def test_unexpected_remove(self):
+        with self.assertRaises(downloads.DuplicatedDownloadError):
+            self.app.downloads.add(src1)
+
+        self.assertEqual(
+            self.app.downloads.list(),
+            [])
+
+    def test_cancel(self):
         src1 = mock_source('foo')
-        src2 = mock_source('bar')
-        self.app.insert_sources(src1, src2)
-
+        self.app.insert_sources(src1)
         self.app.downloads.add(src1)
-        self.app.downloads.add(src2)
-
+        self.app.downloads.cancel(src1)
         self.wait()
-        dler_item = self.app.downloads.get_translations()[src2]
-        self.app.downloads.backend.remove(dler_item)
 
-        self.wait()
         self.assertEqual(
-            set(self.app.downloads.list()),
-            set([src1]))
+            src1.download,
+            None)
+        self.assertEqual(
+            self.app.downloads.list(),
+            [])
 
-    def test_archive_after_manual_remove(self):
+    def test_archive(self):
         src1 = mock_source('foo')
-        src2 = mock_source('bar')
-        self.app.insert_sources(src1, src2)
-
+        self.app.insert_sources(src1)
         self.app.downloads.add(src1)
-        self.app.downloads.add(src2)
-
+        self.app.downloads.archive(src1)
         self.wait()
-        dler_item = self.app.downloads.get_translations()[src2]
-        self.app.downloads.backend.remove(dler_item)
 
-        self.wait()
-        self.app.downloads.list()
-
-        self.wait()
         self.assertEqual(
-            src2.state,
+            src1.download.state,
             models.State.ARCHIVED)
+        self.assertEqual(
+            self.app.downloads.list(),
+            [])
+
+    def test_remove_unknown_source(self):
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
+        self.app.insert_sources(src1, src2)
+        self.wait()
+
+        with self.assertRaises(downloads.DownloadNotFoundError):
+            self.app.downloads.cancel(src1)
+        with self.assertRaises(downloads.DownloadNotFoundError):
+            self.app.downloads.archive(src2)
+
+    def plugin_class(self):
+        return self.app._get_extension_class(downloads.Downloader,
+                                             self.DOWNLOADER)
+
+    def foreign_ids(self, srcs):
+        return [self.app.downloads.plugin.id_for_source(src)
+                for src in srcs]
+
+    def test_unexpected_download_from_plugin(self):
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
+        self.app.insert_sources(src1)
+        self.app.downloads.add(src1)
+        self.wait()
+
+        fake_list = self.foreign_ids([src1, src2])
+        with mock.patch.object(self.plugin_class(), 'list',
+                               return_value=fake_list):
+            self.assertEqual(
+                set(self.app.downloads.list()),
+                set([src1]))
+
+    def test_handle_unexpected_remove_from_plugin_as_cancel(self):
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
+        self.app.insert_sources(src1, src2)
+        self.app.downloads.add(src1)
+        self.app.downloads.add(src2)
+        self.wait()
+
+        fake_list = self.foreign_ids([src1])
+        with mock.patch.object(self.plugin_class(), 'list',
+                               return_value=fake_list):
+
+            self.app.downloads.sync()
+
+        self.assertEqual(
+            src2.download,
+            None)
+
+    def test_handle_unexpected_remove_from_plugin_as_archive(self):
+        src1 = mock_source('foo')
+        src2 = mock_source('bar')
+        self.app.insert_sources(src1, src2)
+        self.app.downloads.add(src1)
+        self.app.downloads.add(src2)
+        self.wait()
+
+        # Manually update state of src2
+        src2.download.state = models.State.SHARING
+
+        # Mock plugin list to not list src2
+        fake_list = self.foreign_ids([src1])
+        with mock.patch.object(self.plugin_class(), 'list',
+                               return_value=fake_list):
+            self.app.downloads.sync()
+
+        self.assertEqual(
+            src2.download.state,
+            models.State.ARCHIVED
+        )
 
     def test_info(self):
         src = mock_source('foo')
@@ -160,14 +193,37 @@ class BaseTest:
 
 
 class MockTest(BaseTest, unittest.TestCase):
-    plugins = ['downloaders.mock']
-    downloader = 'mock'
+    PLUGINS = ['downloaders.mock']
+    DOWNLOADER = 'mock'
+    DOWNLOADER_CLASS = 'arroyo.plugins.downloaders.mock.MockDownloader'
 
 
 class TransmissionTest(BaseTest, unittest.TestCase):
-    plugins = ['downloaders.transmission']
-    downloader = 'transmission'
-    slowdown = 0.5
+    PLUGINS = ['downloaders.transmission']
+    DOWNLOADER = 'transmission'
+    SLOWDOWN = 0.2
+
+    def setUp(self):
+        super().setUp()
+        for t in self.app.downloads.plugin.api.get_torrents():
+            if t.name in ['foo', 'bar']:
+                self.app.downloads.plugin.api.remove_torrent(
+                    t.id, delete_data=True)
+        self.wait()
+
+
+class DirectoryTest(BaseTest, unittest.TestCase):
+    # TODO:
+    # - Set storage path to tmpdir
+
+    PLUGINS = ['downloaders.directory']
+    DOWNLOADER = 'directory'
+    SLOWDOWN = 0.2
+
+    def setUp(self):
+        super().setUp()
+        cls = self.plugin_class()
+        cls._fetch_torrent = mock.Mock(return_value=b'')
 
 if __name__ == '__main__':
     unittest.main()

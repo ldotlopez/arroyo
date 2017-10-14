@@ -37,10 +37,18 @@ class DuplicatedDownloadError(Exception):
 
 
 class DownloadNotFoundError(Exception):
-    """Requested download already exists
+    """Requested download doesn't exists
 
     Raised by downloader plugins
     """
+    pass
+
+
+class AlreadyDownloadedError(Exception):
+    pass
+
+
+class InvalidStateError(Exception):
     pass
 
 
@@ -52,220 +60,216 @@ class ResolveLazySourceError(Exception):
     pass
 
 
+class Downloader(kit.Extension):
+    """Extension point for downloaders"""
+
+    def add(self, source):
+        """Adds source to download.
+
+        Must return True on successful or raise an Exception on failure
+        """
+        raise NotImplementedError()
+
+    def cancel(self, foreign_id):
+        """Cancels foreign ID and deletes any possible file
+
+        Must return True on successful or raise an Exception on failure
+        """
+        raise NotImplementedError()
+
+    def archive(self, foreign_id):
+        """Archives source to download, just remove it from downloader keeping
+        any possible files
+
+        Must return True on successful or raise an Exception on failure
+        """
+        raise NotImplementedError()
+
+    def list(self):
+        raise NotImplementedError()
+
+    def get_state(self, foreign_id):
+        raise NotImplementedError()
+
+    def get_info(self, foreign_id):
+        raise NotImplementedError()
+
+    def id_for_source(self, source):
+        """For tests. Returns an acceptable (even simulated or random) local ID
+        for this source"""
+        raise NotImplementedError()
+
+
 class Downloads:
-    """Downloads API.
-
-    Handles operations between core.Arroyo and the different downloaders.
-    """
-
     def __init__(self, app):
         app.register_extension_point(Downloader)
         app.register_extension_class(DownloadSyncCronTask)
         app.register_extension_class(DownloadQueriesCronTask)
         app.signals.register('source-state-change')
 
+        self._plugin = None
         self.app = app
         self.logger = loggertools.getLogger('downloads')
+        self.plugin_name = self.app.settings.get('downloader')
+
+    def strip_plugin_prefix(self, s):
+        assert s.startswith(self.plugin_name + ':')
+        return s.split(':', 1)[1]
+
+    def add_plugin_prefix(self, s):
+        assert not s.startswith(self.plugin_name + ':')
+        return self.plugin_name + ':' + s
 
     @property
-    def backend(self):
-        return self.app.get_extension(Downloader, self.backend_name)
-
-    @property
-    def backend_name(self):
-        return self.app.settings.get('downloader')
-
-    def add(self, source):
-        assert isinstance(source, models.Source)
-
-        if source.needs_postprocessing:
-            try:
-                self.app.importer.resolve_source(source)
-            except ValueError as e:
-                raise ResolveLazySourceError(source) from e
-
-        ret = self.backend.add(source)
-        if ret is not None:
-            msg = ("Invalid API usage from downloader plugin «{name}». "
-                   "Should return 'None' but got '{ret}'")
-            msg = msg.format(name=self.backend_name, ret=repr(ret))
-            raise arroyo.exc.PluginError(msg, None)
-
-        source.state = models.State.INITIALIZING
-
-        if source.entity:
-            if source.entity.selection:
-                self.app.db.session.delete(source.entity.selection)
-            source.entity.selection = source.entity.SELECTION_MODEL(
-                source=source
-            )
-
-        self.app.db.session.commit()
-        self.app.signals.send('source-state-change', source=source)
-
-    def add_all(self, sources):
-        assert isinstance(sources, list)
-        assert len(sources) > 0
-        assert all([isinstance(x, models.Source) for x in sources])
-
-        ret = []
-        for src in sources:
-            try:
-                ret.append(self.add(src))
-
-            except SyntaxError:
-                raise
-
-            except Exception as e:
-                ret.append(e)
-
-        return ret
-
-    def remove(self, source):
-        ret = self.remove_all([source])[0]
-        if isinstance(ret, Exception):
-            raise ret
-
-        return ret
-
-    def remove_all(self, sources):
-        """Remove (and delete from disk) one or more sources from backend."""
-
-        assert \
-            len(sources) > 0 and \
-            all([isinstance(x, models.Source) for x in sources])
-
-        translations = self.get_translations()
-
-        ret = []
-        for src in sources:
-            try:
-                foreign_obj = translations[src]
-            except KeyError as e:
-                ret.append(DownloadNotFoundError(src))
-                continue
-
-            try:
-                ret.append(self.backend.remove(foreign_obj))
-
-            except SyntaxError:
-                raise
-
-            except Exception as e:
-                ret.append(e)
-                continue
-
-        return ret
-
-    def get_translations(self):
-        """Build a dict with bidirectional mapping between known sources and
-        backend objects.
-        """
-
-        table = {}
-
-        for foreign_obj in self.backend.list():
-            source = self.backend.translate_item(foreign_obj, self.app.db)
-
-            # The downloader backend can have unrelated items
-            # with nothing in common with us!
-            if not source:
-                msg = "Unrelated item found: '{item}'"
-                msg = msg.format(item=str(foreign_obj))
-                self.logger.debug(msg)
-                continue
-
-            assert source not in table
-
-            table[source] = foreign_obj
-            table[foreign_obj] = source
-
-        return table
-
-    def list(self):
-        """Return a list of models.Source of current downloads.
-
-        Note: internally downloads.Downloader uses the method
-        downloads.Downloader.sync which emits signals and has side effects on
-        the database.
-        """
-        return self.sync()['downloads']
+    def plugin(self):
+        return self.app.get_extension(Downloader, self.plugin_name)
 
     def sync(self):
-        """Update database information with backend data.
+        qs = self.app.db.session.query(models.Download)
+        qs = qs.filter(
+            models.Download.foreign_id.startswith(self.plugin_name + ':'))
+        qs = qs.filter(models.Download.state != models.State.ARCHIVED)
+        db_sources = [x.source for x in qs]
 
-        Emits signal 'source-state-change' for each updated models.Source
-        """
-        translations = self.get_translations()
-        active_downloads = [x for x in translations
-                            if isinstance(x, models.Source)]
-        active_sources = self.app.db.get_active()
+        plugin_ids = [self.add_plugin_prefix(x) for x in self.plugin.list()]
 
-        changes = []
+        # Warn about unknow plugin IDs
+        # msg = "Unknow download detected in downloader plugin: {pid}"
+        # db_ids = [src.download.foreign_id for src in db_sources]
+        # for pid in set(plugin_ids) - set(db_ids):
+        #     msg_ = msg.format(pid=pid)
+        #     self.logger.warning(msg_)
 
-        # Check for state-changes
-        for src in active_downloads:
-            backend_state = self.backend.get_state(translations[src])
-            if src.state != backend_state:
-                src.state = backend_state
-                self.app.signals.send('source-state-change', source=src)
-                changes.append(src)
+        # Update state on db sources with info from plugin
+        state_changes = []
+        for src in db_sources:
+            if src.download.foreign_id in plugin_ids:
+                # src is present in downloader plugin
+                plugin_id = self.strip_plugin_prefix(src.download.foreign_id)
+                plugin_state = self.plugin.get_state(plugin_id)
+                if plugin_state != src.download.state:
+                    src.download.state = plugin_state
+                    state_changes.append(src)
 
-        # Check for missing sources
-        for src in set(active_sources) - set(active_downloads):
-            src.state = models.State.ARCHIVED
-            self.app.signals.send('source-state-change', source=src)
-            changes.append(src)
+            else:
+                # src was removed from downloader plugin
+                if src.download.state >= models.State.SHARING:
+                    src.download.state = models.State.ARCHIVED
+                else:
+                    if src.selected:
+                        self.app.db.session.delete(src.entity.selection)
+                        src.entity.selection = None
+
+                    self.app.db.session.delete(src.download)
+                    src.download = None
+
+                state_changes.append(src)
 
         self.app.db.session.commit()
 
-        return {
-            'changes': changes,
-            'downloads': active_downloads,
-        }
+        # Notify about state changes
+        for source in state_changes:
+            self.app.signals.send('source-state-change', source=source)
 
-    def get_info(self, source=None):
-        table = {}
+        # Return current downloads for convenience
+        return [
+            src for src in db_sources
+            if src.download and src.download.foreign_id in plugin_ids
+        ]
 
-        for backend_item in self.backend.list():
-            matching_source = self.backend.translate_item(backend_item,
-                                                          self.app.db)
-            if not matching_source:
-                continue
+    def add(self, source):
+        self.sync()
 
-            table[matching_source] = backend_item
-            if source and source == matching_source:
-                break
+        if source.download:
+            raise DuplicatedDownloadError()
 
-        info_table = {}
-        for (source, item) in table.items():
-            info = self.backend.get_info(item)
-            info_table[source] = DownloadInfo(**info)
+        foreign_id = self.plugin.add(source)
+        foreign_id = '{name}:{fid}'.format(
+            name=self.plugin_name, fid=foreign_id)
+        source.download = models.Download(
+            foreign_id=foreign_id, state=models.State.INITIALIZING)
 
-        if source:
-            return info_table[source]
+        if source.entity and source.entity.selection is None:
+            selection = source.entity.SELECTION_MODEL(source=source)
+            source.entity.selection = selection
+
+        self.app.db.session.commit()
+
+    def list(self):
+        return self.sync()
+
+    def _remove(self, source, delete):
+        downloads = self.list()
+
+        if source not in downloads:
+            raise DownloadNotFoundError()
+
+        plugin_id = self.strip_plugin_prefix(source.download.foreign_id)
+        if delete:
+            ret = self.plugin.cancel(plugin_id)
         else:
-            return info_table
+            ret = self.plugin.archive(plugin_id)
 
+        if ret is not True:
+            msg = ("Invalid API usage from downloader plugin «{name}». "
+                   "Should return True or raise an Exception but got '{ret}'")
+            msg = msg.format(name=self.plugin_name, ret=repr(ret))
+            raise arroyo.exc.PluginError(msg, None)
 
-class Downloader(kit.Extension):
-    def add(self, source, **kwargs):
-        raise NotImplementedError()
+        if delete:
+            # Delete download object
+            self.app.db.session.delete(source.download)
+            source.download = None
 
-    def remove(self, source, **kwargs):
-        raise NotImplementedError()
+            # Delete selection if this source is the selection for its entity
+            if (source.entity and
+                    source.entity.selection and
+                    (source.entity.selection.source == source)):
+                self.app.db.session.delete(source.entity.selection)
+                source.entity.selection = None
 
-    def list(self, **kwargs):
-        raise NotImplementedError()
+        else:
+            # Just set the state
+            source.download.state = models.State.ARCHIVED
 
-    def get_state(self, source, **kwargs):
-        raise NotImplementedError()
+        self.app.db.session.commit()
 
-    def translate_item(self, backend_obj, database_interface):
-        raise NotImplementedError()
+    def archive(self, source):
+        self._remove(source, delete=False)
 
-    def get_info(self, backend_obj):
-        raise NotImplementedError()
+    def cancel(self, source):
+        self._remove(source, delete=True)
+
+    def get_info(self, source):
+        if not source.download:
+            raise DownloadNotFoundError()
+
+        plugin_id = self.strip_plugin_prefix(source.download.foreign_id)
+        info = self.plugin.get_info(plugin_id)
+
+        return DownloadInfo(**info)
+
+    def add_all(self, sources):
+        return self._generic_all_wrapper(self.add, sources)
+
+    def archive_all(self, sources):
+        return self._generic_all_wrapper(self.archive, sources)
+
+    def cancel_all(self, sources):
+        return self._generic_all_wrapper(self.cancel, sources)
+
+    def _generic_all_wrapper(self, fn, args):
+        ret = []
+
+        for arg in args:
+            try:
+                ret.append(fn(arg))
+            except SyntaxError:
+                raise
+            except Exception as e:
+                ret.append(e)
+
+        return ret
 
 
 class DownloadInfo:
