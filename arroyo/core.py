@@ -151,7 +151,7 @@ def build_basic_settings(arguments=None):
     # With every parameter loaded we build the settings store
     store = ArroyoStore()
     for cfg in config_files:
-        with open(cfg) as fh:
+        with open(cfg, encoding='utf-8') as fh:
             store.load(fh)
     try:
         delattr(args, 'config-files')

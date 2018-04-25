@@ -299,12 +299,14 @@ class DownloadQueriesCronTask(kit.Task):
 
         for (name, query) in queries:
             matches = app.selector.matches(query)
-            srcs = app.selector.select(matches)
+            groups = app.selector.group(matches)
+            for (entity, matches) in groups:
+                src = app.selector.select(matches)
 
-            if srcs is None:
-                continue
+                if src is None:
+                    continue
 
-            downloads.extend(srcs)
+                downloads.append(src)
 
         if not downloads:
             return

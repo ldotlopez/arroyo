@@ -37,7 +37,7 @@ class SourceFieldsFilter(pluginlib.QuerySetFilter):
     __extension_name__ = 'source-fields'
 
     _strs = ('urn', 'uri', 'name', 'provider', 'language')
-    _strs = [[x, x + '-glob', x + '-in'] for x in _strs]
+    _strs = [[x, x + '-regexp', x + '-glob', x + '-in'] for x in _strs]
     _strs = functools.reduce(lambda x, y: x + y, _strs, [])
 
     _nums = ('id', 'size', 'seeds', 'leechers', 'share-ratio', 'age')
