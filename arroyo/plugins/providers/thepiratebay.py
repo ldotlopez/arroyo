@@ -51,7 +51,7 @@ class ThePirateBay(pluginlib.Provider):
     # order_by=11 uploaded by
 
     PROTO = 'https'
-    TLD = 'cr'
+    TLD = 'org'
 
     DEFAULT_URI = '{proto}://thepiratebay.{tld}/recent/0/'.format(
         proto=PROTO, tld=TLD
