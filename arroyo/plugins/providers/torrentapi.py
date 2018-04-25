@@ -66,7 +66,7 @@ class TorrentAPI(pluginlib.Provider):
         r'^http(s)?://([^.]+.)?torrentapi\.org/pubapi_v2.php\?'
     ]
 
-    TOKEN_URL = 'http://torrentapi.org/pubapi_v2.php?get_token=get_token'
+    TOKEN_URL = 'http://torrentapi.org/pubapi_v2.php?get_token=get_token&app_id=arroyo'
     SEARCH_URL = r'http://torrentapi.org/pubapi_v2.php?mode=search'
 
     CATEGORY_MAP = {
@@ -91,9 +91,9 @@ class TorrentAPI(pluginlib.Provider):
                 format='json_extended',
                 limit=100,
                 sort='last',
+                app_id='arroyo',
                 token=self.token)
         )
-
         return (yield from super().fetch(fetcher, uri))
 
     @asyncio.coroutine
