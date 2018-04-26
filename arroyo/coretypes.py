@@ -138,7 +138,7 @@ class EpisodeQuery(BaseQuery):
             return super().base_string
 
         params = {}
-        for key in ['year', 'season', 'episode']:
+        for key in ['year', 'season', 'number']:
             try:
                 params[key] = int(self[key])
             except (KeyError, ValueError):
@@ -150,8 +150,8 @@ class EpisodeQuery(BaseQuery):
         if 'season' in params:
             ret += ' S{:02d}'.format(params['season'])
 
-            if 'episode' in params:
-                ret += 'E{:02d}'.format(params['episode'])
+            if 'number' in params:
+                ret += 'E{:02d}'.format(params['number'])
 
         return ret
 
