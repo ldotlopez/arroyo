@@ -77,6 +77,7 @@ class TorrentAPI(pluginlib.Provider):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
 
+        self.logger = self.app.logger.getChild('torrentapi')
         self.token = None
         self.token_ts = 0
         self.token_last_use = 0
@@ -84,7 +85,7 @@ class TorrentAPI(pluginlib.Provider):
     @asyncio.coroutine
     def fetch(self, fetcher, uri):
         yield from self.refresh_token()
-
+        yield from asyncio.sleep(0.5)
         uri = uritools.alter_query_params(
             uri,
             dict(
@@ -133,10 +134,20 @@ class TorrentAPI(pluginlib.Provider):
                 'type': self.parse_category(e['category'])
             }
 
-        data = json.loads(buff.decode('utf-8'))
+        try:
+            data = json.loads(buff.decode('utf-8'))
+        except json.decoder.JSONDecodeError as e:
+            msg = "Error parsing json response: {e}"
+            msg = msg.format(e=str(e))
+            self.logger.error(msg)
+            return []
+
         try:
             psrcs = data['torrent_results']
+
         except KeyError:
+            msg = "Invalid response, missing torrent_results key"
+            self.logger.error(msg)
             return []
 
         ret = [convert_data(x) for x in psrcs]
