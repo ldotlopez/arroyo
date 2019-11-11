@@ -110,6 +110,7 @@ class TorrentAPI(pluginlib.Provider):
             self.token = json.loads(buff.decode('utf-8'))['token']
             self.token_ts = time.time()
             self.token_last_use = None
+            yield from asyncio.sleep(1)
             return
 
         # No need to throttle
