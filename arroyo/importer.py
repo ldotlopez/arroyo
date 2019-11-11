@@ -544,7 +544,7 @@ class Importer:
                     'xt=' + urn, 'xt=' + normalized_urn)
                 psrc['urn'] = normalized_urn
 
-            except KeyError:
+            except (ValueError, KeyError):
                 pass
 
             # Fix created

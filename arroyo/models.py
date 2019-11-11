@@ -417,7 +417,10 @@ class Source(EntityPropertyMixin, sautils.Base):
         """
         Wrapper around static method normalize
         """
-        return self.normalize(key, value)
+        try:
+            return self.normalize(key, value)
+        except ValueError:
+            return ''
 
     def asdict(self):
         ret = {
