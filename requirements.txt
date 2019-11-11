@@ -7,7 +7,7 @@ babelfish==0.5.5
 beautifulsoup4==4.5.3
 bencodepy==0.9.5
 blinker==1.4
-certify==1.0rc6
+# certify==1.0rc6
 chardet==2.3.0
 guessit==2.1.1
 humanfriendly==2.3.2
